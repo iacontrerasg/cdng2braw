@@ -1,0 +1,28 @@
+# Finales de línea LF en el árbol de trabajo, en todos los sistemas.
+#
+# No es una preferencia de estilo: el repositorio lleva SHA256 grabados de sus propios ficheros
+# (model/*_signal.json declara el sha256 del *_camera_support.json que tiene al lado, y la app comprueba
+# los suyos antes de instalar el perfil). Con core.autocrlf=true, git convierte esos JSON a CRLF al clonar
+# en Windows, el sha256 deja de cuadrar y el motor se niega a convertir:
+#   «Camera Support JSON does not match this signal calibration»
+# Con eol=lf el árbol es igual en macOS, Linux y Windows, y los hashes siguen valiendo.
+* text=auto eol=lf
+
+# Datos del modelo y recursos binarios: que git no los interprete nunca como texto.
+*.braw binary
+*.bin  binary
+*.npz  binary
+*.f32  binary
+*.dng  binary
+*.wav  binary
+*.gcsv text eol=lf
+*.fsg2 binary
+
+# Iconos e imágenes.
+*.icns binary
+*.ico  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.qm   binary
+*.pdf  binary

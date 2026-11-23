@@ -1,0 +1,14 @@
+out/
+# binario del oráculo (se compila con el comando del README)
+tools/brawdec/brawdec
+# entorno y basura
+.venv/
+__pycache__/
+*.pyc
+.vscode/
+.DS_Store
+build/
+# dependencias que vcpkg compila a partir de vcpkg.json (Windows); el manifiesto sí se versiona
+vcpkg_installed/
+# registro que deja aqtinstall al instalar Qt
+aqtinstall.log

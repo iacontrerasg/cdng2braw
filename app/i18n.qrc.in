@@ -1,0 +1,4 @@
+<RCC><qresource prefix="/i18n">
+<file alias="es.json">@CMAKE_CURRENT_SOURCE_DIR@/i18n/es.json</file>
+<file alias="qtbase_es.qm">@CDNG_QT_TRANSLATIONS@/qtbase_es.qm</file>
+</qresource></RCC>

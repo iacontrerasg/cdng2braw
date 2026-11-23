@@ -1,0 +1,77 @@
+{
+ "kind": "measured Video Assist input transform (Sigma fp over HDMI RAW -> BRAW decoded codes)",
+ "source_clip": "samples/sigma_fp_video_assist/2026-10-29_SigmaFP_BlackmagicVA_SAMPLE/FP_BMVA_002_Q0.braw",
+ "source_clip_sha256": "464700a609b51036982167a06b093593dec96d1650220c2d29fed748fc776e65",
+ "source_dng": "FP_DNG_B001_002_LOSSLESS/B001_002_20261029_000001.DNG (distinta toma, misma escena estática y exposición)",
+ "date": "2026-11-01",
+ "model": "code_ch = k0 + s * sqrt(max(g_ch * x_ch * full, 0)); x = (cuenta - negro) / (blanco - negro); Y = (R + 2G + B) / 4; Cb = (B - G) / 2; Cr = (R - G) / 2",
+ "k0": 65.79,
+ "s": 65.29,
+ "full": 3839.0,
+ "gain_rgb": [
+  1.0181,
+  1.0,
+  1.0313
+ ],
+ "fit": {
+  "blocks": 3777,
+  "block": 32,
+  "count_range_G": [
+   2.5,
+   483.2
+  ],
+  "rms_residual_codes_rgb": [
+   1.72,
+   1.49,
+   1.16
+  ],
+  "ideal_alternative": "k0 = 64, s = (4095 - 64) / sqrt(3839) = 65.06, g = 1: rms 3.4-4.2 codes",
+  "note": "gain_rgb puede ser deriva de luz entre tomas o ganancia real del VA; se decide comparando renders en Resolve"
+ },
+ "luma_structure": "Y es luma de resolución completa sin patrón CFA ni replicación por cuarteto (no es Bayer directo)",
+ "clip_metadata": {
+  "camera_type": "SIGMA fp L",
+  "viewing_bmdgen": 4,
+  "analog_gain": 1.2599210739135742,
+  "analog_gain_is_constant": 1,
+  "iso": 800
+ },
+ "frame_metadata": {
+  "agpf": 1.2599210739135742,
+  "isoe": 800
+ },
+ "sdk_decode": {
+  "vertex": 64.52700602707795,
+  "offset": -0.23270667892468652,
+  "knee_code": 95.98914951186322,
+  "linear_slope": 0.014761312206632878,
+  "model": "x = ((código − vertex)/s)² + offset para código ≥ knee_code; x = knee_x + (código − knee_code)·linear_slope por debajo (knee_x = ((knee_code − vertex)/s)² + offset); x en códigos de sensor como en code_ch. El codificador aplica la inversa, con la recta para la señal bajo el negro en lugar de recortar en 0."
+ },
+ "sdk_decode_measurement": {
+  "date": "2026-11-07",
+  "template": "out/explicador-braw/luma/validacion-conversor/croma-sitio/motor-ruido/nuevo_q1.braw",
+  "template_sha256": "34b88aad7142c08377cf3204b3febfb386f1c778a4c0b5d977a80d9be7d212da",
+  "camera_support_profile": "model/sigma_fp_cinemadng_camera_support.json",
+  "camera_support_sha256": "a296bee4933c8c6c4ee4d3257001486f7d89963f7b235cdbc5285525be6967c8",
+  "wb": [
+   5600,
+   10
+  ],
+  "levels": 120,
+  "fit": {
+   "vertex": 64.52700602707795,
+   "offset": -0.23270667892468652,
+   "knee_code": 95.98914951186322,
+   "linear_slope": 0.014761312206632878,
+   "zero_code": 96.00053379806668,
+   "knee_x": -0.0004954175902886215,
+   "line_vs_parabola_at_knee": 0.00032737058738959845,
+   "k_linear_per_sensor_code": 0.002059182128716466,
+   "residual_rel_max_above_150": 0.00038888809270628654,
+   "residual_rel_rms_above_150": 0.0001953597900588356,
+   "residual_abs_max_below_90": 0.0006543550669679821,
+   "decoded_code_error_max": 1.1597222222221717,
+   "band_sigma_max": 0.24206145913796356
+  }
+ }
+}

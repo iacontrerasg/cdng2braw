@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Página de códigos del proceso = UTF-8 (Windows 10 1903 o posterior).
+
+  El protocolo entre la app y el motor es JSON en UTF-8 (native/engine/worker/json.hpp: «UTF-8 tal cual»), y el
+  motor mete esas cadenas en std::filesystem::path. En MSVC, la conversión entre path y std::string usa la página
+  de códigos del sistema (CP_ACP), no UTF-8: sin esto, una carpeta con acentos («Vídeos», «Cámara») llega al motor
+  con los bytes cambiados y la conversión falla, o el BRAW se publica con otro nombre. Con activeCodePage=UTF-8,
+  CP_ACP ES UTF-8 y todas esas conversiones (y fopen, y simdjson::padded_string::load) son correctas.
+
+  Alternativa portable: u8path/u8string en cada frontera. Se eligió el manifiesto porque es un punto único y no
+  toca el motor, que es código validado contra el Python. Si algún día hay que soportar Windows anterior a 1903,
+  hay que hacer esas conversiones a mano.
+-->
+<!-- Sin assemblyIdentity: este manifiesto se fusiona (/MANIFESTINPUT) con el que genera el enlazador, y dos
+     identidades hacen fallar a mt.exe. -->
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+      <activeCodePage xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">UTF-8</activeCodePage>
+    </windowsSettings>
+  </application>
+</assembly>
