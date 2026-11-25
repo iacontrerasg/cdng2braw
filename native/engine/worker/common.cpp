@@ -1,12 +1,15 @@
 #include "worker.hpp"
+#include "signal_internal.hpp"
 
 #include <simdjson.h>
 
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <mutex>
 #include <regex>
 
@@ -201,6 +204,18 @@ SourceInfo sourceInfo(const Dng &dng, const OgModel &og) {
     if (info.route == Route::Og) {
         const auto shot = ogSourceInfo(dng, og);
         info.gain = shot.gain; info.iso = shot.iso; info.kelvin = shot.kelvin; info.tint = shot.tint; info.profile = profileFor(info.route);
+        if (trace::active()) {
+            const auto iso = dng.numeric(34855);
+            trace::line("route: Og (camera \"" + dng.cameraName() + "\")");
+            trace::line("source_iso_exif: " + (iso && !iso->empty() ? std::to_string(int((*iso)[0])) : std::string("none")) +
+                        "  shot.iso: " + std::to_string(shot.iso));
+            trace::line("BaselineExposure: " + std::to_string(shot.baselineExposure) + " EV");
+            trace::line("2^BaselineExposure: " + std::to_string(shot.exposureGain));
+            trace::line("profile baselineGain: " + std::to_string(og.impl->baselineGain));
+            trace::line("computed gain (2^BE / baselineGain): " + std::to_string(shot.computedGain));
+            trace::line("shot.gain (effective): " + std::to_string(shot.gain));
+            trace::line("info.gain: " + std::to_string(info.gain) + "  kelvin/tint: " + std::to_string(shot.kelvin) + "/" + std::to_string(shot.tint));
+        }
         return info;
     }
     const auto baseline = dng.numeric(50730);
@@ -252,9 +267,46 @@ void multiply(RgbImage &image, const Mat3 *matrix, double gain) {
 Planes develop(const Engine &engine, const Dng &dng, const SourceInfo &info, int width, int height) {
     // Toda cámara cuyo mapa guarda los canales del sensor por separado va por el demosaico parcial, con el patrón Bayer
     // que traiga el DNG; las demás, por el revelado RGB.
-    if (engine.map(info.route).channelCodec())
-        return bayerPlanesSized(dng.cameraBayer(), engine.map(info.route), info.gain, width, height);
+    const bool tracing = trace::active();
+    const char *routeName = info.route == Route::Og ? "Og" : info.route == Route::Va ? "Va" : "Pocket";
+    const ChannelCodec *codec = engine.map(info.route).channelCodec();
+    // Umbrales en la entrada del mapa: blanco del sensor (1.0) y, en la ruta og, el valor que llega al código 4095.
+    std::vector<double> thresholds{1.0};
+    if (tracing) {
+        trace::line(std::string("develop(): route ") + routeName + "  info.gain " + std::to_string(info.gain) +
+                    "  output " + std::to_string(width) + "×" + std::to_string(height));
+        trace::line(std::string("channelCodec(): ") + (codec ? "non-null -> Bayer path (bayerPlanesSized/bayerFields)"
+                                                             : "null -> RGB path (cameraRgb/cropSensor/multiply/resizeLinear/imagePlanes)"));
+        if (info.route == Route::Og && engine.og.impl) {
+            const auto &m = *engine.og.impl;
+            const double atMax = m.hasCurve ? m.curve.decode(m.encodingMax) / m.scale[1] : std::numeric_limits<double>::quiet_NaN();
+            thresholds.push_back(atMax);
+            trace::line("og map: hasCurve " + std::to_string(m.hasCurve) + "  sqrtKind " + std::to_string(m.sqrtKind) +
+                        "  hasTone " + std::to_string(m.hasTone) + "  encodingMax " + std::to_string(m.encodingMax) +
+                        "  scale " + std::to_string(m.scale[0]) + "," + std::to_string(m.scale[1]) + "," + std::to_string(m.scale[2]));
+            if (m.hasCurve) {
+                char text[256];
+                std::snprintf(text, sizeof text, "og curve: encode(1.0) = %.6f  decode(%g) = %.9g  decode(%g) × baselineGain = %.9g",
+                              m.curve.encode(1.0), m.encodingMax, m.curve.decode(m.encodingMax), m.encodingMax,
+                              m.curve.decode(m.encodingMax) * m.baselineGain);
+                trace::line(text);
+            }
+        }
+    }
+    if (codec) {
+        if (!tracing) return bayerPlanesSized(dng.cameraBayer(), engine.map(info.route), info.gain, width, height);
+        const auto bayer = dng.cameraBayer();
+        trace::image("cameraBayer (before gain)", bayer.samples.data(), bayer.samples.size(), 1, thresholds);
+        std::vector<float> scaled(bayer.samples);
+        for (auto &v : scaled) v = float(v * info.gain);
+        trace::image("cameraBayer × info.gain (input to ChannelCodec::encode)", scaled.data(), scaled.size(), 1, thresholds);
+        auto planes = bayerPlanesSized(bayer, engine.map(info.route), info.gain, width, height);
+        trace::planes("bayerPlanesSized output (before rounding)", planes);
+        return planes;
+    }
     RgbImage rgb = dng.cameraRgb();
+    if (tracing) trace::image("cameraRgb (LibRaw AHD, highlight=Clip, normalized black..white)", rgb.data.data(),
+                              std::size_t(rgb.width) * rgb.height, 3, thresholds);
     if (info.route == Route::Pocket) {
         const auto color = dng.color();
         const Mat3 matrix = cameraTo709(color, color.asShotNeutral);
@@ -262,10 +314,17 @@ Planes develop(const Engine &engine, const Dng &dng, const SourceInfo &info, int
         rgb = cropSensor(rgb, dng);
     } else {
         rgb = cropSensor(rgb, dng);
+        if (tracing) trace::image("cropSensor", rgb.data.data(), std::size_t(rgb.width) * rgb.height, 3, thresholds);
         if (info.gain != 1) multiply(rgb, nullptr, info.gain);
+        if (tracing) trace::line(info.gain != 1 ? "multiply(): applied, gain " + std::to_string(info.gain)
+                                                : std::string("multiply(): skipped (info.gain == 1)"));
     }
+    if (tracing) trace::image("after gain", rgb.data.data(), std::size_t(rgb.width) * rgb.height, 3, thresholds);
     rgb = resizeLinear(rgb, width, height);
-    return imagePlanes(rgb, engine.map(info.route));
+    if (tracing) trace::image("resizeLinear (input to signal map)", rgb.data.data(), std::size_t(rgb.width) * rgb.height, 3, thresholds);
+    auto planes = imagePlanes(rgb, engine.map(info.route));
+    if (tracing) trace::planes("imagePlanes output (after signal map, before rounding)", planes);
+    return planes;
 }
 
 std::vector<uint8_t> displayImage(const Dng &dng, int width, int height) {

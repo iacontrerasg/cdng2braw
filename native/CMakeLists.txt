@@ -136,8 +136,24 @@ if(CDNG_SANITIZERS AND NOT MSVC)
 endif()
 
 # Proceso de trabajo de la app (sustituye al worker Python congelado).
-add_executable(cdng-convert engine/worker/main.cpp engine/worker/common.cpp engine/worker/convert.cpp engine/worker/gyro.cpp engine/worker/preview.cpp)
+add_executable(cdng-convert engine/worker/main.cpp engine/worker/common.cpp engine/worker/convert.cpp engine/worker/gyro.cpp engine/worker/preview.cpp
+    engine/worker/trace.cpp)
 target_link_libraries(cdng-convert PRIVATE cdng_engine)
+# Identificador de build para el trazado del pipeline: commit y si el árbol tenía cambios sin confirmar al configurar.
+execute_process(COMMAND git rev-parse HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE CDNG_GIT_COMMIT OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+execute_process(COMMAND git status --porcelain --untracked-files=no WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE CDNG_GIT_DIRTY OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+execute_process(COMMAND git rev-parse --abbrev-ref HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE CDNG_GIT_BRANCH OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+if(NOT CDNG_GIT_COMMIT)
+    set(CDNG_GIT_COMMIT "unknown")
+endif()
+if(CDNG_GIT_DIRTY)
+    set(CDNG_GIT_COMMIT "${CDNG_GIT_COMMIT}-dirty")
+endif()
+set_source_files_properties(engine/worker/trace.cpp PROPERTIES COMPILE_DEFINITIONS
+    "CDNG_BUILD_COMMIT=\"${CDNG_GIT_COMMIT}\";CDNG_BUILD_BRANCH=\"${CDNG_GIT_BRANCH}\"")
 target_compile_features(cdng-convert PRIVATE cxx_std_17)
 set_target_properties(cdng-convert PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 if(NOT MSVC)

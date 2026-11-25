@@ -346,6 +346,7 @@ int convert(const std::filesystem::path &requestPath) {
     const bool wantGyro = request.gyroGcsv || request.gyroFsg2 || request.gyroBraw || request.gyroProject;
     const auto files = sequence(folder);
     emit("status", json::Object().str("message", t("Preparing the conversion…")));
+    trace::open(output.parent_path() / (output.stem().string() + ".pipeline-trace.txt"), root, folder, output);
     const Engine engine(root);
 
     // Sin pasada previa por toda la toma (en el NAS costaba minutos y leía un tercio de cada DNG): el primer frame
@@ -411,7 +412,8 @@ int convert(const std::filesystem::path &requestPath) {
         .raw("q", q ? std::to_string(*q) : "null").num("ratio", request.options.ratio)
         .num("noise_scale", std::round(noise.scale * 100) / 100)
         .raw("nr", "[" + json::number(request.options.nrLuma) + ", " + json::number(request.options.nrChroma) + "]")
-        .raw("noise_synthesis", request.options.noiseSynthesis ? "true" : "false"));
+        .raw("noise_synthesis", request.options.noiseSynthesis ? "true" : "false")
+        .str("build", trace::buildId()).str("trace", trace::path().string()));
     const auto start = std::chrono::steady_clock::now();
     auto seconds = [&] { return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count(); };
 
@@ -486,6 +488,8 @@ int convert(const std::filesystem::path &requestPath) {
                 }
                 FrameResult result;
                 result.tWait = waited;
+                trace::setActive(index == firstGood);
+                if (trace::active()) trace::line("--- frame " + std::to_string(index) + ": " + files[index].string());
                 try {
                     Planes planes;
                     if (files[index].empty()) result.reason = t("missing from the numbering");
@@ -515,9 +519,20 @@ int convert(const std::filesystem::path &requestPath) {
                         const auto noiseFrom = std::chrono::steady_clock::now();
                         finishPlanes(planes, engine.map(route), route, request.options.nrLuma / 100, request.options.nrChroma / 100);
                         result.tNoise = since(noiseFrom);
+                        if (trace::active()) {
+                            trace::line("finishPlanes(): nr luma " + std::to_string(request.options.nrLuma) + " chroma " + std::to_string(request.options.nrChroma));
+                            trace::planes("after finishPlanes (before rounding)", planes);
+                        }
                     }
+                    if (trace::active() && result.replaced) trace::line("frame replaced with black: " + result.reason);
                     const auto encodeFrom = std::chrono::steady_clock::now();
                     const auto canvas = canvasPlanes(planes, geometry);
+                    if (trace::active()) {
+                        trace::canvas("canvasPlanes (deblock precompensation + rounded/clamped, input to the codec)", canvas, geometry);
+                        trace::canvas("canvasPlanes without deblock precompensation", canvasPlanes(planes, geometry, false), geometry);
+                        trace::line("--- end of traced frame");
+                        trace::setActive(false);
+                    }
                     // Diagnóstico: CDNG_DUMP_CANVAS=fichero vuelca los planos del primer fotograma en el lienzo, sin la
                     // precompensación del filtro antibloques (lo que el decodificador debe devolver), con el formato de
                     // brawdec --decoded-out (Y u16, Cb y Cr i16), para medir la pérdida de la compresión.
