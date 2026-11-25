@@ -22,7 +22,8 @@ struct TemplateFrame { std::vector<uint8_t> header, gap, bmdf; };
 TemplateFrame readTemplate(const std::filesystem::path &templateBraw);
 
 // Metadatos de un frame (bmdf de 1024 bytes): ISO, temperatura, tinte, cadencia y, en la ruta Va, la ganancia
-// analógica del Video Assist 2^(1/3).
+// analógica del Video Assist 2^(1/3). En la ruta og, la ISO inferida de BaselineExposure, ganancia analógica 1 y
+// Exposure 0.
 struct FrameMeta { int iso = 800; int kelvin = 5600; int tint = 10; Rate rate; Route route = Route::Va; std::string camera = "SIGMA fp"; };
 
 // Movimiento como lo graba una cámara Blackmagic: una lectura por muestra, a ritmo fijo desde el principio del clip,
@@ -57,6 +58,9 @@ const std::vector<std::string> &vaCameraTypes();
 // Ganancia analógica de la ruta va a ISO 800 para esa identidad: 800 / ISO de 0 dB de la cámara en el SDK (fp 800,
 // fp L 640; el Video Assist escribe 2^(1/3) con la fp L). Con otra, Resolve anuncia una ISO distinta de 800.
 float vaGainFor(const std::string &camera);
+// Ganancia analógica de la ruta og (analog_gain del clip y agpf de cada frame): el pre_gain de todas las ISO del perfil.
+// Resolve la usa como clave de su tabla ISO por cámara; con 0 no habría ninguna ISO válida.
+inline constexpr float ogAnalogGain = 1.0f;
 
 // Datos del clip que no dependen de la ruta: `lineTimeUs` (sensor_line_time, el tiempo de lectura entre las filas de la
 // imagen; 0 = el de la plantilla), `lens` (lens_type; vacío = sin objetivo) y la identidad de la toma: `cameraId`
@@ -65,8 +69,8 @@ float vaGainFor(const std::string &camera);
 struct ClipExtras { float lineTimeUs = 0; std::string lens, cameraId, clipNumber, date; };
 
 // finalize_clip: identidad de cámara del moov. Va: `camera` (una de vaCameraTypes), Gen 4, ganancia analógica;
-// Pocket: BMPCC 4K Gen 4; Og: camera_type, gen y revisión del perfil propio, y visualización P3-D65 lineal (sin los
-// extras, que su metadata no lleva).
+// Pocket: BMPCC 4K Gen 4; Og: camera_type, gen y revisión del perfil propio, ganancia analógica constante 1 y
+// visualización P3-D65 lineal (sin los extras, que su metadata no lleva).
 void finalizeClip(const std::filesystem::path &path, const Geometry &geometry, Route route, const OgModel *og,
                   const std::string &camera = vaCameraTypes().front(), const ClipExtras &extras = {});
 

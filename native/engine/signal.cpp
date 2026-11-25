@@ -301,12 +301,43 @@ OgModel loadOgModel(const std::filesystem::path &signalJson) {
     impl->cm1 = mat3(matrix(fp, "CM1", 3, 3)); impl->cm2 = mat3(matrix(fp, "CM2", 3, 3));
     impl->k1 = number(fp, "K1"); impl->k2 = number(fp, "K2");
     impl->baselineGain = number(doc, "baseline_exposure_gain");
-    impl->sourceIso = int(number(doc, "source_iso"));
+    impl->baselineTolerance = number(doc, "baseline_exposure_tolerance");
+    const int referenceIso = int(number(doc, "reference_iso"));
+    simdjson::dom::array stops;
+    if (doc["iso_table"].get_array().get(stops)) throw Error(damaged(signalJson));
+    for (element stop : stops) impl->isoTable.push_back({int(number(stop, "iso")), number(stop, "baseline_exposure"), 0});
 
     simdjson::dom::parser profileParser;
     simdjson::padded_string profileText(reinterpret_cast<const char *>(content.data()), content.size());
     element profile;
     if (profileParser.parse(profileText).get(profile)) throw Error(damaged(profilePath));
+    {   // El post_gain de cada ISO debe ser 2^BaselineExposure / baseline_exposure_gain, con pre_gain 1 (los datos se
+        // codifican con ganancia unitaria) y la ISO de referencia como base y nativa del perfil.
+        const std::string mismatch = "Camera Support ISO table does not match this signal calibration";
+        element mode, params;
+        simdjson::dom::array gains;
+        if (profile["cameras"].at(0)["modes"].at(0).get(mode) || mode["iso_params"].at(0).get(params) ||
+            params["iso_gain_table"].get_array().get(gains))
+            throw Error(damaged(profilePath));
+        if (gains.size() != impl->isoTable.size() || impl->isoTable.empty() || int(number(params, "base_iso")) != referenceIso ||
+            int(number(mode, "native_iso")) != referenceIso)
+            throw Error(mismatch);
+        std::size_t i = 0;
+        for (element gain : gains) {
+            auto &stop = impl->isoTable[i++];
+            stop.postGain = number(gain, "post_gain");
+            const double expected = std::pow(2.0, stop.baselineExposure) / impl->baselineGain;
+            if (int(number(gain, "iso")) != stop.iso || number(gain, "pre_gain") != 1.0 ||
+                !(std::fabs(stop.postGain - expected) <= 1e-6 * expected) || (stop.iso == referenceIso) != (stop.postGain == 1.0))
+                throw Error(mismatch);
+        }
+        // La tolerancia no puede alcanzar a la ISO vecina: un valor entre dos se rechaza, no se redondea.
+        for (std::size_t a = 0; a < impl->isoTable.size(); ++a)
+            for (std::size_t b = a + 1; b < impl->isoTable.size(); ++b)
+                if (!(std::fabs(impl->isoTable[a].baselineExposure - impl->isoTable[b].baselineExposure) > 2 * impl->baselineTolerance))
+                    throw Error(mismatch);
+        if (!(impl->baselineTolerance > 0)) throw Error(mismatch);
+    }
     element table;
     if (profile["cameras"].at(0)["modes"].at(0)["csc_params"]["table"].get(table)) throw Error(damaged(profilePath));
     element axis;

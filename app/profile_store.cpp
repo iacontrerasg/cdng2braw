@@ -13,7 +13,9 @@
 #include <QSaveFile>
 #include <QSettings>
 #include <QUuid>
+#include <algorithm>
 #include <utility>
+#include <vector>
 
 static void profileResources() {
     static const bool initialized = [] { Q_INIT_RESOURCE(profiles); return true; }();
@@ -31,19 +33,29 @@ QJsonObject json(const QByteArray &bytes, bool *ok) {
     *ok = error.error == QJsonParseError::NoError && doc.isObject();
     return doc.object();
 }
-bool cameraMatches(const QJsonObject &camera, const ProfileSpec &spec) {
+bool cameraMatches(const QJsonObject &camera, const ProfileSpec &spec, qint64 revision) {
     return camera.value("manufacturer").toString() == spec.manufacturer &&
            camera.value("camera_model").toString() == spec.model &&
-           camera.value("revision").toDouble() == spec.revision;
+           camera.value("revision").toDouble() == revision;
 }
-bool owns(const QJsonObject &profile, const ProfileSpec &spec) {
+bool owns(const QJsonObject &profile, const ProfileSpec &spec, qint64 revision) {
     const auto cameras = profile.value("cameras").toArray();
-    return cameras.size() == 1 && cameraMatches(cameras[0].toObject(), spec);
+    return cameras.size() == 1 && cameraMatches(cameras[0].toObject(), spec, revision);
 }
-bool containsOwnCamera(const QJsonObject &profile, const ProfileSpec &spec) {
+bool containsOwnCamera(const QJsonObject &profile, const ProfileSpec &spec, qint64 revision) {
     for (const auto camera : profile.value("cameras").toArray())
-        if (cameraMatches(camera.toObject(), spec)) return true;
+        if (cameraMatches(camera.toObject(), spec, revision)) return true;
     return false;
+}
+// Every file the bundle installs: the current revision first, then its companions.
+struct Entry { QString file, legacyFile; qint64 revision; QString sha; QByteArray content; };
+QList<Entry> entries(const Bundle &bundle) {
+    QList<Entry> list{{bundle.spec.file, bundle.spec.legacyFile, bundle.spec.revision, bundle.spec.profileSha, bundle.profile}};
+    for (qsizetype i = 0; i < bundle.spec.companions.size(); ++i) {
+        const auto &c = bundle.spec.companions[i];
+        list.append({c.file, {}, c.revision, c.sha, i < bundle.companions.size() ? bundle.companions[i] : QByteArray()});
+    }
+    return list;
 }
 bool noSymlinks(QString path, QString *error) {
     path = QDir::cleanPath(QFileInfo(path).absoluteFilePath());
@@ -67,7 +79,10 @@ bool readFile(const QString &path, QByteArray *data, QString *error) {
     if (file.error() != QFile::NoError) { *error = file.errorString(); return false; }
     return true;
 }
-bool knownName(const QString &name, const ProfileSpec &spec) { return name == spec.file || (!spec.legacyFile.isEmpty() && name == spec.legacyFile); }
+bool knownName(const QString &name, const QList<Entry> &wanted) {
+    for (const auto &e : wanted) if (name == e.file || (!e.legacyFile.isEmpty() && name == e.legacyFile)) return true;
+    return false;
+}
 struct Snapshot { QString path; QByteArray data; };
 }
 
@@ -86,13 +101,18 @@ ProfileSpec ProfileSpec::pocketOg() {
     ProfileSpec s;
     s.id = "pocket-og"; s.displayName = "Blackmagic Pocket Cinema Camera (2013)";
     s.manufacturer = "Blackmagic"; s.model = "Pocket Cinema Camera"; s.cameraType = "Blackmagic Pocket Cinema Camera";
-    s.file = "pocket-og-cinemadng-experimental.json";
-    s.profileResource = ":/profiles/pocket_og_cinemadng_camera_support.json";
+    // Revision with the ISO table (ISO 200–1600 as decode-time gain); the converter writes it.
+    s.file = "pocket-og-cinemadng-iso.json";
+    s.revision = 1128878927;
+    s.profileResource = ":/profiles/pocket_og_cinemadng_iso_camera_support.json";
     s.signalResource = ":/profiles/pocket_og_cinemadng_signal.json";
-    s.signalProfileFilename = "pocket_og_cinemadng_camera_support.json";
-    s.profileSha = "63a0358740bfc98a459769a68d5490345785d1cbba42aa7086c6fe192d62fb5c";
-    s.signalSha = "3c87c2004ae2320ea641c2160b317bb19380cbd86f21298a88047938db792d82";
-    s.scope = "Experimental calibration made from a real take: original Pocket Cinema Camera CinemaDNG; 3000–10000 K, tint −30…30. The computer receiving the BRAW also needs the profile.";
+    s.signalProfileFilename = "pocket_og_cinemadng_iso_camera_support.json";
+    s.profileSha = "5344084f2ab960c6595a9c886f94ac52ade86d07c6c6a14b190877980c29dee6";
+    s.signalSha = "30cd14b01b6052cb187131779d49de3f27ccb02c97b6c764a1b3cba93910f5c2";
+    // The calibrated revision BRAW files written by earlier versions name; same colour and signal, single ISO.
+    s.companions = {{"pocket-og-cinemadng-experimental.json", ":/profiles/pocket_og_cinemadng_camera_support.json",
+                     "63a0358740bfc98a459769a68d5490345785d1cbba42aa7086c6fe192d62fb5c", 1128549959}};
+    s.scope = "Experimental calibration made from a real take: original Pocket Cinema Camera CinemaDNG, ISO 200–1600; 3000–10000 K, tint −30…30. The computer receiving the BRAW also needs the profile.";
     // DaVinci WG/Intermediate → the DNG's «Blackmagic Design» look (Film Gen 1), measured in Resolve.
     // Sigma fp in DaVinci WG/Intermediate → the same look: a matrix fitted on a shared scene, then the LUT above.
     s.luts = {{":/profiles/pocket_og_dng_film_from_dwg_intermediate.cube", "Pocket 2013 DNG Film from DWG Intermediate.cube",
@@ -108,13 +128,25 @@ ProfileSpec ProfileSpec::byId(const QString &id) {
     for (const auto &spec : all()) if (spec.id == id) return spec;
     return {};
 }
-Bundle Bundle::checked(QByteArray profile, QByteArray signal, const ProfileSpec &spec, QList<QByteArray> luts) {
-    Bundle result{std::move(profile), std::move(signal), {}, spec, std::move(luts)};
+Bundle Bundle::checked(QByteArray profile, QByteArray signal, const ProfileSpec &spec, QList<QByteArray> luts,
+                       QList<QByteArray> companions) {
+    Bundle result{std::move(profile), std::move(signal), {}, spec, std::move(luts), std::move(companions)};
     bool lutsOk = result.luts.size() == spec.luts.size();
     for (qsizetype i = 0; lutsOk && i < spec.luts.size(); ++i) lutsOk = digest(result.luts[i]) == spec.luts[i].sha;
     bool profileOk, signalOk;
     const auto p = json(result.profile, &profileOk), s = json(result.signal, &signalOk);
-    if (spec.id.isEmpty() || !profileOk || !signalOk || !owns(p, spec) ||
+    // Companions: pinned, owned under their own revision, and the ones the signal calibration declares as legacy.
+    bool companionsOk = result.companions.size() == spec.companions.size();
+    QList<qint64> legacy;
+    for (const auto revision : s.value("legacy_revisions").toArray()) legacy << qint64(revision.toDouble());
+    for (qsizetype i = 0; companionsOk && i < spec.companions.size(); ++i) {
+        bool ok;
+        const auto c = json(result.companions[i], &ok);
+        const auto &companion = spec.companions[i];
+        companionsOk = ok && owns(c, spec, companion.revision) && digest(result.companions[i]) == companion.sha &&
+                       companion.revision != spec.revision && legacy.contains(companion.revision);
+    }
+    if (spec.id.isEmpty() || !profileOk || !signalOk || !owns(p, spec, spec.revision) || !companionsOk ||
         s.value("revision").toDouble() != spec.revision || s.value("gen").toInt() != spec.gen ||
         s.value("camera_type").toString() != spec.cameraType ||
         s.value("profile_filename").toString() != spec.signalProfileFilename ||
@@ -128,15 +160,20 @@ Bundle Bundle::embedded(const ProfileSpec &spec) {
     profileResources();
     QFile p(spec.profileResource);
     QFile s(spec.signalResource);
-    QList<QByteArray> luts;
+    QList<QByteArray> luts, companions;
     for (const auto &lut : spec.luts) {
         QFile l(lut.resource);
         if (!l.open(QIODevice::ReadOnly)) return {{}, {}, t("Could not read the calibration resources."), spec};
         luts << l.readAll();
     }
+    for (const auto &companion : spec.companions) {
+        QFile c(companion.resource);
+        if (!c.open(QIODevice::ReadOnly)) return {{}, {}, t("Could not read the calibration resources."), spec};
+        companions << c.readAll();
+    }
     if (spec.id.isEmpty() || !p.open(QIODevice::ReadOnly) || !s.open(QIODevice::ReadOnly))
         return {{}, {}, t("Could not read the calibration resources."), spec};
-    return checked(p.readAll(), s.readAll(), spec, luts);
+    return checked(p.readAll(), s.readAll(), spec, luts, companions);
 }
 Paths Paths::system() {
 #ifdef Q_OS_MAC
@@ -210,10 +247,11 @@ Inspection ProfileStore::inspect() const {
     if (!directory.exists()) return {ProfileState::Missing, t("The camera profile must be installed."), {}};
     if (!directory.isDir() || !directory.isReadable())
         return {ProfileState::Error, t("Cannot read the Camera Support directory."), {}};
+    const auto wanted = entries(bundle_);
     QStringList candidates;
-    int correct = 0;
+    std::vector<int> found(std::size_t(wanted.size()), 0), correct(std::size_t(wanted.size()), 0);
     bool damaged = false;
-    // Inspect identity/revision in all JSONs, including legacy filenames.
+    // Inspect identity/revision in all JSONs, including legacy filenames. Each revision of ours is one file.
     const auto files = QDir(paths_.support).entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System, QDir::Name);
     for (const auto &file : files) {
         if (file.suffix().compare("json", Qt::CaseInsensitive) != 0) continue;
@@ -225,24 +263,39 @@ Inspection ProfileStore::inspect() const {
         bool ok;
         const auto object = json(content, &ok);
         if (!ok) {
-            if (knownName(file.fileName(), bundle_.spec)) { candidates << file.absoluteFilePath(); damaged = true; }
+            if (knownName(file.fileName(), wanted)) { candidates << file.absoluteFilePath(); damaged = true; }
             continue; // Malformed profiles of other cameras are outside our scope.
         }
-        if (owns(object, bundle_.spec)) {
+        qsizetype owner = -1;
+        bool partlyOurs = false;
+        for (qsizetype k = 0; k < wanted.size(); ++k) {
+            if (owns(object, bundle_.spec, wanted[k].revision)) owner = k;
+            partlyOurs = partlyOurs || containsOwnCamera(object, bundle_.spec, wanted[k].revision);
+        }
+        if (owner >= 0) {
             candidates << file.absoluteFilePath();
-            if (digest(content) == bundle_.spec.profileSha) ++correct;
-        } else if (knownName(file.fileName(), bundle_.spec) || containsOwnCamera(object, bundle_.spec)) {
+            ++found[owner];
+            if (digest(content) == wanted[owner].sha) ++correct[owner];
+        } else if (knownName(file.fileName(), wanted) || partlyOurs) {
             return {ProfileState::Conflict,
                 t("The file ") + file.fileName() + t(" contains another calibration or multiple cameras. It will not be overwritten."), {}};
         }
     }
     if (candidates.isEmpty()) return {ProfileState::Missing, t("The camera profile must be installed."), {}};
-    if (correct == 1 && candidates.size() == 1) {
+    bool complete = candidates.size() == wanted.size(), missingRevision = false, extra = false;
+    for (qsizetype k = 0; k < wanted.size(); ++k) {
+        complete = complete && found[k] == 1 && correct[k] == 1;
+        missingRevision = missingRevision || found[k] == 0;
+        extra = extra || found[k] > 1 || found[k] != correct[k];
+    }
+    if (complete) {
         for (const auto &lut : lutPaths()) if (!noSymlinks(lut, &error)) return {ProfileState::Conflict, error, {}};
         if (!lutCurrent()) return {ProfileState::Update, t("The DaVinci Resolve LUT that goes with the profile is missing or outdated."), candidates};
         return {ProfileState::Ready, t("The installed file matches this app's calibration."), candidates};
     }
     if (damaged) return {ProfileState::Damaged, t("The profile is damaged. It can be repaired while keeping a backup."), candidates};
+    if (missingRevision && !extra)
+        return {ProfileState::Update, t("A revision of our profile is missing. Installing adds it and keeps the one already installed."), candidates};
     return {ProfileState::Update, t("Another version of our profile or duplicate copies were found. A backup will be kept when updating."), candidates};
 }
 
@@ -313,8 +366,11 @@ Operation ProfileStore::change(bool install) const {
         if (!noSymlinks(path, &error) || !readFile(path, &bytes, &error)) return {false, false, error, {}};
         originals.append({path, bytes});
     }
-    const auto destination = QDir(paths_.support).filePath(bundle_.spec.file);
-    if (!noSymlinks(destination, &error)) return {false, false, error, {}};
+    const auto wanted = entries(bundle_);
+    QStringList destinations;
+    for (const auto &e : wanted) destinations << QDir(paths_.support).filePath(e.file);
+    for (const auto &destination : destinations)
+        if (!noSymlinks(destination, &error)) return {false, false, error, {}};
     QString backup;
     if (!originals.isEmpty()) {
         backup = QDir(paths_.backups).filePath(QDateTime::currentDateTimeUtc().toString("yyyyMMddTHHmmsszzz") + "-" + QUuid::createUuid().toString(QUuid::WithoutBraces));
@@ -331,37 +387,41 @@ Operation ProfileStore::change(bool install) const {
         if (!atomicWrite(QDir(backup).filePath("manifest.json"), receipt, &error))
             return {false, false, t("The profile was not changed: writing the backup record failed. ") + error, backup};
     }
+    auto isOriginal = [&](const QString &path) {
+        return std::any_of(originals.begin(), originals.end(), [&](const Snapshot &o) { return o.path == path; });
+    };
     auto rollback = [&]() {
         bool ok = true;
-        bool hadDestination = false;
         QString restoreError;
-        for (const auto &original : originals) {
-            hadDestination |= original.path == destination;
+        for (const auto &original : originals)
             if (!atomicWrite(original.path, original.data, &restoreError)) ok = false;
-        }
-        if (!hadDestination && QFileInfo::exists(destination) && !QFile::remove(destination)) ok = false;
+        for (const auto &destination : destinations)
+            if (!isOriginal(destination) && QFileInfo::exists(destination) && !QFile::remove(destination)) ok = false;
         return ok;
     };
     // Recheck after making backups, before the first mutation. Cooperating
     // installers are serialized by QLockFile; unrelated edits must be preserved.
-    bool hadDestination = false;
     for (const auto &original : originals) {
         QByteArray latest;
-        hadDestination |= original.path == destination;
         if (!noSymlinks(original.path, &error) || !readFile(original.path, &latest, &error) || latest != original.data)
             return {false, false, t("The profile changed during the operation. Check it again."), backup};
     }
-    if (!noSymlinks(destination, &error)) return {false, false, error, backup};
-    if (install && !hadDestination && QFileInfo::exists(destination))
-        return {false, false, t("Another profile file appeared. It will not be overwritten."), backup};
-    if (install && !writer_(destination, bundle_.profile, &error)) {
-        // AtomicWriter's contract: failure leaves its destination unchanged.
-        // No old profile has been removed yet, so there is nothing to roll back.
-        return {false, false, t("Could not install the profile: ") + error +
-            t(" The previous state was preserved."), backup};
+    for (const auto &destination : destinations) {
+        if (!noSymlinks(destination, &error)) return {false, false, error, backup};
+        if (install && !isOriginal(destination) && QFileInfo::exists(destination))
+            return {false, false, t("Another profile file appeared. It will not be overwritten."), backup};
+    }
+    for (qsizetype k = 0; install && k < wanted.size(); ++k) {
+        if (writer_(destinations[k], wanted[k].content, &error)) continue;
+        // AtomicWriter's contract: failure leaves its destination unchanged. Before the first write nothing changed;
+        // after it, the files already written are taken back.
+        if (k == 0) return {false, false, t("Could not install the profile: ") + error + t(" The previous state was preserved."), backup};
+        const bool restored = rollback();
+        return {false, false, t("Could not install the profile: ") + error + " " +
+            (restored ? t("The previous state was restored.") : t("Restore the profile from the backup.")), backup};
     }
     for (const auto &original : originals) {
-        if (install && original.path == destination) continue;
+        if (install && destinations.contains(original.path)) continue;
         if (!QFile::remove(original.path)) {
             const bool restored = rollback();
             return {false, false, restored ? t("The operation failed and the previous state was restored.")

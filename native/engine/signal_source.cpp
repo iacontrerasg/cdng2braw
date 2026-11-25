@@ -16,6 +16,18 @@ bool allclose(const Mat3 &a, const Mat3 &b) {
 
 }  // namespace
 
+OgExposure ogExposure(const OgModel &model, double baselineExposure, std::optional<int> exifIso) {
+    if (!model.impl) throw Error("Missing calibration");
+    const auto &m = *model.impl;
+    if (!std::isfinite(baselineExposure)) throw Error("Invalid source BaselineExposure");
+    const OgModel::Impl::IsoStop *found = nullptr;
+    for (const auto &stop : m.isoTable)
+        if (std::fabs(baselineExposure - stop.baselineExposure) <= m.baselineTolerance) found = &stop;
+    if (!found) throw Error("BaselineExposure is not represented by the Pocket Cinema Camera ISO table (ISO 200, 400, 800, 1600)");
+    if (exifIso && *exifIso != found->iso) throw Error("source ISO does not match its BaselineExposure");
+    return {found->iso, found->postGain};
+}
+
 OgShot ogSourceInfo(const Dng &dng, const OgModel &model) {
     if (!model.impl) throw Error("Missing calibration");
     const auto &m = *model.impl;
@@ -23,18 +35,17 @@ OgShot ogSourceInfo(const Dng &dng, const OgModel &model) {
     if (!(allclose(color.cm1, m.cm1) && allclose(color.cm2, m.cm2) && color.k1 == m.k1 && color.k2 == m.k2))
         throw Error("source matrices differ from calibrated DNG");
     const auto baseline = dng.scalar(50730);
-    const double gain = std::pow(2.0, baseline ? *baseline : 0.0);
-    if (std::fabs(gain - m.baselineGain) > 1e-6) throw Error("source BaselineExposure differs from profile");
+    if (!baseline || !std::isfinite(*baseline)) throw Error("Invalid source BaselineExposure");
+    std::optional<int> exifIso;
+    if (const auto iso = dng.numeric(34855); iso && !iso->empty() && (*iso)[0] != 0) exifIso = int((*iso)[0]);
+    const OgExposure exposure = ogExposure(model, *baseline, exifIso);
     OgShot shot;
-    const auto iso = dng.numeric(34855);
-    if (iso && !iso->empty() && (*iso)[0] != 0) {
-        shot.iso = int((*iso)[0]);
-        if (shot.iso != m.sourceIso) throw Error("source ISO is not represented by this experimental profile");
-    } else if (m.sourceIso == 1250) {
-        shot.iso = 1250;   // cámaras sin ISO en EXIF (Pocket original): el perfil usa su ISO nativo de referencia
-    } else {
-        throw Error("source must declare capture ISO in EXIF");
-    }
+    // La exposición viaja como ISO del clip (post_gain del perfil, al decodificar): multiplicar aquí recortaría las
+    // altas luces en el techo de la curva del sensor.
+    shot.gain = 1.0;
+    shot.iso = exposure.iso;
+    shot.baselineExposure = *baseline;
+    shot.postGain = exposure.postGain;
     if (!dng.numeric(50719) || !dng.numeric(50720)) throw Error("source must declare DefaultCropOrigin and DefaultCropSize");
     // Con rcm_tone el perfil recibe la cámara corregida: el neutro se pasa por la misma corrección, a un gris medio
     // (0,18 de la escena, antes del BaselineExposure), para buscarlo en las tablas de ganancias del perfil.

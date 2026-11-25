@@ -72,7 +72,9 @@ int main(int argc, char **argv) {
             const QDir legacy(QDir::fromNativeSeparators(qEnvironmentVariable("ProgramData", "C:/ProgramData")) +
                               "/Blackmagic Design/Blackmagic RAW/Camera Support");
             if (!store.spec().file.isEmpty() && legacy.absolutePath() != QDir(store.paths().support).absolutePath()) {
-                if (legacy.exists(store.spec().file)) QFile::remove(legacy.filePath(store.spec().file));
+                QStringList names{store.spec().file};
+                for (const auto &companion : store.spec().companions) names << companion.file;
+                for (const auto &name : names) if (legacy.exists(name)) QFile::remove(legacy.filePath(name));
                 if (legacy.exists() && legacy.isEmpty()) QDir().rmdir(legacy.absolutePath());
             }
         }

@@ -2,10 +2,13 @@
 // remuestreo, el recorte y WAV sintéticos. Paridad (CDNG_GOLDEN): los frames y los casos que guardaba
 // el prototipo.
 #include "../dng.hpp"
+#include "../signal_internal.hpp"
 #include "check.hpp"
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
+#include <optional>
 #include <fstream>
 #include <set>
 #include <sstream>
@@ -423,6 +426,73 @@ void parityGyro() {
     CHECK(Dng(dng, true).gyroBlock() == block);   // también con la lectura parcial
 }
 
+// DNG sintético de la Pocket original (matrices e iluminantes calibrados, neutro en un nodo de la tabla del perfil):
+// ogSourceInfo infiere la ISO del BaselineExposure y codifica siempre con ganancia unitaria.
+fs::path pocketOgDng(const OgModel::Impl &m, std::pair<int32_t, int32_t> baseline, std::optional<uint32_t> exifIso) {
+    TiffWriter w(true);
+    auto rationals = [](const auto &values) {
+        std::vector<std::pair<int32_t, int32_t>> out;
+        for (const double v : values) out.push_back({int32_t(std::lround(v * 1e8)), 100000000});
+        return out;
+    };
+    const std::size_t i = m.mired.size() / 2, j = std::size_t(std::find(m.tints.begin(), m.tints.end(), 10.0) - m.tints.begin());
+    const std::size_t node = i * m.tints.size() + (j < m.tints.size() ? j : 0);
+    const std::vector<double> neutral{1 / m.red[node], 1, 1 / m.blue[node]};
+    std::vector<TiffWriter::Tag> tags{
+        {271, 2, 18, ascii("Blackmagic Design")}, {272, 2, 21, ascii("Pocket Cinema Camera")},
+        {256, 3, 1, w.enc16({64})}, {257, 4, 1, w.enc32({48})},
+        {50721, 10, 9, w.encRat(rationals(m.cm1))}, {50722, 10, 9, w.encRat(rationals(m.cm2))},
+        {50778, 3, 1, w.enc16({17})}, {50779, 3, 1, w.enc16({21})},
+        {50728, 5, 3, w.encRat(rationals(neutral))},
+        {50730, 10, 1, w.encRat({baseline})},
+        {50719, 5, 2, w.encRat({{4, 1}, {2, 1}})}, {50720, 3, 2, w.enc16({56, 40})},
+    };
+    if (exifIso) tags.push_back({34855, 3, 1, w.enc16({*exifIso})});
+    auto [first, next] = w.ifd(tags);
+    (void)next;
+    w.set32(4, first);
+    const fs::path p = tempPath("pocket_og.dng");
+    writeFile(p, w.b);
+    return p;
+}
+
+void autonomousPocketOgExposure() {
+    const OgModel og = loadOgModel(resourceRoot() / "model/pocket_og_cinemadng_signal.json");
+    const auto &m = *og.impl;
+    CHECK(m.k1 == 2856.0 && m.k2 == 6504.0);
+    auto shotOf = [&](std::pair<int32_t, int32_t> baseline, std::optional<uint32_t> exif, std::string *error) {
+        const auto path = pocketOgDng(m, baseline, exif);
+        OgShot shot;
+        try { shot = ogSourceInfo(Dng(path), og); } catch (const Error &e) { *error = e.what(); }
+        fs::remove(path);
+        return shot;
+    };
+    const struct { std::pair<int32_t, int32_t> baseline; int iso; double postGain; } stops[] = {
+        {{1, 10}, 200, 0.5}, {{11, 10}, 400, 1}, {{21, 10}, 800, 2}, {{31, 10}, 1600, 4}};
+    for (const auto &s : stops)
+        for (const std::optional<uint32_t> exif : {std::optional<uint32_t>(), std::optional<uint32_t>(uint32_t(s.iso))}) {
+            std::string error;
+            const auto shot = shotOf(s.baseline, exif, &error);
+            CHECK(error.empty());
+            CHECK(shot.gain == 1.0 && shot.iso == s.iso);                       // ganancia unitaria en la codificación
+            CHECK(std::fabs(shot.postGain - s.postGain) < 1e-9);
+            CHECK(std::fabs(shot.baselineExposure - double(s.baseline.first) / s.baseline.second) < 1e-12);
+            CHECK(shot.kelvin >= 3000 && shot.kelvin <= 10000 && shot.tint >= -30 && shot.tint <= 30);
+        }
+    const std::string outside = "BaselineExposure is not represented by the Pocket Cinema Camera ISO table (ISO 200, 400, 800, 1600)";
+    for (const auto baseline : std::vector<std::pair<int32_t, int32_t>>{{16, 10}, {41, 10}, {-9, 10}, {0, 1}, {1, 1}}) {
+        std::string error;
+        shotOf(baseline, std::nullopt, &error);
+        CHECK(error == outside);
+    }
+    std::string error;
+    shotOf({31, 10}, 800, &error);
+    CHECK(error == "source ISO does not match its BaselineExposure");
+    error.clear();
+    shotOf({11, 0}, std::nullopt, &error);   // denominador 0: el lector lo rechaza antes de la tabla
+    CHECK(error == "division by zero");
+}
+
 void parityThreads(const std::vector<fs::path> &paths) {
     std::vector<RgbImage> serial;
     for (const auto &p : paths) serial.push_back(Dng(p).cameraRgb());
@@ -441,6 +511,7 @@ int main() {
     autonomousMath();
     autonomousResize();
     autonomousWav();
+    autonomousPocketOgExposure();
     parityGyro();
 
     if (!check::skipWithoutGolden("dng_test")) {

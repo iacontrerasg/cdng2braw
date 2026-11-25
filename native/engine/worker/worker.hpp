@@ -89,4 +89,25 @@ std::pair<int, int> outputSize(int requestWidth, int requestHeight, std::pair<in
 int convert(const std::filesystem::path &request);
 int previewServer();
 
+// Trazado diagnóstico del pipeline, desactivado salvo con CDNG_PIPELINE_TRACE=1: un fichero de texto junto al BRAW
+// (<nombre>.pipeline-trace.txt) con el identificador de build y las medidas del primer fotograma. Solo escribe en el
+// hilo que tiene activo el fotograma.
+namespace trace {
+std::string buildId();
+bool enabled();
+void open(const std::filesystem::path &file, const std::filesystem::path &root, const std::filesystem::path &input,
+          const std::filesystem::path &output);
+std::filesystem::path path();
+bool active();                    // este hilo está trazando su fotograma
+void setActive(bool on);
+void line(const std::string &text);
+// Estadísticas de una imagen entrelazada (channels canales): mínimo, máximo, percentiles y muestras >= cada umbral.
+void image(const std::string &label, const float *data, std::size_t pixels, int channels,
+           const std::vector<double> &thresholds = {});
+// Planos Y/Cb/Cr antes de redondear.
+void planes(const std::string &label, const Planes &planes);
+// Lienzo ya redondeado y recortado (lo que recibe el codificador).
+void canvas(const std::string &label, const CanvasPlanes &canvas, const Geometry &geometry);
+}  // namespace trace
+
 }  // namespace cdng::worker

@@ -1,5 +1,7 @@
 #include "profile_store.h"
+#include <QCryptographicHash>
 #include <QDir>
+#include <QJsonArray>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -69,8 +71,93 @@ private slots:
     }
     void pocketOgLutsArePinned() {
         auto bundle = Bundle::embedded(ProfileSpec::pocketOg()); QVERIFY(bundle.valid());
-        QVERIFY(!Bundle::checked(bundle.profile, bundle.signal, bundle.spec, {bundle.luts[0]}).valid());
-        QVERIFY(!Bundle::checked(bundle.profile, bundle.signal, bundle.spec, {bundle.luts[0], bundle.luts[1] + " "}).valid());
+        QVERIFY(Bundle::checked(bundle.profile, bundle.signal, bundle.spec, bundle.luts, bundle.companions).valid());
+        QVERIFY(!Bundle::checked(bundle.profile, bundle.signal, bundle.spec, {bundle.luts[0]}, bundle.companions).valid());
+        QVERIFY(!Bundle::checked(bundle.profile, bundle.signal, bundle.spec, {bundle.luts[0], bundle.luts[1] + " "}, bundle.companions).valid());
+    }
+    // The ISO revision installs next to the calibrated one: BRAW files already written name the earlier revision.
+    void pocketOgCompanionRevisionIsPinned() {
+        const auto bundle = Bundle::embedded(ProfileSpec::pocketOg()); QVERIFY2(bundle.valid(), qPrintable(bundle.error));
+        QCOMPARE(bundle.companions.size(), 1);
+        const auto main = QJsonDocument::fromJson(bundle.profile).object()["cameras"].toArray()[0].toObject();
+        const auto legacy = QJsonDocument::fromJson(bundle.companions[0]).object()["cameras"].toArray()[0].toObject();
+        QCOMPARE(qint64(main["revision"].toDouble()), qint64(1128878927));
+        QCOMPARE(qint64(legacy["revision"].toDouble()), qint64(1128549959));
+        QCOMPARE(main["manufacturer"], legacy["manufacturer"]); QCOMPARE(main["camera_model"], legacy["camera_model"]);
+        QVERIFY(main["modes"].toArray()[0].toObject()["iso_modification_supported"].toBool());
+        QVERIFY(!legacy["modes"].toArray()[0].toObject()["iso_modification_supported"].toBool());
+        QCOMPARE(QCryptographicHash::hash(bundle.companions[0], QCryptographicHash::Sha256).toHex(),
+                 QByteArray("63a0358740bfc98a459769a68d5490345785d1cbba42aa7086c6fe192d62fb5c"));
+        QVERIFY(!Bundle::checked(bundle.profile, bundle.signal, bundle.spec, bundle.luts).valid());   // companion required
+        QVERIFY(!Bundle::checked(bundle.profile, bundle.signal, bundle.spec, bundle.luts, {bundle.companions[0] + " "}).valid());
+        QVERIFY(!Bundle::checked(bundle.profile, bundle.signal, bundle.spec, bundle.luts, {bundle.profile}).valid());
+        auto signal = QJsonDocument::fromJson(bundle.signal).object(); signal["legacy_revisions"] = QJsonArray();
+        QVERIFY(!Bundle::checked(bundle.profile, QJsonDocument(signal).toJson(), bundle.spec, bundle.luts, bundle.companions).valid());
+    }
+    void pocketOgInstallsAndRemovesBothRevisions() {
+        QTemporaryDir temp; QVERIFY(temp.isValid()); const auto p = paths(temp);
+        const auto bundle = Bundle::embedded(ProfileSpec::pocketOg()); const ProfileStore store(p, bundle);
+        auto op = store.install(); QVERIFY2(op.ok, qPrintable(op.message)); QVERIFY(op.changed);
+        QCOMPARE(store.inspect().state, ProfileState::Ready);
+        QCOMPARE(read(file(p, "pocket-og-cinemadng-iso.json")), bundle.profile);
+        QCOMPARE(read(file(p, "pocket-og-cinemadng-experimental.json")), bundle.companions[0]);
+        QCOMPARE(store.inspect().files.size(), 2);
+        QVERIFY(QFile::remove(file(p, "pocket-og-cinemadng-experimental.json")));     // one revision missing
+        QCOMPARE(store.inspect().state, ProfileState::Update);
+        QVERIFY(store.install().ok); QCOMPARE(store.inspect().state, ProfileState::Ready);
+        op = store.remove(); QVERIFY2(op.ok, qPrintable(op.message));
+        QVERIFY(!QFileInfo::exists(file(p, "pocket-og-cinemadng-iso.json")));
+        QVERIFY(!QFileInfo::exists(file(p, "pocket-og-cinemadng-experimental.json")));
+        QCOMPARE(QDir(op.backup).entryList({"*.bak"}, QDir::Files).size(), 2);
+        QCOMPARE(store.inspect().state, ProfileState::Missing);
+    }
+    void pocketOgUpgradeKeepsTheCalibratedRevision() {
+        QTemporaryDir temp; QVERIFY(temp.isValid()); const auto p = paths(temp);
+        const auto bundle = Bundle::embedded(ProfileSpec::pocketOg()); const ProfileStore store(p, bundle);
+        write(file(p, "pocket-og-cinemadng-experimental.json"), bundle.companions[0]);   // installed by an earlier version
+        const auto state = store.inspect();
+        QCOMPARE(state.state, ProfileState::Update);
+        QVERIFY(state.detail.contains("revision of our profile is missing"));
+        const auto op = store.install(); QVERIFY2(op.ok, qPrintable(op.message)); QVERIFY(op.changed);
+        QCOMPARE(read(file(p, "pocket-og-cinemadng-experimental.json")), bundle.companions[0]);
+        QCOMPARE(read(file(p, "pocket-og-cinemadng-iso.json")), bundle.profile);
+        QCOMPARE(store.inspect().state, ProfileState::Ready);
+    }
+    void pocketOgOutdatedOrDuplicateRevisionsAreConsolidated() {
+        QTemporaryDir temp; QVERIFY(temp.isValid()); const auto p = paths(temp);
+        const auto bundle = Bundle::embedded(ProfileSpec::pocketOg()); const ProfileStore store(p, bundle);
+        write(file(p, "pocket-og-cinemadng-experimental.json"), bundle.companions[0] + " ");   // same revision, other bytes
+        write(file(p, "my-copy.json"), bundle.profile);                                        // our ISO revision, other name
+        write(file(p, "my-copy-2.json"), bundle.profile);
+        QCOMPARE(store.inspect().state, ProfileState::Update);
+        QVERIFY(store.inspect().detail.contains("duplicate"));
+        const auto op = store.install(); QVERIFY2(op.ok, qPrintable(op.message));
+        QCOMPARE(store.inspect().state, ProfileState::Ready);
+        QCOMPARE(read(file(p, "pocket-og-cinemadng-experimental.json")), bundle.companions[0]);
+        QVERIFY(!QFileInfo::exists(file(p, "my-copy.json"))); QVERIFY(!QFileInfo::exists(file(p, "my-copy-2.json")));
+        QCOMPARE(QDir(op.backup).entryList({"*.bak"}, QDir::Files).size(), 3);
+    }
+    void pocketOgFailedCompanionWriteRollsBack() {
+        QTemporaryDir temp; QVERIFY(temp.isValid()); const auto p = paths(temp);
+        const auto bundle = Bundle::embedded(ProfileSpec::pocketOg());
+        write(file(p, "pocket-og-cinemadng-experimental.json"), bundle.companions[0] + " ");
+        const ProfileStore store(p, bundle, [](const QString &path, const QByteArray &content, QString *error) {
+            if (path.endsWith("pocket-og-cinemadng-experimental.json")) { *error = "simulated disk full"; return false; }
+            return ProfileStore::atomicWrite(path, content, error);
+        });
+        const auto op = store.install(); QVERIFY(!op.ok);
+        QVERIFY(!QFileInfo::exists(file(p, "pocket-og-cinemadng-iso.json")));                 // first write taken back
+        QCOMPARE(read(file(p, "pocket-og-cinemadng-experimental.json")), bundle.companions[0] + " ");
+    }
+    void pocketOgForeignRevisionOfTheSameCameraIsLeftAlone() {
+        QTemporaryDir temp; QVERIFY(temp.isValid()); const auto p = paths(temp);
+        const auto bundle = Bundle::embedded(ProfileSpec::pocketOg()); const ProfileStore store(p, bundle);
+        auto other = QJsonDocument::fromJson(bundle.profile).object(); auto cameras = other["cameras"].toArray();
+        auto camera = cameras[0].toObject(); camera["revision"] = 1128000000.0; cameras[0] = camera; other["cameras"] = cameras;
+        const auto data = QJsonDocument(other).toJson(); write(file(p, "test-revision.json"), data);   // e.g. an experiment
+        QCOMPARE(store.inspect().state, ProfileState::Missing);
+        QVERIFY(store.install().ok); QCOMPARE(store.inspect().state, ProfileState::Ready);
+        QVERIFY(store.remove().ok); QCOMPARE(read(file(p, "test-revision.json")), data);
     }
     void withoutResolveTheProfileAloneIsReady() {
         QTemporaryDir temp; const auto p = paths(temp);                    // luts empty: Resolve not found
@@ -110,6 +197,7 @@ private slots:
         QCOMPARE(pocket.inspect().state, ProfileState::Ready);
         QCOMPARE(sigma.inspect().state, ProfileState::Ready);
         QVERIFY(QFileInfo::exists(file(p, "pocket-og-cinemadng-experimental.json")));
+        QVERIFY(QFileInfo::exists(file(p, "pocket-og-cinemadng-iso.json")));
         QVERIFY(pocket.remove().ok);
         QCOMPARE(pocket.inspect().state, ProfileState::Missing);
         QCOMPARE(sigma.inspect().state, ProfileState::Ready);

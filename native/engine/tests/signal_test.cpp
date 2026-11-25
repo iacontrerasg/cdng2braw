@@ -2,10 +2,13 @@
 #include "../signal_internal.hpp"
 #include "check.hpp"
 
+#include <simdjson.h>
+
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <fstream>
+#include <set>
 
 // ogSourceInfo necesita el lector DNG del bloque A: poner a 1 cuando dng.cpp esté implementado.
 #ifndef CDNG_SIGNAL_TEST_DNG
@@ -39,6 +42,118 @@ template <class A, class B> std::vector<double> relative(const A &a, const B &b,
     std::vector<double> out(std::min(a.size(), b.size()));
     for (std::size_t i = 0; i < out.size(); ++i) out[i] = std::fabs(double(a[i]) - double(b[i])) / std::max(std::fabs(double(b[i])), floor);
     return out;
+}
+
+constexpr uint32_t IsoRevision = 1128878927u, LegacyRevision = 1128549959u;
+constexpr const char *LegacySha = "63a0358740bfc98a459769a68d5490345785d1cbba42aa7086c6fe192d62fb5c";
+
+std::string text(const std::filesystem::path &path) {
+    const auto bytes = readBytes(path);
+    return std::string(bytes.begin(), bytes.end());
+}
+
+// Copia el JSON de señal y su perfil a una carpeta temporal, con sustituciones de texto en el JSON de señal (y un
+// byte cambiado en el perfil si alterProfile), y los carga.
+OgModel loadVariant(const std::vector<std::pair<std::string, std::string>> &replace, bool alterProfile = false) {
+    const auto dir = std::filesystem::temp_directory_path() / "cdng_signal_test";
+    std::filesystem::remove_all(dir);
+    std::filesystem::create_directories(dir);
+    auto signal = text(Resources / "model/pocket_og_cinemadng_signal.json");
+    for (const auto &[from, to] : replace) {
+        const auto at = signal.find(from);
+        CHECK(at != std::string::npos);
+        if (at != std::string::npos) signal.replace(at, from.size(), to);
+    }
+    std::ofstream(dir / "pocket_og_cinemadng_signal.json", std::ios::binary) << signal;
+    auto profile = text(Resources / "model/pocket_og_cinemadng_iso_camera_support.json");
+    if (alterProfile) profile.back() = profile.back() == ' ' ? '\n' : ' ';
+    std::ofstream(dir / "pocket_og_cinemadng_iso_camera_support.json", std::ios::binary) << profile;
+    struct Cleanup { std::filesystem::path dir; ~Cleanup() { std::filesystem::remove_all(dir); } } cleanup{dir};
+    return loadOgModel(dir / "pocket_og_cinemadng_signal.json");
+}
+
+// Tabla ISO de la Pocket original: BaselineExposure → ISO con tolerancia, sin redondear a la más cercana.
+void isoInference(const OgModel &og) {
+    const struct { double baseline; int iso; double gain; } stops[] = {{0.1, 200, 0.5}, {1.1, 400, 1}, {2.1, 800, 2}, {3.1, 1600, 4}};
+    for (const auto &s : stops) {
+        for (const double delta : {0.0, 1e-9, 0.009, -0.009}) {
+            const auto e = ogExposure(og, s.baseline + delta, std::nullopt);
+            CHECK(e.iso == s.iso && std::fabs(e.postGain - s.gain) < 1e-9);
+        }
+        CHECK(ogExposure(og, s.baseline, s.iso).iso == s.iso);                // ISO EXIF coherente
+        CHECK(ogExposure(og, double(float(s.baseline)), std::nullopt).iso == s.iso);   // valor guardado en float
+        CHECK(ogExposure(og, double(int(std::lround(s.baseline * 10))) / 10, std::nullopt).iso == s.iso);   // SRATIONAL n/10
+    }
+    auto error = [&](double baseline, std::optional<int> exif) {
+        try { ogExposure(og, baseline, exif); } catch (const Error &e) { return std::string(e.what()); }
+        return std::string();
+    };
+    const std::string outside = "BaselineExposure is not represented by the Pocket Cinema Camera ISO table (ISO 200, 400, 800, 1600)";
+    // Entre dos ISO, fuera de la tolerancia o fuera de la tabla: error, nunca la ISO más cercana.
+    for (const double baseline : {0.0, 0.089, 0.111, 0.6, 1.0, 1.6, 2.6, 3.089, 3.111, 3.6, 4.1, -0.9, 5.0, 1.2})
+        CHECK(error(baseline, std::nullopt) == outside);
+    CHECK(error(std::nan(""), std::nullopt) == "Invalid source BaselineExposure");
+    CHECK(error(INFINITY, std::nullopt) == "Invalid source BaselineExposure");
+    for (const auto &[baseline, exif] : std::vector<std::pair<double, int>>{{3.1, 800}, {3.1, 1250}, {1.1, 1600}, {0.1, 400}})
+        CHECK(error(baseline, exif) == "source ISO does not match its BaselineExposure");
+    // La compensación de cada ISO es BaselineExposure − log2(baseline_exposure_gain), sin tocar los datos.
+    for (const auto &s : stops)
+        CHECK_NEAR(std::log2(ogExposure(og, s.baseline, std::nullopt).postGain), s.baseline - std::log2(og.impl->baselineGain), 1e-9);
+}
+
+// La tabla del JSON de señal y la del Camera Support se cotejan al cargar; cualquier discrepancia es un error.
+void isoTableConsistency() {
+    const std::string mismatch = "Camera Support ISO table does not match this signal calibration";
+    auto message = [](const std::vector<std::pair<std::string, std::string>> &replace) {
+        try { loadVariant(replace); } catch (const Error &e) { return std::string(e.what()); }
+        return std::string();
+    };
+    CHECK(message({}).empty());
+    CHECK(message({{"\"baseline_exposure\": 3.1", "\"baseline_exposure\": 3.2"}}) == mismatch);   // post_gain ya no es 2^BE/g
+    CHECK(message({{"\"iso\": 1600", "\"iso\": 3200"}}) == mismatch);
+    CHECK(message({{"\"reference_iso\": 400", "\"reference_iso\": 800"}}) == mismatch);
+    CHECK(message({{"\"baseline_exposure_tolerance\": 0.01", "\"baseline_exposure_tolerance\": 0.5"}}) == mismatch);   // alcanza a la vecina
+    CHECK(message({{"\"baseline_exposure_tolerance\": 0.01", "\"baseline_exposure_tolerance\": 0"}}) == mismatch);
+    CHECK(!message({{"\"baseline_exposure_tolerance\": 0.01", "\"baseline_exposure_tolerance_x\": 0.01"}}).empty());   // obligatorio
+}
+
+// Compatibilidad: la revisión calibrada se conserva byte a byte y la nueva solo cambia los campos ISO.
+void profileRevisions(const OgModel &og) {
+    const auto legacyPath = Resources / "model/pocket_og_cinemadng_camera_support.json";
+    const auto isoPath = Resources / "model/pocket_og_cinemadng_iso_camera_support.json";
+    CHECK(sha256Hex(readBytes(legacyPath)) == LegacySha);
+    simdjson::dom::parser pa, pb;
+    const auto legacyText = text(legacyPath), isoText = text(isoPath), signalText = text(Resources / "model/pocket_og_cinemadng_signal.json");
+    simdjson::dom::element legacy, iso, signal;
+    CHECK(!pa.parse(legacyText).get(legacy) && !pb.parse(isoText).get(iso));
+    simdjson::dom::parser ps;
+    CHECK(!ps.parse(signalText).get(signal));
+    simdjson::dom::element a = legacy["cameras"].at(0), b = iso["cameras"].at(0);
+    CHECK(simdjson::minify(a["manufacturer"]) == simdjson::minify(b["manufacturer"]) &&
+          simdjson::minify(a["camera_model"]) == simdjson::minify(b["camera_model"]));
+    CHECK(uint64_t(a["revision"]) == LegacyRevision && uint64_t(b["revision"]) == og.revision && og.revision != LegacyRevision);
+    simdjson::dom::object ma, mb;
+    CHECK(!a["modes"].at(0).get_object().get(ma) && !b["modes"].at(0).get_object().get(mb));
+    const std::set<std::string> isoFields{"iso_params", "native_iso", "iso_modification_supported"};
+    std::size_t compared = 0;
+    const std::size_t keysA = ma.size(), keysB = mb.size();
+    for (auto field : mb) {
+        const std::string key(field.key);
+        if (isoFields.count(key)) continue;
+        simdjson::dom::element other;
+        CHECK(!ma[key].get(other) && simdjson::minify(other) == simdjson::minify(field.value));   // matrices, inv_sqrt, niveles…
+        ++compared;
+    }
+    CHECK(keysA == keysB && compared + isoFields.size() == keysB && mb["csc_params"].error() == simdjson::SUCCESS);
+    CHECK(bool(mb["iso_modification_supported"]) && !bool(ma["iso_modification_supported"]));
+    CHECK(uint64_t(mb["native_iso"]) == 400 && uint64_t(mb["iso_params"].at(0)["base_iso"]) == 400);
+    CHECK(uint64_t(ma["native_iso"]) == 1250);
+    simdjson::dom::array legacyRevisions;
+    CHECK(!signal["legacy_revisions"].get_array().get(legacyRevisions) && legacyRevisions.size() == 1 &&
+          uint64_t(legacyRevisions.at(0)) == LegacyRevision);
+    // El JSON de señal no cambia la curva ni las matrices: solo la revisión, el perfil que nombra y la tabla ISO.
+    const auto &m = *og.impl;
+    CHECK(m.hasCurve && m.encodingMax == 4095 && std::fabs(m.baselineGain - std::pow(2.0, 1.1)) < 1e-9);
 }
 
 void report(const std::string &what, const Diff &d) {
@@ -231,20 +346,11 @@ void autonomous(const OgModel &og) {
     std::vector<uint8_t> million(1000000, 'a');
     CHECK(sha256Hex(million) == "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0");
 
-    CHECK(og.cameraType == "Blackmagic Pocket Cinema Camera" && og.gen == 5 && og.revision == 1128549959u);
+    CHECK(og.cameraType == "Blackmagic Pocket Cinema Camera" && og.gen == 5 && og.revision == IsoRevision);
     {   // perfil alterado → mismo error que load_support_model
-        const auto dir = std::filesystem::temp_directory_path() / "cdng_signal_test";
-        std::filesystem::create_directories(dir);
-        std::filesystem::copy_file(Resources / "model/pocket_og_cinemadng_signal.json", dir / "pocket_og_cinemadng_signal.json",
-                                   std::filesystem::copy_options::overwrite_existing);
-        auto profile = readBytes(Resources / "model/pocket_og_cinemadng_camera_support.json");
-        profile.back() = profile.back() == ' ' ? '\n' : ' ';
-        std::ofstream(dir / "pocket_og_cinemadng_camera_support.json", std::ios::binary)
-            .write(reinterpret_cast<const char *>(profile.data()), std::streamsize(profile.size()));
         std::string message;
-        try { loadOgModel(dir / "pocket_og_cinemadng_signal.json"); } catch (const Error &e) { message = e.what(); }
+        try { loadVariant({}, true); } catch (const Error &e) { message = e.what(); }
         CHECK(message == "Camera Support JSON does not match this signal calibration");
-        std::filesystem::remove_all(dir);
     }
     {   // infer_as_shot en un nodo de la tabla (5600 K, tinte 10) y fuera del dominio
         const auto &m = *og.impl;
@@ -299,7 +405,8 @@ void parity(const OgModel &og) {
     std::printf("paridad del bloque B (diferencias absolutas; tolerancias del README)\n");
     {
         const auto c = check::Case::load("signal", "og_model");
-        CHECK(og.cameraType == c.str("camera_type") && og.gen == int(c.num("gen")) && og.revision == uint32_t(c.num("revision")));
+        // El prototipo describe la calibración original: la revisión calibrada, que se conserva para los BRAW ya escritos.
+        CHECK(og.cameraType == c.str("camera_type") && og.gen == int(c.num("gen")) && LegacyRevision == uint32_t(c.num("revision")));
         CHECK(sha256Hex(readBytes(Resources / "model/pocket_og_cinemadng_camera_support.json")) == c.str("sha"));
     }
     {
@@ -463,6 +570,9 @@ void parity(const OgModel &og) {
 int main() {
     const OgModel og = loadOgModel(Resources / "model/pocket_og_cinemadng_signal.json");
     autonomous(og);
+    isoInference(og);
+    isoTableConsistency();
+    profileRevisions(og);
     bayerSignal();
     bayerPhase();
     resizeChromaPhase();

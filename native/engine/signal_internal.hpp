@@ -40,7 +40,10 @@ struct OgModel::Impl {
     // source_info
     Mat3 cm1{}, cm2{};
     double k1 = 0, k2 = 0, baselineGain = 1;
-    int sourceIso = 0;
+    // Tabla ISO: BaselineExposure (JSON de señal) y post_gain (Camera Support) de cada ISO, cotejados al cargar.
+    struct IsoStop { int iso; double baselineExposure, postGain; };
+    std::vector<IsoStop> isoTable;
+    double baselineTolerance = 0;
     // infer_as_shot: tabla del perfil en mired creciente (filas) × tinte (columnas)
     std::vector<double> mired, tints, red, blue;
 };

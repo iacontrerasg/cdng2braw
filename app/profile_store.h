@@ -14,6 +14,9 @@ inline constexpr const char *SignalSha = "ba41ec62eedb8058f3a96909f178f701dc2718
 inline constexpr qint64 ProfileRevision = 1128549959;
 
 struct ResolveLut { QString resource, file, sha; };   // a LUT for DaVinci Resolve, embedded and pinned
+// An earlier revision of a camera profile installed next to the current one. A BRAW names the revision it was written
+// with, so existing clips keep opening only while that revision stays in Camera Support.
+struct CompanionProfile { QString file, resource, sha; qint64 revision = 0; };
 
 // One embedded calibration per camera. The decoder pairs a clip with a profile when the clip's
 // camera_type equals "<manufacturer> <camera_model>" of the profile (measured 2026-11-02).
@@ -25,6 +28,7 @@ struct ProfileSpec {
     QString profileResource, signalResource, signalProfileFilename;
     QString profileSha, signalSha;
     QList<ResolveLut> luts;     // LUTs for DaVinci Resolve installed with the profile (empty: none)
+    QList<CompanionProfile> companions;   // earlier revisions kept installed alongside (empty: none)
     QString scope;              // English source text, translated with t()
     qint64 revision = ProfileRevision;
     int gen = 5;
@@ -39,9 +43,11 @@ struct Bundle {
     QString error;
     ProfileSpec spec = ProfileSpec::sigma();
     QList<QByteArray> luts;     // the content of each spec LUT, in the same order
+    QList<QByteArray> companions;   // the content of each spec companion profile, in the same order
     bool valid() const { return error.isEmpty() && !profile.isEmpty(); }
     static Bundle embedded(const ProfileSpec &spec = ProfileSpec::sigma());
-    static Bundle checked(QByteArray profile, QByteArray signal, const ProfileSpec &spec = ProfileSpec::sigma(), QList<QByteArray> luts = {});
+    static Bundle checked(QByteArray profile, QByteArray signal, const ProfileSpec &spec = ProfileSpec::sigma(), QList<QByteArray> luts = {},
+                          QList<QByteArray> companions = {});
 };
 struct Paths {
     QString support;

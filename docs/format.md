@@ -107,7 +107,11 @@ on macOS and `%ProgramFiles(x86)%\Blackmagic Design\Blackmagic RAW\Camera Suppor
 on Windows (both need administrator rights), which the SDK loads alongside its
 own when the decoder is created, so Resolve must be restarted after installing. Its clips carry
 `viewing_gamut` "DCI-P3 D65" and `viewing_gamma` "Linear", so Resolve opens them
-in the space where they match the DNG.
+in the space where they match the DNG. Their data is encoded at unity gain and
+the exposure travels as the clip's ISO (200 to 1600, from the DNG's
+`BaselineExposure`), which the profile turns into a gain when the clip is
+decoded; two revisions of the profile are installed side by side so that older
+BRAW files keep opening. See [pocket-og-exposure.md](pocket-og-exposure.md).
 
 ## References
 

@@ -65,6 +65,14 @@ computer that opens those BRAW files needs it too, with Resolve restarted after
 installing it. The profile also installs the two LUTs in Resolve's LUT list,
 under `cdng2braw`.
 
+A Pocket take keeps its full highlight range: the BRAW carries the ISO it was
+shot at (200, 400, 800 or 1600, read from the DNG) and Resolve applies it when it
+opens the clip, with Exposure at 0. Resolve shows no ISO selector for cameras
+supported through a Camera Support profile, so the ISO cannot be changed there;
+use Exposure instead. Takes whose DNGs declare an exposure outside those four
+ISOs are refused rather than guessed. See
+[docs/pocket-og-exposure.md](docs/pocket-og-exposure.md).
+
 In Resolve, a Pocket take opens in P3-D65 linear, where it matches its DNG. For
 the DNG's default look, set Camera RAW to DaVinci Wide Gamut / DaVinci
 Intermediate and apply "Pocket 2013 DNG Film from DWG Intermediate". To give a
