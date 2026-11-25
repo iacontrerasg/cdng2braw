@@ -7,13 +7,15 @@
 #   make run          abre la app empaquetada;  make run-dev abre la del árbol de build
 #   make brawdec      compila el oráculo sobre el SDK de Blackmagic RAW (tools/brawdec/brawdec)
 #   make venv         crea .venv con requirements.txt (las herramientas de análisis; compilar y empaquetar no lo necesitan)
+#   make benchmark    banco de fidelidad (serie A completa; ver docs/image-fidelity-benchmark.md)
 #   make clean        borra los árboles de build;  make distclean borra además el paquete
 #
 # Variables ajustables: make install INSTALL_DIR=~/Applications ; make package OUT=out/otro ; make JOBS=8
+#                       make benchmark DATASET=~/Desktop/BMD REFERENCES=~/Desktop/EXR SERIES=A TEST=A02
 
 # Los scripts de empaquetado y las pruebas de la app solo usan la biblioteca estándar: sirve el python3 del sistema.
-# Con .venv (make venv), se usa ese.
-PYTHON      ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
+# Con .venv (make venv), se usa ese. El banco de fidelidad también acepta out/.venv-exr si .venv no tiene OpenEXR.
+PYTHON      ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,$(if $(wildcard out/.venv-exr/bin/python),out/.venv-exr/bin/python,python3))
 QT          ?= /opt/homebrew/opt/qt@5
 BUILD       ?= build/qt-app
 NATIVE      ?= build/native
@@ -22,18 +24,27 @@ OUT         ?= out/cdng2braw
 INSTALL_DIR ?= /Applications
 JOBS        ?= 4
 APP          = cdng2braw.app
+DATASET     ?= $(HOME)/Desktop/BMD
+REFERENCES  ?=
+SERIES      ?= A
+TEST        ?=
+RUN         ?=
+BASELINE    ?=
+BENCH_OUT   ?= out/benchmark
+CONVERTER   ?= $(WORKER)/converter
 
-.PHONY: all help venv native configure app test worker package install uninstall run run-dev brawdec clean distclean
+.PHONY: all help venv native configure app test worker package install uninstall run run-dev brawdec \
+	benchmark benchmark-validate benchmark-equivalence benchmark-freeze fidelity-test clean distclean
 
 all: app
 
 help:
-	@sed -n '2,13p' Makefile | sed 's/^# \{0,1\}//'
+	@sed -n '2,14p' Makefile | sed 's/^# \{0,1\}//'
 
 # ---- entorno Python -------------------------------------------------------------------------
 venv:
 	@test -x .venv/bin/python || { python3 -m venv .venv && .venv/bin/pip install -U pip; }
-	@.venv/bin/python -c "import numpy, scipy, rawpy, PIL" 2>/dev/null || .venv/bin/pip install -r requirements.txt
+	@.venv/bin/python -c "import numpy, scipy, rawpy, PIL, OpenEXR" 2>/dev/null || .venv/bin/pip install -r requirements.txt
 
 # ---- motor C++ (codificador de entropía) y app Qt --------------------------------------------
 native:
@@ -83,6 +94,52 @@ brawdec: tools/brawdec/brawdec
 
 tools/brawdec/brawdec: tools/brawdec/brawdec.cpp
 	clang++ -std=c++17 -O1 $< -o $@ -framework CoreFoundation
+
+# ---- banco de fidelidad de imagen --------------------------------------------------------------
+# Infraestructura en tools/fidelity; manifiesto en benchmark/. Resultados en out/benchmark/ (ignorado por Git).
+# Documentación: docs/image-fidelity-benchmark.md
+#
+#   make benchmark                         serie A completa (worker + brawdec + EXR de Resolve)
+#   make benchmark SERIES=A TEST=A02       una toma
+#   make benchmark BASELINE=main-352cfab   además, regresión frente a un baseline congelado
+#   make benchmark-validate                manifiesto y dependencias
+#   make benchmark-equivalence             brawdec frente a EXR del mismo BRAW (sin conversión)
+#   make benchmark-freeze RUN=… NAME=…     congela una ejecución como baseline
+#   make fidelity-test                     pruebas unitarias del banco (sin dataset)
+
+_BENCH_COMMON = --dataset "$(DATASET)" --out "$(BENCH_OUT)" --converter "$(CONVERTER)"
+ifneq ($(REFERENCES),)
+_BENCH_COMMON += --references "$(REFERENCES)"
+endif
+ifneq ($(RUN),)
+_BENCH_COMMON += --run "$(RUN)"
+endif
+_BENCH_RUN = $(_BENCH_COMMON)
+ifneq ($(SERIES),)
+_BENCH_RUN += --series "$(SERIES)"
+endif
+ifneq ($(TEST),)
+_BENCH_RUN += --test "$(TEST)"
+endif
+ifneq ($(BASELINE),)
+_BENCH_RUN += --baseline "$(BASELINE)"
+endif
+
+benchmark-validate: brawdec
+	$(PYTHON) -m tools.fidelity validate $(_BENCH_COMMON)
+
+benchmark: worker brawdec
+	$(PYTHON) -m tools.fidelity run $(_BENCH_RUN)
+
+benchmark-equivalence: brawdec
+	$(PYTHON) -m tools.fidelity equivalence $(_BENCH_COMMON)
+
+benchmark-freeze:
+	@test -n "$(RUN)" && test -n "$(NAME)" || { echo 'uso: make benchmark-freeze RUN=<id> NAME=<nombre>'; exit 2; }
+	$(PYTHON) -m tools.fidelity freeze "$(BENCH_OUT)/runs/$(RUN)" "$(NAME)" --out "$(BENCH_OUT)"
+
+fidelity-test:
+	$(PYTHON) -m unittest tests.test_fidelity -v
 
 # ---- limpieza ----------------------------------------------------------------------------------
 clean:

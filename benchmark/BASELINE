@@ -1,0 +1,5 @@
+# Compilación de referencia del banco de fidelidad (investigación estable, modelo ISO Pocket OG).
+# Commit de main tras el merge del PR #1. No es un golden test: es la identidad de la investigación.
+commit=352cfab4a5b9217abbfb06b15913fb6b044b5b87
+short=352cfab
+description=Merge pull request #1 from iacontrerasg/feat/pocket-og-iso-exposure-model

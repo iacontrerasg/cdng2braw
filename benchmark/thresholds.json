@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "equivalence": {
+    "basis": "La conversión (modo calidad, o ratio con CDNG_RATE=search) y el revelado con brawdec son deterministas: con las mismas entradas, ajustes y compilación, el BRAW y la imagen revelada son idénticos bit a bit (comprobado al montar el banco). Por eso, por defecto, cualquier diferencia de una métrica es un cambio real de la salida. La tolerancia relativa de 1e-9 solo absorbe el redondeo de las sumas en float64 de la propia métrica; no es un umbral de calidad.",
+    "default": {"abs": 0.0, "rel": 1e-9},
+    "rules": []
+  },
+  "acceptance_basis": "Sin criterios de aceptación por defecto: no hay todavía una base documentada que permita fijar un mínimo de PSNR u otro valor. Para añadir uno, incluye {\"metric\": patrón fnmatch de la ruta aplanada, \"min\"/\"max\", \"basis\": fundamento}.",
+  "acceptance": []
+}
