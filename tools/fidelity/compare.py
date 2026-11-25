@@ -13,8 +13,8 @@ from .metrics import flatten
 LOWER = ('mae', 'mse', 'rmse', 'profile_rmse', 'fringe_max', 'duv_mean', 'duv_p95', 'duv_p99', 'duv_max', 'mean_duv',
          'luma_rel_error_abs_mean', 'luma_abs_error_mean', 'mae_mean', 'mae_worst', 'rmse_mean', 'rmse_worst',
          'mean_duv_mean', 'mean_duv_worst', 'profile_rmse_mean', 'profile_rmse_worst', 'fringe_max_mean',
-         'fringe_max_worst', 'duv_mean_mean', 'duv_mean_worst')
-HIGHER = ('psnr_db', 'correlation_rgb', 'correlation', 'psnr_db_mean', 'psnr_db_worst')
+         'fringe_max_worst', 'duv_mean_mean', 'duv_mean_worst', 'duv_invalid')
+HIGHER = ('psnr_db', 'correlation_rgb', 'correlation', 'psnr_db_mean', 'psnr_db_worst', 'duv_valid_fraction')
 ABS = ('signed_mean_error', 'luminance_rel_error_pct', 'luma_rel_error_mean', 'overshoot_delta', 'undershoot_delta',
        'rise_10_90_delta', 'luminance_rel_error_pct_mean', 'luminance_rel_error_pct_worst', 'overshoot_delta_mean',
        'overshoot_delta_worst', 'undershoot_delta_mean', 'undershoot_delta_worst', 'rise_10_90_delta_mean',
@@ -61,16 +61,40 @@ def badness(value, kind):
     return {'lower': value, 'higher': -value, 'abs': abs(value), 'unity': abs(value - 1)}[kind]
 
 
+def as_number(value):
+    """Número comparable: acepta float/int y las cadenas 'inf'/'-inf'/'nan' que escribe metrics._f."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if value == 'inf':
+        return math.inf
+    if value == '-inf':
+        return -math.inf
+    if value == 'nan':
+        return math.nan
+    return None
+
+
 def status(path, base, cand, thresholds):
     kind = direction(path)
-    if not kind or not isinstance(base, (int, float)) or not isinstance(cand, (int, float)) or isinstance(base, bool):
+    if not kind:
         return None
-    if not (math.isfinite(base) and math.isfinite(cand)):
-        return 'equivalent' if base == cand else 'changed'
+    b, c = as_number(base), as_number(cand)
+    if b is None or c is None:
+        return None
+    # NaN u otras no evaluables: nunca «equivalent» en silencio.
+    if math.isnan(b) or math.isnan(c):
+        return 'not_evaluable'
+    if math.isinf(b) and math.isinf(c):
+        return 'equivalent' if (b > 0) == (c > 0) else 'changed'
+    if math.isinf(b) or math.isinf(c):
+        # Uno infinito y otro finito: aplicar la dirección (p. ej. PSNR ∞ es mejor).
+        return 'improved' if badness(c, kind) < badness(b, kind) else 'worse'
     tol = tolerance(path, thresholds)
-    if abs(cand - base) <= max(tol.get('abs', 0), tol.get('rel', 0) * max(abs(base), abs(cand))):
+    if abs(c - b) <= max(tol.get('abs', 0), tol.get('rel', 0) * max(abs(b), abs(c))):
         return 'equivalent'
-    return 'improved' if badness(cand, kind) < badness(base, kind) else 'worse'
+    return 'improved' if badness(c, kind) < badness(b, kind) else 'worse'
 
 
 def compare(base_metrics, cand_metrics, thresholds):

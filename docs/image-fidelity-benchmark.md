@@ -62,8 +62,11 @@ Exposure from the reference entry when needed (e.g. −3 EV for A04 frame 44).
 
 Compare a candidate build's decoded `.f32` to a **frozen** baseline run with
 the same inputs, encode/decode settings and frames. No new Resolve export is
-required. A mismatch in setup (clip, DNG sha, encode request, decode, ISO,
-reference) aborts the comparison; a BRAW or decode cache entry from another
+required. A mismatch in regression setup (clip, ordered DNG hashes of the
+converted range, encode request, experimental env, decode, ISO) aborts the
+comparison; the EXR reference block is **not** required for that check
+(`--no-reference`). Per-frame decode overrides from the manifest (e.g. A04
+frame 44 at −3 EV) still apply. A BRAW or decode cache entry from another
 build is rejected (identity re-checked, never reused silently).
 
 ## Commands
@@ -92,7 +95,11 @@ make benchmark-freeze RUN=<run-id> NAME=main-352cfab
 # Candidate vs frozen baseline
 make benchmark DATASET=~/Desktop/BMD SERIES=A BASELINE=main-352cfab RUN=candidate-1
 
-# Compare two existing runs
+# Regression only (no EXR required; decode overrides from the manifest still apply)
+python -m tools.fidelity run --dataset ~/Desktop/BMD --series A --no-reference \
+  --baseline main-352cfab --run regression-no-exr
+
+# Compare two existing runs (add --allow-setup-differences for e.g. q4 vs q8)
 python -m tools.fidelity compare out/benchmark/baselines/main-352cfab out/benchmark/runs/candidate-1
 
 # brawdec vs Resolve's own BRAW EXR (decoder equivalence, no conversion)
@@ -171,17 +178,42 @@ Hand measurements from Resolve (research, not golden tests for other frames):
 ISO 1600 at −3 EV (both formats): PSNR 42.5454 dB, MAE 0.00308508, RMSE
 0.00745984, correlation 0.9980229, luminance rel. error +0.0704 %.
 
+## Schema (metrics / run)
+
+`tools.fidelity.SCHEMA` is currently **2**. Relative to schema 1:
+
+| Field | Change |
+|---|---|
+| `setup.inputs` | Ordered `{index, name, sha256}` for **every** DNG in the converted range |
+| `setup.encode.experimental_env` | Full `OUTPUT_ENV` map (value or `null`) used for cache and setup identity |
+| `results.*.decode_verification` | Requested / applied / unverifiable decode attributes from `brawdec --frame-info` |
+| Chromaticity metrics | `duv_samples`, `duv_valid`, `duv_invalid`, `duv_valid_fraction` (global, ROI, neutral) |
+| Cache material | `info_schema: 2` on BRAW and decode entries (invalidates schema-1 cache) |
+
+`encode.experimental_env` in the manifest declares optional `CDNG_*` that affect
+the BRAW. Ambient undeclared `CDNG_*` that can change output are **rejected**
+(no silent overrides). Diagnostic vars (`CDNG_PIPELINE_TRACE`, …) are logged
+and stripped from the worker child. Adding a new experimental knob means
+listing it in `OUTPUT_ENV` in `tools/fidelity/pipeline.py` — do not implement
+deblocking options here yet.
+
+Frozen baselines from schema 1 must be regenerated with the same converter
+build (`make benchmark` then `make benchmark-freeze … --force`) because setup
+identity and metric keys changed.
+
 ## Run outputs
 
 Each `out/benchmark/runs/<id>/` contains:
 
 - `metrics.json`, `metrics.csv`, `report.html`
-- `run.json` (git commit, worker/model/SDK/profile hashes, command, timing, cache)
+- `run.json` (git commit, worker/model/SDK/profile hashes, experimental env, command, timing, cache)
 - `frames/*.f32`, `png/*`, `logs/*`
 - `comparison.json` when `--baseline` is set
 
-Comparative reports mark each metric as improved / worse / equivalent using
-`benchmark/thresholds.json`. Default acceptance list is **empty**; add rules
+Comparative reports mark each metric as improved / worse / equivalent /
+`not_evaluable` (NaN or non-numeric) using `benchmark/thresholds.json`.
+Infinity serialised as `"inf"` compares correctly (∞↔∞ equivalent; finite↔∞
+follows metric direction). Default acceptance list is **empty**; add rules
 only with a documented `basis`.
 
 ## Decoder equivalence (brawdec vs Resolve)
@@ -225,9 +257,12 @@ the conversion pipeline.
 | A05_f053 | 800 | 42.67 | 0.00289 | 0.99810 | +0.059 |
 
 These sit next to the earlier hand measurements (~42.5–42.9 dB); they are **not**
-asserted as golden values for other frames. Report:
-`out/benchmark/runs/series-a-baseline/report.html` (also frozen as
-`out/benchmark/baselines/main-352cfab/`).
+asserted as golden values for other frames. Report (schema 2 re-freeze with the
+same converter, no image-pipeline change):
+`out/benchmark/runs/series-a-schema2-1/report.html`, frozen as
+`out/benchmark/baselines/main-352cfab/`. Regenerated because setup identity now
+includes the full DNG range and `experimental_env`, and metrics include decode
+verification plus chroma validity counts.
 
 Limitations:
 
@@ -236,6 +271,11 @@ Limitations:
   end-to-end difference, not “same gen”.
 - Camera Support profiles on disk are hashed into decode identity: changing
   installed profiles invalidates the decode cache (by design).
+- As Shot ISO / Kelvin / tint: when the SDK reports an effective value it is
+  recorded as **applied**; cross-check against DNG AsShotNeutral / ISO is not
+  implemented yet (those attributes stay unverifiable when the SDK omits them).
+- A lower Δu′v′ with a higher `duv_invalid` count is visible in the report and
+  counts as worse for `duv_invalid` / `duv_valid_fraction` in comparisons.
 
 ## Out of scope
 

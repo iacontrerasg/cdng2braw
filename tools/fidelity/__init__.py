@@ -3,4 +3,6 @@
 Dos modalidades: fidelidad frente a la exportación OpenEXR del CinemaDNG en DaVinci Resolve, y regresión frente a la
 salida congelada de una compilación de referencia. Ver docs/image-fidelity-benchmark.md.
 """
-SCHEMA = 1
+# 2: setup incluye inputs[] del tramo, experimental_env efectivo, verificación de revelado
+#    (solicitado/aplicado/no verificable) y conteos de cromaticidad válida/inválida.
+SCHEMA = 2

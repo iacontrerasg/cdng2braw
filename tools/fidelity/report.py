@@ -143,8 +143,10 @@ def fidelity_section(res, png_dir, title):
                      [[num(b['low']), num(b['high']), num(b['pixels']), num(b.get('mae')), num(b.get('rmse')),
                        num(b.get('signed_mean_error')), num(b.get('luminance_rel_error_pct'))] for b in f['luminance_bins']]))
     lc = f['luma_chroma']
-    keys = ('pixels', 'luma_rel_error_mean', 'luma_rel_error_abs_mean', 'duv_mean', 'duv_p95', 'duv_p99')
-    out.append("<b>Luma y croma (Δu'v' CIE 1976; píxeles con Y &gt; umbral)</b>")
+    keys = ('pixels', 'luma_rel_error_mean', 'luma_rel_error_abs_mean', 'duv_mean', 'duv_p95', 'duv_p99',
+            'duv_valid', 'duv_invalid', 'duv_valid_fraction')
+    out.append("<b>Luma y croma (Δu'v' CIE 1976; píxeles con Y &gt; umbral). "
+               "duv_invalid cuenta muestras sin cromaticidad finita: una Δu'v' menor con más inválidas no es una mejora.</b>")
     out.append(table(['zona'] + list(keys), [[z] + [num(lc[z].get(k)) for k in keys] for z in ('all', 'edges', 'flat')]))
     e = f['edges']
     out.append('<b>Bordes de la referencia: dentro / fuera de la máscara</b>')

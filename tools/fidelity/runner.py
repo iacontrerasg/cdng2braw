@@ -42,12 +42,29 @@ def link_or_copy(src, dst):
         shutil.copyfile(src, dst)
 
 
-def setup_block(doc, test, frame, dng_sha, rng, settings, reference):
-    """Lo que tiene que coincidir para que dos resultados sean comparables (todo salvo la compilación)."""
-    req, env = P.encode_request(doc['encode'])
-    return json.loads(json.dumps({'clip': test['clip'], 'frame': frame, 'dng_sha256': dng_sha, 'range': list(rng),
-                                  'encode': {'request': req, 'env': env}, 'decode': settings, 'iso': test['iso'],
-                                  'reference': reference}))
+def setup_block(doc, test, frame, inputs, rng, settings, reference, effective_env):
+    """Lo que tiene que coincidir para que dos resultados sean comparables (todo salvo la compilación).
+
+    inputs: identidad ordenada de todos los DNG del tramo convertido (no solo el fotograma evaluado).
+    experimental_env: mapa completo OUTPUT_ENV → valor|null (identidad de caché).
+    """
+    req, effective, _, _ = P.encode_request(doc['encode'])
+    if effective != effective_env:
+        raise RunError('experimental_env inconsistente entre setup y conversión')
+    evaluated = next((i for i in inputs if i['index'] == frame), None)
+    return json.loads(json.dumps({
+        'clip': test['clip'], 'frame': frame,
+        'dng_sha256': evaluated['sha256'] if evaluated else None,
+        'inputs': inputs, 'range': list(rng),
+        'encode': {'request': req, 'experimental_env': effective_env},
+        'decode': settings, 'iso': test['iso'], 'reference': reference,
+    }))
+
+
+def decode_override_for(refs, frame):
+    """Ajustes de revelado del manifiesto para este fotograma, aunque no se cargue el EXR."""
+    ref = refs.get(frame)
+    return ref.get('decode') if ref else None
 
 
 def run(args):
@@ -65,7 +82,8 @@ def run(args):
     for t in tests:
         if t['status'] != 'complete' and not frames_override:
             raise RunError('%s está pendiente y no tiene fotogramas: indica --frames' % t['id'])
-    errors, warnings = MF.against_dataset(doc, root, refs_root, tests)
+    # En --no-reference (regresión pura) no se exigen los EXR; los overrides de revelado sí se leen del manifiesto.
+    errors, warnings = MF.against_dataset(doc, root, refs_root, tests, require_references=not args.no_reference)
     if errors:
         raise RunError('el manifiesto no coincide con el dataset:\n  ' + '\n  '.join(errors))
 
@@ -85,21 +103,32 @@ def run(args):
     git = identity.git(ROOT)
     conv_id = identity.converter(converter_dir)
     dec_id = identity.decoder(args.brawdec, framework, camera_support)
+    try:
+        _, effective_env, _, diagnostic = P.encode_request(doc['encode'])
+    except P.PipelineError as e:
+        raise RunError(str(e)) from e
     log('compilación: commit %s%s, worker %s; brawdec %s; SDK %s' % (
         (git['commit'] or '?')[:12], ' (árbol modificado)' if git['dirty'] else '', conv_id['cdng_convert_sha256'][:12],
         dec_id['brawdec_sha256'][:12], dec_id['framework_sha256'][:12]))
     if git['dirty']:
         log('aviso: el árbol tiene cambios sin commit; la identidad del worker es su sha, no el commit')
+    if diagnostic:
+        log('aviso: CDNG_* de diagnóstico en el entorno (no se pasan al worker): %s' %
+            ', '.join('%s=%s' % kv for kv in sorted(diagnostic.items())))
 
     analysis = doc['analysis']
     vis = doc['visualization']
-    config = {'manifest_analysis': analysis, 'visualization': vis, 'encode': doc['encode'],
+    config = {'manifest_analysis': analysis, 'visualization': vis,
+              'encode': {k: v for k, v in doc['encode'].items() if k != 'notes'},
+              'experimental_env': effective_env,
               'decode': {k: v for k, v in doc['decode'].items() if k != 'notes'},
               'rois': {name: identity.sha256_file(path) for name, path in scene_paths(doc).items()}}
     config_sha = identity.sha256_json(config)
     baseline = load_baseline(args.baseline, args.out) if args.baseline else None
     if baseline and baseline['metrics']['config_sha256'] != config_sha:
         raise RunError('el baseline %s usó otra configuración (codificación, revelado, análisis o ROI); no es comparable' % args.baseline)
+    if args.no_reference and not baseline and not any(t.get('category') == 'dark_frame' for t in tests):
+        log('aviso: --no-reference sin --baseline: solo se generan imágenes y metadatos, sin métricas de fidelidad')
     scenes = {}
     results, timing, cache_use = {}, {'conversions': [], 'decodes': []}, []
     t_start = time.monotonic()
@@ -117,8 +146,8 @@ def run(args):
                             os.path.join(run_dir, 'logs', 'convert_%s_%03d-%03d.log' % (t['id'], start, start + count - 1)))
             for frame in fs:
                 key = result_key(t['id'], frame)
-                ref = refs.get(frame) if not args.no_reference else None
-                settings = decode_settings(doc, ref['decode'] if ref else None)
+                ref_meta = refs.get(frame)
+                settings = decode_settings(doc, decode_override_for(refs, frame))
                 img, dec = P.decode(args.brawdec, framework, dec_id, conv['path'], conv['sha256'], frame - start, settings, cache, log, args.no_cache)
                 cache_use.append({'kind': 'decode', 'key': dec['key'], 'reused': dec['reused']})
                 timing['decodes'].append({'result': key, 'seconds': dec['seconds'], 'reused': dec['reused']})
@@ -126,16 +155,18 @@ def run(args):
                 link_or_copy(dec['path'], os.path.join(run_dir, 'frames', key + '.f32'))
                 reference = None
                 ref_img = None
-                if ref:
-                    ref_path = os.path.join(refs_root, ref['file'])
+                if not args.no_reference and ref_meta:
+                    ref_path = os.path.join(refs_root, ref_meta['file'])
                     ref_img, header = images.read_exr(ref_path)
-                    reference = {'file': ref['file'], 'sha256': identity.sha256_file(ref_path), 'timeline_timecode': ref.get('timeline_timecode'),
+                    reference = {'file': ref_meta['file'], 'sha256': identity.sha256_file(ref_path),
+                                 'timeline_timecode': ref_meta.get('timeline_timecode'),
                                  'exr_time_code': header.get('timeCode')}
-                    if ref.get('timeline_timecode') and header.get('timeCode') and header['timeCode'] != ref['timeline_timecode']:
-                        raise RunError('%s: el EXR tiene timecode %s y el manifiesto %s' % (key, header['timeCode'], ref['timeline_timecode']))
+                    if ref_meta.get('timeline_timecode') and header.get('timeCode') and header['timeCode'] != ref_meta['timeline_timecode']:
+                        raise RunError('%s: el EXR tiene timecode %s y el manifiesto %s' % (key, header['timeCode'], ref_meta['timeline_timecode']))
                 res = {'test': t['id'], 'series': t['series'], 'category': t['category'], 'frame': frame,
-                       'setup': setup_block(doc, t, frame, identity.sha256_file(files[frame]), (start, count), settings, reference),
+                       'setup': setup_block(doc, t, frame, conv['inputs'], (start, count), settings, reference, conv['experimental_env']),
                        'candidate_sha256': dec['sha256'],
+                       'decode_verification': dec.get('decode_verification'),
                        'compression': compression(conv, dec, img)}
                 expo = exposure_of(settings)
                 norm = analysis['normalize_to_iso'] / float(t['iso']) * 2.0 ** -expo
@@ -143,15 +174,17 @@ def run(args):
                 if t['category'] == 'dark_frame':
                     res['dark_frame'] = M.dark_frame(img)
                 if ref_img is not None:
-                    log('%s: métricas frente a %s' % (key, ref['file']))
+                    log('%s: métricas frente a %s' % (key, ref_meta['file']))
                     res['reference_fidelity'] = evaluate(ref_img, img, t, doc, norm, ceiling, scenes, run_dir, key, 'ref', vis, analysis)
                 if baseline:
                     b = baseline['metrics']['results'].get(key)
                     if not b:
                         raise RunError('%s no está en el baseline %s' % (key, args.baseline))
-                    if b['setup'] != res['setup']:
+                    # En regresión, la identidad comparable es entradas + revelado + experimental_env (sin exigir EXR).
+                    if regression_setup(b['setup']) != regression_setup(res['setup']):
                         raise RunError('%s: el baseline usó otra configuración o entradas; no es comparable:\n  baseline %s\n  ahora    %s' % (
-                            key, json.dumps(b['setup'], sort_keys=True), json.dumps(res['setup'], sort_keys=True)))
+                            key, json.dumps(regression_setup(b['setup']), sort_keys=True),
+                            json.dumps(regression_setup(res['setup']), sort_keys=True)))
                     base_img = images.read_f32(os.path.join(baseline['dir'], 'frames', key + '.f32'))
                     if identity.sha256_file(os.path.join(baseline['dir'], 'frames', key + '.f32')) != b['candidate_sha256']:
                         raise RunError('%s: la imagen congelada del baseline no coincide con su sha' % key)
@@ -166,8 +199,10 @@ def run(args):
                          'decoder_sha256': identity.sha256_json(dec_id)},
                'results': results}
     run_meta = {'schema': SCHEMA, 'run_id': run_id, 'started': time.strftime('%Y-%m-%dT%H:%M:%S'), 'command': sys.argv,
-                'dataset': root, 'references': refs_root, 'baseline': args.baseline, 'git': git, 'converter': conv_id,
-                'decoder': dec_id, 'environment': identity.environment(), 'config': config, 'timing': dict(timing, total_seconds=total),
+                'dataset': root, 'references': refs_root, 'baseline': args.baseline, 'no_reference': bool(args.no_reference),
+                'git': git, 'converter': conv_id, 'decoder': dec_id,
+                'environment': dict(identity.environment(), experimental_env=effective_env, diagnostic_env=diagnostic),
+                'config': config, 'timing': dict(timing, total_seconds=total),
                 'cache': cache_use, 'warnings': warnings,
                 'frames': {k: {'sha256': r['candidate_sha256']} for k, r in results.items()}}
     write_json(os.path.join(run_dir, 'metrics.json'), metrics)
@@ -183,6 +218,11 @@ def run(args):
     return run_dir
 
 
+def regression_setup(setup):
+    """Identidad comparable en modo regresión: sin el bloque reference (puede faltar el EXR)."""
+    return {k: v for k, v in setup.items() if k != 'reference'}
+
+
 def strip_regression(metrics):
     """Para comparar con el baseline solo cuentan las métricas frente a la referencia (las de regresión no existen en él)."""
     out = dict(metrics, results={})
@@ -194,7 +234,8 @@ def strip_regression(metrics):
 def compression(conv, dec, img):
     h, w = img.shape[:2]
     raw = w * h * 12 / 8
-    fb = dec['frame_info'].get('frame_bytes')
+    info = dec.get('frame_info') or {}
+    fb = info.get('frame_bytes') if isinstance(info, dict) else None
     done = conv['completed']
     return {'frame_bytes': fb, 'frame_ratio': raw / fb if fb else None, 'braw_bytes': done.get('bytes'),
             'braw_frames': done.get('frames'), 'braw_ratio_achieved': done.get('ratio_achieved'),

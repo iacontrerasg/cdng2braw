@@ -165,7 +165,12 @@ def edge_metrics(ref, cand, roi, cfg):
     if ok.any():
         ur, vr = M.uv_prime(pr[ok]); uc, vc = M.uv_prime(pc[ok])
         duv = np.hypot(uc - ur, vc - vr)
-        out['duv_mean'] = M._f(np.nanmean(duv)); out['duv_max'] = M._f(np.nanmax(duv))
+        out.update(M.chroma_validity(duv))
+        finite = duv[np.isfinite(duv)]
+        out['duv_mean'] = M._f(finite.mean()) if finite.size else 'nan'
+        out['duv_max'] = M._f(finite.max()) if finite.size else 'nan'
+    else:
+        out.update({'duv_samples': 0, 'duv_valid': 0, 'duv_invalid': 0, 'duv_valid_fraction': 'nan'})
     out['profile'] = {'reference': [[M._f(v) for v in s] for s in pr], 'candidate': [[M._f(v) for v in s] for s in pc]}
     return out
 

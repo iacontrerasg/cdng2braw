@@ -22,9 +22,11 @@
     "rate_search": true,
     "noise_synthesis": true,
     "workers": 2,
+    "experimental_env": {},
     "notes": [
       "noise_synthesis true es el valor por defecto de la app y del worker.",
-      "rate_search solo se aplica en modo ratio (CDNG_RATE=search): sin él el control de tasa depende del orden de los hilos y no es reproducible por fotograma."
+      "rate_search solo se aplica en modo ratio (CDNG_RATE=search): sin él el control de tasa depende del orden de los hilos y no es reproducible por fotograma.",
+      "experimental_env declara CDNG_* que afectan al BRAW (OUTPUT_ENV en tools/fidelity/pipeline.py). El banco rechaza las heredadas no declaradas."
     ]
   },
   "decode": {

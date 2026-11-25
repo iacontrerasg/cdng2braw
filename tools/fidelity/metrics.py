@@ -95,21 +95,33 @@ def _laplacian(y):
     return 4 * y[1:-1, 1:-1] - y[:-2, 1:-1] - y[2:, 1:-1] - y[1:-1, :-2] - y[1:-1, 2:]
 
 
+def chroma_validity(duv):
+    """Conteos de muestras con Δu'v' finito; una bajada de Δu'v' con más inválidas debe verse en el informe."""
+    total = int(duv.size)
+    valid = int(np.isfinite(duv).sum()) if total else 0
+    return {'duv_samples': total, 'duv_valid': valid, 'duv_invalid': total - valid,
+            'duv_valid_fraction': _f(valid / total) if total else 'nan'}
+
+
 def luma_chroma(ref, cand, mask, min_y):
     """Error de luminancia (relativo) y de cromaticidad (Δu'v') dentro de una máscara, donde la referencia supera
     min_y (debajo, la cromaticidad es ruido)."""
     yr, yc = luminance(ref), luminance(cand)
     m = mask & (yr > min_y)
     if not m.any():
-        return {'pixels': 0}
+        return {'pixels': 0, 'duv_samples': 0, 'duv_valid': 0, 'duv_invalid': 0, 'duv_valid_fraction': 'nan'}
     ur, vr = uv_prime(ref[m]); uc, vc = uv_prime(cand[m])
     duv = np.hypot(uc - ur, vc - vr)
-    duv = duv[np.isfinite(duv)]
+    validity = chroma_validity(duv)
+    finite = duv[np.isfinite(duv)]
     rel = (yc[m] - yr[m]) / yr[m]
-    return {'pixels': int(m.sum()), 'luma_rel_error_mean': _f(rel.mean()), 'luma_rel_error_abs_mean': _f(np.abs(rel).mean()),
-            'luma_abs_error_mean': _f(np.abs(yc[m] - yr[m]).mean()),
-            'duv_mean': _f(duv.mean()) if duv.size else 'nan', 'duv_p95': _f(np.percentile(duv, 95)) if duv.size else 'nan',
-            'duv_p99': _f(np.percentile(duv, 99)) if duv.size else 'nan'}
+    out = {'pixels': int(m.sum()), **validity,
+           'luma_rel_error_mean': _f(rel.mean()), 'luma_rel_error_abs_mean': _f(np.abs(rel).mean()),
+           'luma_abs_error_mean': _f(np.abs(yc[m] - yr[m]).mean()),
+           'duv_mean': _f(finite.mean()) if finite.size else 'nan',
+           'duv_p95': _f(np.percentile(finite, 95)) if finite.size else 'nan',
+           'duv_p99': _f(np.percentile(finite, 99)) if finite.size else 'nan'}
+    return out
 
 
 def fidelity(ref, cand, cfg, norm, ceiling):
@@ -167,15 +179,17 @@ def neutral(ref, cand, cfg, mask=None):
     yr = luminance(ref)
     ur, vr = uv_prime(ref)
     dr = np.hypot(ur - D65_UV[0], vr - D65_UV[1])
-    m = (yr > cfg['min_luminance']) & (dr < cfg['max_duv'])
+    m = (yr > cfg['min_luminance']) & np.isfinite(dr) & (dr < cfg['max_duv'])
     if mask is not None:
         m &= mask
     if not m.any():
-        return {'pixels': 0}
+        return {'pixels': 0, 'duv_samples': 0, 'duv_valid': 0, 'duv_invalid': 0, 'duv_valid_fraction': 'nan'}
     uc, vc = uv_prime(cand[m])
     dc = np.hypot(uc - D65_UV[0], vc - D65_UV[1])
     pair = np.hypot(uc - ur[m], vc - vr[m])
-    return {'pixels': int(m.sum()), 'reference_duv_to_d65_mean': _f(np.nanmean(dr[m])),
+    validity = chroma_validity(pair)
+    return {'pixels': int(m.sum()), **validity,
+            'reference_duv_to_d65_mean': _f(np.nanmean(dr[m])),
             'candidate_duv_to_d65_mean': _f(np.nanmean(dc)), 'duv_mean': _f(np.nanmean(pair)), 'duv_p95': _f(np.nanpercentile(pair, 95))}
 
 

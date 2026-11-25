@@ -117,8 +117,8 @@ def dng_tags(path):
     return out
 
 
-def against_dataset(doc, root, references_root, tests):
-    """Contrasta cada prueba con los DNG reales y comprueba que existen las referencias. Devuelve (errores, avisos)."""
+def against_dataset(doc, root, references_root, tests, require_references=True):
+    """Contrasta cada prueba con los DNG reales y, si require_references, con los EXR. Devuelve (errores, avisos)."""
     errors, warnings = [], []
     for t in tests:
         tid = t['id']
@@ -146,8 +146,11 @@ def against_dataset(doc, root, references_root, tests):
                 errors.append('%s: fotograma %d tiene AsShotNeutral %s, el manifiesto %s' % (tid, k, got, neutral))
         for ref in t['references']:
             path = os.path.join(references_root, ref['file']) if references_root else None
-            if not path or not os.path.isfile(path):
+            missing = not path or not os.path.isfile(path)
+            if missing and require_references:
                 (errors if t['status'] == 'complete' else warnings).append('%s: falta la referencia %s' % (tid, path or ref['file']))
+            elif missing:
+                warnings.append('%s: referencia %s ausente (modo sin EXR)' % (tid, path or ref['file']))
         if t['status'] == 'pending':
             missing = [k for k in ('aperture',) if t.get(k) is None]
             if t['white_balance'].get('kelvin') is None and t['category'] == 'white_balance':

@@ -171,6 +171,20 @@ class CompareAndCacheTests(unittest.TestCase):
         self.assertEqual(C.compare(base, worse, thresholds)['counts'].get('worse'), 2)
         self.assertEqual(C.compare(base, better, thresholds)['counts'].get('improved'), 2)
 
+    def test_psnr_infinity_and_nan_statuses(self):
+        from tools.fidelity import compare as C
+        thresholds = {'equivalence': {'default': {'abs': 0.0, 'rel': 1e-9}, 'rules': []}, 'acceptance': []}
+        # Infinito ↔ infinito (cadenas serializadas por metrics._f)
+        self.assertEqual(C.status('normalized.psnr_db', 'inf', 'inf', thresholds), 'equivalent')
+        self.assertEqual(C.status('normalized.psnr_db', 'inf', '-inf', thresholds), 'changed')
+        # Finito → infinito (mejora de PSNR); infinito → finito (empeora)
+        self.assertEqual(C.status('normalized.psnr_db', 40.0, 'inf', thresholds), 'improved')
+        self.assertEqual(C.status('normalized.psnr_db', 'inf', 40.0, thresholds), 'worse')
+        # NaN: nunca equivalente en silencio
+        self.assertEqual(C.status('normalized.psnr_db', 'nan', 'nan', thresholds), 'not_evaluable')
+        self.assertEqual(C.status('normalized.psnr_db', 40.0, 'nan', thresholds), 'not_evaluable')
+        self.assertEqual(C.status('normalized.duv_mean', 'nan', 0.01, thresholds), 'not_evaluable')
+
     def test_cache_rejects_foreign_build(self):
         from tools.fidelity import pipeline as P, identity
         with tempfile.TemporaryDirectory() as d:
@@ -189,6 +203,92 @@ class CompareAndCacheTests(unittest.TestCase):
             open(payload, 'wb').write(b'y' * 16)
             with self.assertRaises(P.CacheError):
                 P._verify(directory, material, 'image.f32')
+
+
+@unittest.skipUnless(np is not None, 'numpy es necesario (make venv)')
+class ExperimentalEnvAndSetupTests(unittest.TestCase):
+    def _encode(self, **extra):
+        enc = {'compression': 'quality', 'q': 4, 'noise_synthesis': True, 'workers': 2, 'experimental_env': {}}
+        enc.update(extra)
+        return enc
+
+    def test_experimental_env_changes_cache_identity(self):
+        """Dos configs experimentales distintas, mismo ejecutable y mismos DNG → claves de caché distintas."""
+        from tools.fidelity import pipeline as P, identity
+        with tempfile.TemporaryDirectory() as d:
+            a = os.path.join(d, 'a.dng'); b = os.path.join(d, 'b.dng')
+            open(a, 'wb').write(b'DNG-A'); open(b, 'wb').write(b'DNG-B')
+            staged = [a, b]
+            conv = {'cdng_convert_sha256': 'worker', 'model': {}}
+            req0, eff0, _, _ = P.encode_request(self._encode(), environ={})
+            req1, eff1, _, _ = P.encode_request(
+                self._encode(experimental_env={'CDNG_DEADZONE': '0.25'}), environ={})
+            m0 = P.conversion_material(conv, d, staged, 0, req0, eff0)
+            m1 = P.conversion_material(conv, d, staged, 0, req1, eff1)
+            self.assertNotEqual(identity.sha256_json(m0), identity.sha256_json(m1))
+            self.assertEqual(m0['inputs'], m1['inputs'])
+            self.assertIsNone(eff0['CDNG_DEADZONE'])
+            self.assertEqual(eff1['CDNG_DEADZONE'], '0.25')
+
+    def test_undeclared_ambient_cdng_is_rejected(self):
+        from tools.fidelity import pipeline as P
+        with self.assertRaises(P.PipelineError) as ctx:
+            P.encode_request(self._encode(), environ={'CDNG_DEADZONE': '0.1', 'PATH': '/bin'})
+        self.assertIn('CDNG_DEADZONE', str(ctx.exception))
+
+    def test_neighbor_frame_hash_breaks_setup_equality(self):
+        """Modificar un DNG vecino (sin tocar el evaluado) hace que los setups dejen de ser comparables."""
+        from tools.fidelity import runner as R
+        inputs_a = [{'index': 10, 'name': 'f10.dng', 'sha256': 'aaa'},
+                    {'index': 11, 'name': 'f11.dng', 'sha256': 'bbb'}]
+        inputs_b = [{'index': 10, 'name': 'f10.dng', 'sha256': 'aaa'},
+                    {'index': 11, 'name': 'f11.dng', 'sha256': 'CHANGED'}]
+        setup_a = {'clip': 'C', 'frame': 10, 'dng_sha256': 'aaa', 'inputs': inputs_a, 'range': [10, 2],
+                   'encode': {}, 'decode': {}, 'iso': 400, 'reference': None}
+        setup_b = dict(setup_a, inputs=inputs_b)
+        self.assertEqual(setup_a['dng_sha256'], setup_b['dng_sha256'])
+        self.assertNotEqual(R.regression_setup(setup_a), R.regression_setup(setup_b))
+
+    def test_verify_decode_distinguishes_applied_and_unverifiable(self):
+        from tools.fidelity import pipeline as P
+        settings = {'gamut': 'DCI-P3 D65', 'gamma': 'Linear', 'color_science_gen': 5,
+                    'highlight_recovery': 0, 'scale': 'full', 'iso': 'as_shot', 'exposure': -3}
+        info = {
+            'clip': {'gamut': {'status': '0', 'value': 'DCI-P3 D65'},
+                     'gamma': {'status': '0', 'value': 'Linear'},
+                     'csgn': {'status': '0', 'value': 5},
+                     'hlry': {'status': '0', 'value': 0.0}},
+            'frame': {'exposure': {'status': '0', 'value': -3.0}, 'iso': {'status': '0', 'value': 1600.0}},
+            'scale': 'full', 'frame_bytes': 100,
+        }
+        v = P.verify_decode(settings, info)
+        self.assertTrue(v['ok'])
+        self.assertEqual(v['applied']['exposure'], -3.0)
+        self.assertIn('kelvin', v['unverifiable'])  # As Shot: no se reportó
+        bad = P.verify_decode(settings, dict(info, frame={'exposure': {'status': '0', 'value': 0.0}}))
+        self.assertFalse(bad['ok'])
+
+    def test_no_reference_skips_exr_requirement(self):
+        from tools.fidelity import manifest as MF
+        bmd = os.path.expanduser('~/Desktop/BMD')
+        if not os.path.isdir(bmd):
+            self.skipTest('dataset BMD no disponible')
+        doc = MF.load(os.path.join(ROOT, 'benchmark', 'manifest.json'))
+        tests = MF.select(doc, series=['A'])
+        # Sin carpeta de EXR: con require_references=True hay errores; con False, solo avisos.
+        errors, warnings = MF.against_dataset(doc, bmd, '/tmp/no-exr-here', tests, require_references=True)
+        self.assertTrue(any('referencia' in e or 'EXR' in e or '.exr' in e for e in errors) or errors)
+        errors2, warnings2 = MF.against_dataset(doc, bmd, '/tmp/no-exr-here', tests, require_references=False)
+        self.assertFalse(errors2)
+        self.assertTrue(any('referencia' in w or 'EXR' in w or 'ausente' in w for w in warnings2))
+
+    def test_chroma_validity_counts(self):
+        from tools.fidelity import metrics as M
+        duv = np.array([0.01, 0.02, np.nan, np.inf, -0.01], dtype=np.float64)
+        v = M.chroma_validity(duv)
+        self.assertEqual(v['duv_samples'], 5)
+        self.assertEqual(v['duv_valid'], 3)
+        self.assertEqual(v['duv_invalid'], 2)
 
 
 @unittest.skipUnless(np is not None, 'numpy es necesario (make venv)')

@@ -433,6 +433,32 @@ static bool set_string_attr(IClipAttrs* a, uint32_t attr, const std::string& s) 
     return h >= 0;
 }
 
+// Valores efectivos de clip tras SetClipAttribute (para --frame-info). Un status ≠ 0 significa no verificable.
+static void print_effective_clip(IClipAttrs* a, uint32_t attr, const char* name) {
+    Variant v{};
+    HRESULT r = a->GetClipAttribute(attr, &v);
+    fprintf(stderr, "effective clip %s type %u status %#x value ", name, v.vt, r);
+    if (r < 0) { fprintf(stderr, "?\n"); return; }
+    switch (v.vt) {
+        case vtU8: fprintf(stderr, "%u\n", v.u8); break;
+        case vtS16: fprintf(stderr, "%d\n", v.s16); break;
+        case vtU16: fprintf(stderr, "%u\n", v.u16); break;
+        case vtS32: fprintf(stderr, "%d\n", v.s32); break;
+        case vtU32: fprintf(stderr, "%u\n", v.u32); break;
+        case vtF32: fprintf(stderr, "%.9g\n", v.f32); break;
+        case vtF64: fprintf(stderr, "%.9g\n", v.f64); break;
+        case vtString: fprintf(stderr, "\"%s\"\n", cstr(v.str).c_str()); if (v.str) CFRelease(v.str); break;
+        default: fprintf(stderr, "?\n"); if (clear_variant) clear_variant(&v); break;
+    }
+}
+
+static const char* scale_name(uint32_t scale) {
+    if (scale == scaleHalf) return "half";
+    if (scale == scaleQuarter) return "quarter";
+    if (scale == scaleEighth) return "eighth";
+    return "full";
+}
+
 // Busca un patrón en toda la memoria legible del proceso (las tablas que el SDK descifra en tiempo de ejecución)
 // e imprime las cadenas imprimibles que hay alrededor de cada coincidencia.
 static void memscan(const std::string& pat, const char* when) {
@@ -659,6 +685,14 @@ int main(int argc, char** argv) {
     if (!o.gamma.empty() && !set_string_attr(attrs, attrGamma, o.gamma)) return 1;
     for (const auto& entry:o.clipNumbers) if(!set_clip_number(attrs,entry.first,entry.second)) return 1;
     if (o.auditAttributes) audit_clip_attributes(attrs);
+    if (o.frameInfo) {
+        // Tras los Set*: lo que el SDK tiene realmente aplicado (no se asume el valor pedido).
+        print_effective_clip(attrs, attrColorScienceGen, "csgn");
+        print_effective_clip(attrs, attrGamut, "gamut");
+        print_effective_clip(attrs, attrGamma, "gamma");
+        print_effective_clip(attrs, FOURCC('h', 'l', 'r', 'y'), "hlry");
+        fprintf(stderr, "effective scale %s\n", scale_name(o.scale));
+    }
     cb.attrs = attrs;
     codec->PreparePipeline(pipelineCPU, nullptr, nullptr, nullptr);
     codec->FlushJobs();
