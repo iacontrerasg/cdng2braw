@@ -201,3 +201,112 @@ hay variable de entorno para otra carpeta): probar una tabla ISO requiere instal
   después de un experimento controlado con un perfil de prueba instalado aparte.
 - Siguiente paso propuesto: abrir en Resolve la copia `out/trace-run/exp_expo2.braw` y comprobar el panel RAW con
   «Camera metadata», «Clip» y «Project».
+
+## Experimento: tabla ISO del perfil (opción 2)
+
+Con `expo` embebido como alternativa de reserva, se probó si la tabla ISO del perfil da equivalencia funcional con
+CinemaDNG. El objetivo: codificar con ganancia unitaria, abrir con la exposición nominal y dejar Exposure en 0 EV.
+
+### Semántica según el esquema del SDK
+
+El esquema FlatBuffers embebido en el framework (`out/iso-exp/sdk/product.fbs`) define dos tipos:
+- `ExternalISOGain {iso, pre_gain, post_gain}`, que internamente se convierte en `ISOGain {iso, analog_gain,
+  digital_gain, …}`.
+- `ExternalMode`, donde `read_noise_e_list` va «per pre/analog gain» y los arrays de `inv_sqrt` llevan «one entry per
+  analog gain».
+
+Es decir, `pre_gain` es la ganancia analógica y `post_gain` la digital. Los experimentos lo confirman.
+
+### Montaje aislado
+
+`out/iso-exp/make_variants.py` genera cinco perfiles de prueba a partir del calibrado. Cada uno tiene una revisión
+propia, de 1128649960 a 1128649964, y solo cambia `iso_params`, `native_iso`, `iso_modification_supported` e
+`inv_sqrt` (este último solo en v3). Las matrices de color son idénticas a las del calibrado, y así se verificó.
+
+Las pruebas usan 21 copias del BRAW unitario de C0039. En cada copia solo se parchean `ctrn`, que apunta a la
+revisión de prueba, e `isoe`, y se fija `expo` = 0. Los nombres son únicos:
+`out/iso-exp/braw/C0039_<variante>_iso<ISO>_153553.braw`.
+
+Al usar una revisión distinta, ni el perfil calibrado ni los BRAW existentes pueden cargar un perfil de prueba.
+Mientras la revisión no está instalada, `OpenClip` de una copia falla con `0x80000001`.
+
+| Variante | native/base | Tabla (200/400/800/1600) | `iso_modification_supported` |
+|---|---|---|---|
+| v1auto | 400/400 | pre 1, post 1 | true |
+| v2post | 400/400 | pre 1, post 0.5/1/2/4 | true |
+| v3pre | 400/400 | pre 0.5/1/2/4, post 1; `inv_sqrt` ×4 | true |
+| v4post1250 | 1250/1250 | v2 + {1250, 1, 1} | true |
+| v5postlocked | 400/400 | igual que v2 | false |
+
+Instalación: `out/iso-exp/install_test_profiles.sh`, que requiere administrador. Solo añade los ficheros
+`pocket-og-isotest-*.json` y aborta si cambia el SHA del perfil calibrado.
+
+Restauración: `out/iso-exp/restore_camera_support.sh`. Borra solo `pocket-og-isotest-*.json` y comprueba que el perfil
+calibrado conserva el SHA `63a03587…`. Si Resolve se abrió con los perfiles de prueba instalados, hay que reiniciarlo.
+
+### Resultados (`brawdec` con el SDK de Resolve; `out/iso-exp/run_tests.py` y `run_round2.py`)
+
+La referencia es el BRAW unitario original (revisión 1128549959) decodificado con `--exposure log2(ganancia)`. En
+todos los casos `expo` es 0 y `agpf` es 1, salvo en v3.
+
+| Variante | ISO 200 | ISO 400 | ISO 800 | ISO 1600 | Lista ISO del SDK |
+|---|---|---|---|---|---|
+| v1auto | ×1 | ×1 | ×1 | ×1 | 4 ISO, editable |
+| v2post | ×0.5, idéntica a −1 EV | ×1, idéntica | ×2, idéntica a +1 EV | ×4, idéntica a +2 EV | 4 ISO, editable |
+| v3pre | ×1, `agpf` 0.5 | ×1 | ×1, `agpf` 2 | ×1, `agpf` 4 | solo la ISO del clip, solo lectura |
+| v4post1250 | igual que v2 | igual que v2 | igual que v2 | igual que v2; 1250 → ×1 | 5 ISO, editable |
+| v5postlocked | igual que v2 | igual que v2 | igual que v2 | igual que v2 | 4 ISO, solo lectura |
+
+En la tabla, «idéntica» significa diferencia absoluta máxima 0 con la referencia.
+
+- **`post_gain`**: ganancia digital aplicada al decodificar. Es exactamente equivalente a Exposure =
+  log2(`post_gain`) y no destructiva: con v2 e ISO 1600, el máximo es 8.5738 y el porcentaje de píxeles en el máximo
+  es 0.0797 %. Es idéntica bit a bit en los fotogramas 0, 1 y 2.
+- **`pre_gain`**: no escala la imagen. El SDK lo expone como `agpf` y restringe la lista ISO a las entradas con la
+  misma ganancia analógica, en solo lectura. Además altera la reconstrucción en el 16–32 % de los píxeles (diferencia
+  máxima 0.087), seguramente por los parámetros de ruido de cada ganancia analógica. No sirve para la compensación.
+- **`base_iso`/`native_iso`**: el SDK no deriva ninguna ganancia del cociente iso/base_iso (v1).
+- Sin crashes del SDK en las 21 copias. El segfault de la investigación anterior aparecía con un `isoe` fuera de la
+  tabla; con la ISO incluida en la tabla, el clip abre correctamente.
+
+Independencia de Exposure y cambios de ISO, con el clip v2 de ISO 1600:
+
+| Ajuste | Resultado |
+|---|---|
+| Exposure +1 / −1 / −2 | idéntico a la referencia con +3 / +1 / 0 EV: la compensación ISO y Exposure se suman |
+| ISO 800 / 400 / 200 | idéntico a +1 / 0 / −1 EV |
+| ISO 800 + Exposure +1 | idéntico a +2 EV |
+| ISO 1250, que no está en la tabla | `SetFrameAttribute fiso` devuelve `0x80000003` (rechazo limpio, sin crash) |
+| v5 (bloqueado), ISO 800 | `0x80000003`: el usuario no puede cambiar la ISO |
+
+Regresión: con los perfiles de prueba instalados, el BRAW unitario original y los cinco BRAW
+`~/Desktop/BRAW/*_3to1.braw` abren con ISO 1250 del perfil calibrado. Su decodificación es idéntica bit a bit a la de
+después de la restauración.
+
+Métricas del benchmark: el clip ISO 1600 con Exposure −k es idéntico bit a bit al BRAW unitario con Exposure +2−k. Por
+tanto, las medidas del BRAW unitario a exposición reducida se conservan sin cambios: PSNR 42.5526 dB, MAE 0.00308564,
+RMSE 0.00745366, correlación 0.9980244, luminancia +0.069596 % y techo 0.082948 %. No había EXR del DNG disponibles
+para recalcularlas de forma independiente.
+
+### Conclusiones y diseño propuesto (sin implementar)
+
+- La tabla ISO consigue la equivalencia funcional con CinemaDNG si la compensación va en **`post_gain`** y se deja
+  `pre_gain` en 1:
+  - ISO 200, 400, 800 y 1600 con `post_gain` 0.5, 1, 2 y 4.
+  - `base_iso`/`native_iso` 400, porque BE 1.1 es la exposición calibrada.
+  - Una sola entrada en `read_noise`/`inv_sqrt`.
+  - El conversor escribiría `isoe` = 400 · 2^(BE − 1.1) por fotograma y `expo` = 0, con datos de ganancia unitaria.
+- `iso_modification_supported`:
+  - true se comporta como el ISO de las cámaras Blackmagic: el usuario puede cambiarlo y es independiente de Exposure.
+  - false bloquea el ISO del clip.
+  - Las dos opciones funcionan; es una decisión de producto.
+- Toda ISO escrita en `isoe` debe estar en la tabla. El conversor tendría que validar BE ∈ {0.1, 1.1, 2.1, 3.1} con
+  tolerancia y rechazar o redondear el resto, porque una ISO ausente provoca un segfault del SDK.
+- Compatibilidad: los BRAW ya generados llevan la revisión 1128549959 e `isoe` 1250. Hay dos opciones:
+  - Publicar la tabla con una **revisión nueva** y mantener instalado el perfil calibrado actual. Es la opción
+    recomendada; la regresión anterior demuestra que coexisten.
+  - Reutilizar la revisión añadiendo {1250, 1, 1}, como en v4. En el menú ISO aparecería 1250 más oscuro que 800,
+    lo cual confunde.
+- Pendiente de verificar en Resolve, con los perfiles de prueba instalados y Resolve reiniciado:
+  - Panel RAW de `C0039_v2post_iso1600_153553.braw` (ISO 1600, Exposure 0, imagen igual a la del unitario +2 EV).
+  - Que el menú ISO del clip v5 aparezca deshabilitado.
