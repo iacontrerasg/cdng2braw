@@ -27,7 +27,7 @@ OgModel loadOgModel(const std::filesystem::path &signalJson);
 
 // source_info de la ruta og: comprueba matrices, BaselineExposure e ISO frente a la calibración y estima el As
 // Shot con la tabla de balance del perfil (infer_as_shot). Lanza Error con los mismos mensajes que el Python.
-struct OgShot { int iso = 1250; int kelvin = 5600; int tint = 10; };
+struct OgShot { int iso = 1250; int kelvin = 5600; int tint = 10; double gain = 1.0; };
 OgShot ogSourceInfo(const Dng &dng, const OgModel &model);
 
 // Lo que necesita el demosaico parcial de cada cámara: cómo pasa un fotosito a código y la señal de un código. Solo lo
