@@ -310,3 +310,91 @@ para recalcularlas de forma independiente.
 - Pendiente de verificar en Resolve, con los perfiles de prueba instalados y Resolve reiniciado:
   - Panel RAW de `C0039_v2post_iso1600_153553.braw` (ISO 1600, Exposure 0, imagen igual a la del unitario +2 EV).
   - Que el menú ISO del clip v5 aparezca deshabilitado.
+
+## Investigación: por qué Resolve no muestra el selector ISO
+
+Resultado en Resolve 21: el clip v2post abre con la compensación ISO aplicada y Exposure en 0.00, pero con «Decode Using
+= Clip» el panel Camera RAW no muestra el selector ISO (`cbRawISO`). No aparece deshabilitado: falta por completo.
+
+### Cómo construye Resolve el selector
+
+`IOBrawVideoDecoder.cpp` (cadenas del binario `Resolve`) rellena las capacidades del panel en `GetCameraAttributes`.
+No usa la lista ISO del clip, sino la interfaz por **tipo de cámara** `IBlackmagicRawConstants`:
+
+```
+GetClipProcessingAttributeList(cameraType, blackmagicRawClipProcessingAttributeColorScienceGen, …)
+GetISOListForAnalogGain(cameraType, p_AnalogGain, p_IsAnalogGainConstant, isoList.data(), &count, &isReadOnly)
+```
+
+`p_AnalogGain` y `p_IsAnalogGainConstant` salen de los atributos de procesamiento del clip `AnalogGain` y
+`AnalogGainIsConstant`. En el clip v2post, el SDK los informa como `gain` = 1 y `agic` = 1, derivados del perfil.
+
+Los logs de Resolve (`ResolveDebug.txt`) registran el fallo cada vez que se abre un clip de la Pocket OG:
+
+```
+BRAW GetClipProcessingAttributeList(cameraType, …ColorScienceGen, NULL, &count, &isReadOnly) returns 0x80000008 from GetCameraAttributes[1145]
+BRAW GetISOListForAnalogGain(cameraType, p_AnalogGain, p_IsAnalogGainConstant, NULL, &count, &isReadOnly) returns 0x80000008 from GetCameraAttributes[1169]
+```
+
+El fallo ya aparecía a las 13:37 y a las 15:15, con solo el perfil calibrado instalado, así que no se debe a que
+haya varios perfiles con el mismo `camera_type`. Sin lista ISO, Resolve no crea el control. Los errores
+`SetClipAttribute(ColorScienceGen) 0x80000003 from GetGamutGammaForColorScience` vienen de la misma falta de
+capacidades: Resolve intenta fijar una generación de color que no sale de ninguna lista.
+
+### Reproducción con el SDK (`out/research/constants_probe.cpp`, solo lectura)
+
+`IBlackmagicRawConstants` es el IID `de64f929-93a1-45a9-ba69-166a7def9fb3`, obtenido con `QueryInterface` sobre
+el códec. Sus métodos, en orden, son `GetClipProcessingAttributeRange`, `GetClipProcessingAttributeList`,
+`GetFrameProcessingAttributeRange`, `GetFrameProcessingAttributeList` y `GetISOListForAnalogGain`.
+
+| `cameraType` | ColorScienceGen | Lista ISO del fotograma | `GetISOListForAnalogGain(1, constante)` |
+|---|---|---|---|
+| Blackmagic Pocket Cinema Camera 4K / 6K, Cinema Camera 6K, URSA Broadcast G2 | 3 | 100–1000 | 100–1000, editable |
+| Blackmagic URSA Mini Pro 12K | 3 | 125–3200 | 125–3200, editable |
+| SIGMA fp / SIGMA fp L (terceros con BRAW oficial) | 2 | 100–800 / 100–640, **solo lectura** | igual, solo lectura |
+| Blackmagic Pocket Cinema Camera (nuestro perfil externo, cargado) | `0x80000008` | `0x80000008` | `0x80000008` |
+| Otras variantes («Pocket Cinema Camera», nombre del perfil, revisión, OG…) | `0x80000008` | `0x80000008` | `0x80000008` |
+
+Semántica de `GetISOListForAnalogGain`, medida con la Pocket 4K:
+- `analog_gain` tiene que coincidir exactamente con una ganancia analógica de la tabla. Con 0, 0.5, 1.5, 2, 4 u 8 la
+  lista sale vacía y de solo lectura; con 16 devuelve [10000].
+- Con `isConstant` = false la lista sale de solo lectura.
+
+Identidad de un perfil externo:
+- Un `ExternalProduct` solo tiene `manufacturer`, `camera_model`, `revision` y `modes`. El SDK forma el tipo de cámara
+  como «manufacturer camera_model», y `OpenClip` exige que coincidan el `camera_type` del clip y la revisión
+  (`ctrn`). Una copia con `camera_type` alterado en un byte falla con `0x80000001`.
+- Los campos que podrían afectar a la consulta por tipo de cámara (`camera_type_hash`, `legacy_camera_type_list`,
+  `is_bmd_camera`, `is_external_source`) existen solo en el `Product` interno. Un perfil de Camera Support no puede
+  declararlos.
+- Error del framework: «Unknown camera type, revision, colour generation combination». La búsqueda de producto
+  necesita la revisión; `IBlackmagicRawConstants` no la recibe y solo encuentra productos integrados en el SDK.
+
+### SDK frente a interfaz de Resolve
+
+| Capacidad | SDK, por clip (`IBlackmagicRawFrameProcessingAttributes`) | SDK, por tipo de cámara (`IBlackmagicRawConstants`) | Interfaz de Resolve |
+|---|---|---|---|
+| ISO del clip (`isoe`) y `post_gain` | se aplican (ISO 1600 = +2 EV) | — | se aplican: abre con exposición nominal y Exposure 0 |
+| Lista ISO | 200/400/800/1600, editable (`readonly=0`); v5: solo lectura | `0x80000008` | selector ausente |
+| Cambio de ISO | `SetFrameAttribute(fiso)` funciona y es independiente de Exposure | — | no disponible (sin control) |
+| `iso_modification_supported` | controla el `readonly` de la lista por clip | sin efecto | sin efecto visible |
+| Analog gain / constante | `gain` = 1, `agic` = 1 | se usaría como clave de la tabla | se leen, pero la consulta falla antes |
+| Metadato `analog_gain` | `minimalMetadata` lo escribe a 0; la ruta OG omite `analog_gain_is_constant` | — | Resolve no lo usa |
+
+### Conclusiones
+
+- La compensación no destructiva funciona en Resolve: abre con la exposición nominal y Exposure 0.
+- El selector ISO es una capacidad **por modelo de cámara** que Resolve obtiene de la base de productos integrada en
+  el SDK. Para perfiles externos de Camera Support, el SDK no la expone. Esto no depende de
+  `iso_modification_supported`, de la tabla ISO, de `analog_gain` ni de los metadatos de clip o fotograma. Con la
+  versión actual del SDK (Resolve 21), ningún cambio en nuestro perfil o en el contenedor puede hacer aparecer el
+  selector.
+- Haciéndonos pasar por una cámara integrada (cambiando `camera_type` a, por ejemplo, «Blackmagic Pocket Cinema
+  Camera 4K») aparecería la lista ISO de esa cámara (100–1000), no la nuestra. Sería una identidad falsa, con una
+  lista incoherente con la tabla y sin la ISO 1600. Descartado, y no se ha probado.
+- Lo que sí queda es la ISO como metadato no destructivo, aplicada al abrir, y Exposure en 0 para el usuario. Las
+  aplicaciones que usen el API por clip pueden cambiar la ISO; en Resolve no se puede cambiar.
+- Si hace falta un selector ISO en Resolve, la única vía es que Blackmagic exponga las capacidades de los perfiles
+  externos a través de `IBlackmagicRawConstants`.
+- Mejora menor independiente, sin efecto en el selector: escribir en la ruta OG `analog_gain` = `pre_gain` (1.0) y
+  `analog_gain_is_constant` = 1, como hace la ruta Va con la SIGMA fp, en lugar de `analog_gain` = 0.
