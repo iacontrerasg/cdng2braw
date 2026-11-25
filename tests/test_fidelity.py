@@ -258,15 +258,36 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
                      'gamma': {'status': '0', 'value': 'Linear'},
                      'csgn': {'status': '0', 'value': 5},
                      'hlry': {'status': '0', 'value': 0.0}},
-            'frame': {'exposure': {'status': '0', 'value': -3.0}, 'iso': {'status': '0', 'value': 1600.0}},
+            'frame': {'exposure': {'status': '0', 'value': -3.0}, 'iso': {'status': '0', 'value': 1600.0},
+                      'kelvin': {'status': '0', 'value': 5600.0}, 'tint': {'status': '0', 'value': 10.0}},
             'scale': 'full', 'frame_bytes': 100,
         }
-        v = P.verify_decode(settings, info)
+        v = P.verify_decode(settings, info, expected_iso=1600)
         self.assertTrue(v['ok'])
         self.assertEqual(v['applied']['exposure'], -3.0)
-        self.assertIn('kelvin', v['unverifiable'])  # As Shot: no se reportó
-        bad = P.verify_decode(settings, dict(info, frame={'exposure': {'status': '0', 'value': 0.0}}))
+        self.assertEqual(v['applied']['iso'], 1600.0)
+        # Ausencia de atributo crítico → error (no solo aviso)
+        missing = P.verify_decode(settings, dict(info, frame={'exposure': {'status': '0', 'value': -3.0}}))
+        self.assertFalse(missing['ok'])
+        bad = P.verify_decode(settings, dict(info, frame={
+            'exposure': {'status': '0', 'value': 0.0}, 'iso': {'status': '0', 'value': 1600.0},
+            'kelvin': {'status': '0', 'value': 5600.0}, 'tint': {'status': '0', 'value': 10.0}}))
         self.assertFalse(bad['ok'])
+
+    def test_og_deblock_precomp_in_output_env(self):
+        from tools.fidelity import pipeline as P, identity
+        self.assertIn('CDNG_OG_DEBLOCK_PRECOMP', P.OUTPUT_ENV)
+        enc = self._encode(experimental_env={'CDNG_OG_DEBLOCK_PRECOMP': '0'})
+        req, eff, env, _ = P.encode_request(enc, environ={})
+        self.assertEqual(eff['CDNG_OG_DEBLOCK_PRECOMP'], '0')
+        self.assertEqual(env['CDNG_OG_DEBLOCK_PRECOMP'], '0')
+        on = P.encode_request(self._encode(experimental_env={'CDNG_OG_DEBLOCK_PRECOMP': '1'}), environ={})[1]
+        with tempfile.TemporaryDirectory() as d:
+            a = os.path.join(d, 'a.dng'); open(a, 'wb').write(b'DNG')
+            conv = {'cdng_convert_sha256': 'w', 'model': {}}
+            m0 = P.conversion_material(conv, d, [a, a], 0, req, eff)
+            m1 = P.conversion_material(conv, d, [a, a], 0, req, on)
+            self.assertNotEqual(identity.sha256_json(m0), identity.sha256_json(m1))
 
     def test_no_reference_skips_exr_requirement(self):
         from tools.fidelity import manifest as MF
@@ -289,6 +310,19 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
         self.assertEqual(v['duv_samples'], 5)
         self.assertEqual(v['duv_valid'], 3)
         self.assertEqual(v['duv_invalid'], 2)
+
+    def test_block_boundaries_synthetic(self):
+        from tools.fidelity import metrics as M
+        ref = np.full((32, 32, 3), 0.2, np.float64)
+        cand = ref.copy()
+        # Escalón artificial en fronteras de bloque 8×8 solo en la candidata.
+        cand[:, 8, :] += 0.05
+        cand[:, 16, :] += 0.05
+        cand[8, :, :] += 0.05
+        out = M.block_boundaries(ref, cand, block=8, peak=1.0)
+        self.assertGreater(out['border']['mae'], out['interior']['mae'])
+        self.assertGreater(out['candidate_seam']['horizontal_border_mean'],
+                           out['candidate_seam']['horizontal_interior_mean'])
 
 
 @unittest.skipUnless(np is not None, 'numpy es necesario (make venv)')

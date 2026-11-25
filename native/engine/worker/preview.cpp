@@ -234,7 +234,8 @@ int previewServer() {
                 if (mode == "quality" && (!std::isfinite(quality) || quality < QMin || quality > QMax)) throw Error(t("Unsupported compression: use q 0…24 or ratio 3:1…12:1."));
                 if (!setting.empty() && noise.compression != setting) {
                     const Geometry geometry(size.first, size.second);
-                    const auto canvas = canvasPlanes(noise.filtered, geometry);
+                    const bool deblock = (info.route == Route::Og) ? ogDeblockPrecompensationEnabled() : true;
+                    const auto canvas = canvasPlanes(noise.filtered, geometry, deblock);
                     const auto frame = mode == "quality" ? engine.codec.encodeFixed(canvas, geometry, int(quality))
                         : engine.codec.encodeRateControlled(canvas, geometry, std::size_t(double(size.first) * size.second * 12 / 8 / ratio), 8);
                     const auto rebuilt = engine.codec.reconstruct(canvas, frame.q, geometry);

@@ -1,0 +1,20 @@
+{
+  "base": "../manifest.json",
+  "encode": {
+    "compression": "ratio",
+    "q": null,
+    "ratio": 3,
+    "rate_search": true,
+    "noise_synthesis": false,
+    "nr_luma": 0,
+    "nr_chroma": 0,
+    "workers": 2,
+    "experimental_env": {
+      "CDNG_OG_DEBLOCK_PRECOMP": "1"
+    },
+    "notes": [
+      "EXP-001 control: precompensaci\u00f3n ON, BRAW 3:1, noise synthesis off, NR off.",
+      "Difiere del baseline main-352cfab (q4 + noise_synthesis on): ver docs/experiment-pocket-og-deblock-ablation.md."
+    ]
+  }
+}

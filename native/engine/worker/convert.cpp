@@ -406,6 +406,8 @@ int convert(const std::filesystem::path &requestPath) {
     const bool dropFrame = firstDng.timecodeDropFrame();
     const long long timecode = std::max<long long>(0, firstDng.timecodeFrames(nominalFps(*rate)).value_or(0) - (long long)firstGood);
     const int workers = request.options.workers;
+    // Valida CDNG_OG_DEBLOCK_PRECOMP una vez (valores inválidos abortan). En rutas no OG el flag se ignora.
+    const bool ogDeblockPrecomp = ogDeblockPrecompensationEnabled();
     emit("started", json::Object()
         .integer("total", (long long)files.size()).integer("width", width).integer("height", height).integer("workers", workers)
         .num("fps", double(rate->num) / rate->den).str("compression", q ? "quality" : "ratio")
@@ -413,6 +415,7 @@ int convert(const std::filesystem::path &requestPath) {
         .num("noise_scale", std::round(noise.scale * 100) / 100)
         .raw("nr", "[" + json::number(request.options.nrLuma) + ", " + json::number(request.options.nrChroma) + "]")
         .raw("noise_synthesis", request.options.noiseSynthesis ? "true" : "false")
+        .raw("og_deblock_precomp", ogDeblockPrecomp ? "on" : "off")
         .str("build", trace::buildId()).str("trace", trace::path().string()));
     const auto start = std::chrono::steady_clock::now();
     auto seconds = [&] { return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count(); };
@@ -526,10 +529,18 @@ int convert(const std::filesystem::path &requestPath) {
                     }
                     if (trace::active() && result.replaced) trace::line("frame replaced with black: " + result.reason);
                     const auto encodeFrom = std::chrono::steady_clock::now();
-                    const auto canvas = canvasPlanes(planes, geometry);
+                    // Solo Pocket OG respeta CDNG_OG_DEBLOCK_PRECOMP; VA/Pocket 4K conservan la precompensación.
+                    const bool deblock = (route == Route::Og) ? ogDeblockPrecomp : true;
+                    const auto canvas = canvasPlanes(planes, geometry, deblock);
                     if (trace::active()) {
-                        trace::canvas("canvasPlanes (deblock precompensation + rounded/clamped, input to the codec)", canvas, geometry);
-                        trace::canvas("canvasPlanes without deblock precompensation", canvasPlanes(planes, geometry, false), geometry);
+                        trace::line(std::string("canvasPlanes: og_deblock_precomp=") + (ogDeblockPrecomp ? "on" : "off") +
+                                    " effective_deblock=" + (deblock ? "on" : "off") +
+                                    " route=" + (route == Route::Og ? "og" : route == Route::Va ? "va" : "pocket"));
+                        trace::canvas("canvasPlanes (effective path: rounded/clamped, input to the codec)", canvas, geometry);
+                        if (deblock)
+                            trace::canvas("canvasPlanes without deblock precompensation (reference)", canvasPlanes(planes, geometry, false), geometry);
+                        else
+                            trace::canvas("canvasPlanes with deblock precompensation (counterfactual)", canvasPlanes(planes, geometry, true), geometry);
                         trace::line("--- end of traced frame");
                         trace::setActive(false);
                     }

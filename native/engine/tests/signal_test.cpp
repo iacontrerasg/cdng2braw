@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <set>
 
@@ -387,6 +388,30 @@ void autonomous(const OgModel &og) {
         auto q = p;
         denoisePlanes(q, 0, 0);
         CHECK(q.y == p.y && q.cb == p.cb);
+    }
+    {   // CDNG_OG_DEBLOCK_PRECOMP: por defecto on; 0 desactiva; valor inválido → Error
+        unsetenv("CDNG_OG_DEBLOCK_PRECOMP");
+        CHECK(ogDeblockPrecompensationEnabled());
+        setenv("CDNG_OG_DEBLOCK_PRECOMP", "1", 1);
+        CHECK(ogDeblockPrecompensationEnabled());
+        setenv("CDNG_OG_DEBLOCK_PRECOMP", "0", 1);
+        CHECK(!ogDeblockPrecompensationEnabled());
+        setenv("CDNG_OG_DEBLOCK_PRECOMP", "off", 1);
+        CHECK(!ogDeblockPrecompensationEnabled());
+        bool rejected = false;
+        setenv("CDNG_OG_DEBLOCK_PRECOMP", "maybe", 1);
+        try { ogDeblockPrecompensationEnabled(); } catch (const Error &) { rejected = true; }
+        CHECK(rejected);
+        unsetenv("CDNG_OG_DEBLOCK_PRECOMP");
+        // Un escalón en frontera de bloque 8×8: con precompensación el Y redondeado difiere del sin ella.
+        Planes p(16, 16);
+        std::fill(p.y.begin(), p.y.end(), 1000.f);
+        for (int y = 0; y < 16; ++y) for (int x = 8; x < 16; ++x) p.y[std::size_t(y) * 16 + x] = 2000.f;
+        std::fill(p.cb.begin(), p.cb.end(), 0.f); std::fill(p.cr.begin(), p.cr.end(), 0.f);
+        const Geometry g(16, 16);
+        const auto on = canvasPlanes(p, g, true), off = canvasPlanes(p, g, false);
+        CHECK(on.y != off.y);
+        CHECK(on.cb == off.cb && on.cr == off.cr);   // la precompensación solo toca Y
     }
     {   // ruta pocket: gris medio dentro del modelo, vista previa de vuelta al mismo gris
         const auto pocket = pocketMap(Resources);

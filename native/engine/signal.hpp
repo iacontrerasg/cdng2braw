@@ -98,6 +98,10 @@ Planes imagePlanes(const RgbImage &rgb, const SignalMap &map);
 // canvas_planes: lienzo con bordes replicados, precompensación del filtro de desbloqueo (3,10,3)/16 en luma y
 // redondeo/recorte a 0…4095 (Y) y −4096…4095 (croma).
 CanvasPlanes canvasPlanes(const Planes &planes, const Geometry &geometry, bool deblock = true);
+// CDNG_OG_DEBLOCK_PRECOMP: precompensación antibloques en la ruta Pocket OG.
+// Ausente / 1 / on / true → activada (producción). 0 / off / false → desactivada (ablación).
+// Cualquier otro valor lanza Error. En rutas no OG el codificador ignora el valor tras validarlo.
+bool ogDeblockPrecompensationEnabled();
 // Inversa para la vista previa de la compresión: filtro antibloques del decodificador sobre la luma (DEBLOCK_TAPS
 // 3-10-3 en los dos píxeles de cada frontera de bloque; el inverso de la precompensación) y recorte al tamaño entregado.
 Planes decodedPlanes(const CanvasPlanes &canvas, const Geometry &geometry);

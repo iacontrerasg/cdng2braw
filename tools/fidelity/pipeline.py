@@ -25,21 +25,23 @@ class PipelineError(RuntimeError):
 
 
 # Variables CDNG_* que pueden cambiar el BRAW o la imagen. Sus valores efectivos (o null si no aplica) entran en la
-# identidad de caché y en setup. Añadir aquí cualquier nueva opción experimental; no hace falta tocar el deblocking.
+# identidad de caché y en setup. Añadir aquí cualquier nueva opción experimental.
 OUTPUT_ENV = (
-    'CDNG_RATE',           # search: búsqueda exacta de q por fotograma en modo ratio
-    'CDNG_NOISE_SYNTH',    # desactiva o fuerza la síntesis de ruido
-    'CDNG_DEADZONE',       # zona muerta del cuantizador AC
-    'CDNG_GREEN',          # demosaic del verde (dir = media direccional)
-    'CDNG_CHROMA_FILTER',  # longitud del filtro de croma
-    'CDNG_RESIZE_CHROMA',  # sites = reescalado sin corregir fase
-    'CDNG_SHARPEN',        # nitidez nativa al ampliar
-    'CDNG_SDK_TOE',        # pie de la curva de señal
-    'CDNG_NR_THREADS',     # hilos de NR (puede alterar el resultado con NR activo)
-    'CDNG_RESOURCES',      # raíz de model/; si se hereda, no es el worker empaquetado
+    'CDNG_RATE',                 # search: búsqueda exacta de q por fotograma en modo ratio
+    'CDNG_NOISE_SYNTH',          # desactiva o fuerza la síntesis de ruido
+    'CDNG_DEADZONE',             # zona muerta del cuantizador AC
+    'CDNG_GREEN',                # demosaic del verde (dir = media direccional)
+    'CDNG_CHROMA_FILTER',        # longitud del filtro de croma
+    'CDNG_RESIZE_CHROMA',        # sites = reescalado sin corregir fase
+    'CDNG_SHARPEN',              # nitidez nativa al ampliar
+    'CDNG_SDK_TOE',              # pie de la curva de señal
+    'CDNG_NR_THREADS',           # hilos de NR (puede alterar el resultado con NR activo)
+    'CDNG_RESOURCES',            # raíz de model/; si se hereda, no es el worker empaquetado
+    'CDNG_OG_DEBLOCK_PRECOMP',   # Pocket OG: 1/on (defecto) o 0/off — precompensación antibloques
 )
 
-# Diagnóstico o i18n: no deben alterar el BRAW. Si están en el entorno se registran y se quitan al lanzar el worker.
+# Diagnóstico o i18n: no alteran el BRAW. No entran en la identidad de caché; se pasan al worker solo si se
+# declaran en encode.diagnostic_env o están en el entorno (y entonces se registran en run.json).
 DIAGNOSTIC_ENV = (
     'CDNG_PIPELINE_TRACE',
     'CDNG_PROFILE_LOG',
@@ -114,8 +116,15 @@ def encode_request(encode, environ=None):
         raise PipelineError('experimental_env declara variables desconocidas: %s (añádelas a OUTPUT_ENV o DIAGNOSTIC_ENV)' %
                             ', '.join(unknown))
     if any(k in declared for k in DIAGNOSTIC_ENV):
-        raise PipelineError('experimental_env no admite variables de diagnóstico (%s); quítalas del entorno o ignóralas' %
+        raise PipelineError('experimental_env no admite variables de diagnóstico (%s); usa encode.diagnostic_env' %
                             ', '.join(DIAGNOSTIC_ENV))
+
+    diag_declared = dict(encode.get('diagnostic_env') or {})
+    diag_unknown = sorted(set(diag_declared) - set(DIAGNOSTIC_ENV))
+    if diag_unknown:
+        raise PipelineError('diagnostic_env declara variables desconocidas: %s' % ', '.join(diag_unknown))
+    if any(k in diag_declared for k in OUTPUT_ENV):
+        raise PipelineError('diagnostic_env no admite variables de salida (usa experimental_env)')
 
     effective = {name: None for name in OUTPUT_ENV}
     if encode['compression'] == 'ratio' and encode.get('rate_search', True):
@@ -142,9 +151,15 @@ def encode_request(encode, environ=None):
         raise PipelineError('variables CDNG_* heredadas no declaradas (evita overrides silenciosos):\n  ' +
                             '\n  '.join(surprises))
 
-    # Solo las que tienen valor concreto van al entorno del proceso hijo.
+    # Solo las que tienen valor concreto van al entorno del proceso hijo (identidad de caché).
     env = {k: v for k, v in effective.items() if v is not None}
+    # Diagnóstico: manifiesto explícito gana; el ambiente se registra y también se pasa (no altera el BRAW).
     diagnostic = {k: ambient[k] for k in DIAGNOSTIC_ENV if k in ambient}
+    for k, v in diag_declared.items():
+        if v is None:
+            diagnostic.pop(k, None)
+        else:
+            diagnostic[k] = str(v)
     return req, effective, env, diagnostic
 
 
@@ -183,7 +198,7 @@ def convert(converter, converter_id, clip_dir, files, start, count, encode, cach
     staged = files[start:start + count]
     req, effective, env, diagnostic = encode_request(encode)
     if diagnostic:
-        log('aviso: CDNG_* de diagnóstico en el entorno (no se pasan al worker): %s' %
+        log('diagnóstico al worker (no entra en la identidad de caché): %s' %
             ', '.join('%s=%s' % kv for kv in sorted(diagnostic.items())))
     material = conversion_material(converter_id, clip_dir, staged, start, req, effective)
     key = identity.sha256_json(material)
@@ -219,6 +234,7 @@ def convert(converter, converter_id, clip_dir, files, start, count, encode, cach
         converter_id['cdng_convert_sha256'][:12]))
     child_env = worker_environ(os.environ)
     child_env.update(env)
+    child_env.update(diagnostic)
     t0 = time.monotonic()
     r = subprocess.run([os.path.join(converter, 'cdng-convert'), '--request', os.path.join(tmp, 'request.json')],
                        capture_output=True, text=True, env=child_env)
@@ -301,15 +317,24 @@ def parse_frame_info(text):
     return info
 
 
-def verify_decode(settings, info):
-    """Compara lo solicitado con lo que brawdec reportó. Distingue aplicado / no verificable / error."""
+def verify_decode(settings, info, expected_iso=None):
+    """Compara lo solicitado con lo que brawdec reportó. Distingue aplicado / no verificable / error.
+
+    Atributos críticos (gamut, gamma, csgn, hlry, scale, exposure, y la presencia de iso/kelvin/tint)
+    deben aparecer en la salida de brawdec: su ausencia detiene la evaluación. As Shot no puede
+    contrastarse aún contra AsShotNeutral del DNG; si el SDK reporta ISO y se conoce el ISO del
+    manifiesto, se exige coincidencia numérica.
+    """
     requested = dict(settings)
+    if expected_iso is not None:
+        requested['expected_iso'] = expected_iso
     applied, unverifiable, errors = {}, [], []
 
-    def take_clip(name, want, cast=lambda x: x):
+    def take_clip(name, want, cast=lambda x: x, critical=True):
         entry = info['clip'].get(name)
         if not entry or 'value' not in entry:
-            unverifiable.append(name)
+            (errors if critical else unverifiable).append(
+                '%s no reportado por brawdec' % name if critical else name)
             return
         got = cast(entry['value'])
         applied[name] = got
@@ -322,7 +347,7 @@ def verify_decode(settings, info):
     take_clip('hlry', settings.get('highlight_recovery'), lambda v: float(v))
 
     if info.get('scale') is None:
-        unverifiable.append('scale')
+        errors.append('scale no reportado por brawdec')
     else:
         applied['scale'] = info['scale']
         if settings.get('scale', 'full') != info['scale']:
@@ -332,12 +357,15 @@ def verify_decode(settings, info):
         want = settings.get(setting_key)
         entry = info['frame'].get(name)
         if not entry or 'value' not in entry:
-            unverifiable.append(name)
+            errors.append('%s no reportado por brawdec' % name)
             continue
         got = entry['value']
         applied[name] = got
         if want is None or want == 'as_shot':
-            # As Shot: no hay valor numérico solicitado; solo comprobamos que el SDK dio un valor.
+            if name == 'exposure' and abs(float(got)) > 1e-6:
+                errors.append('exposure: As Shot/0 EV esperado, SDK %s' % got)
+            if name == 'iso' and expected_iso is not None and abs(float(got) - float(expected_iso)) > 0.5:
+                errors.append('iso As Shot: manifiesto %s, SDK %s' % (expected_iso, got))
             continue
         if abs(float(got) - float(want)) > 1e-6:
             errors.append('%s: solicitado %s, SDK %s' % (name, want, got))
@@ -346,11 +374,12 @@ def verify_decode(settings, info):
             'ok': not errors, 'errors': errors}
 
 
-def decode(brawdec, framework, decoder_id, braw, braw_sha, index, settings, cache, log, no_cache=False):
+def decode(brawdec, framework, decoder_id, braw, braw_sha, index, settings, cache, log, no_cache=False,
+           expected_iso=None):
     """Revela un fotograma del BRAW a RGB float. Devuelve (imagen, entrada de caché)."""
     # info_schema 2: frame_info anidado + decode_verification (invalida cachés del schema 1).
     material = {'kind': 'decode', 'info_schema': 2, 'decoder': decoder_id, 'braw_sha256': braw_sha,
-                'index': index, 'settings': settings}
+                'index': index, 'settings': settings, 'expected_iso': expected_iso}
     key = identity.sha256_json(material)
     directory = os.path.join(cache, 'decode', key[:24])
     if os.path.isdir(directory) and not no_cache:
@@ -372,7 +401,7 @@ def decode(brawdec, framework, decoder_id, braw, braw_sha, index, settings, cach
     if r.returncode or not os.path.isfile(out):
         raise PipelineError('brawdec falló (código %d): %s' % (r.returncode, (r.stdout + r.stderr).strip()[-500:]))
     info = parse_frame_info(r.stdout + r.stderr)
-    verification = verify_decode(settings, info)
+    verification = verify_decode(settings, info, expected_iso=expected_iso)
     if not verification['ok']:
         raise PipelineError('el revelado no coincide con lo solicitado: %s' % '; '.join(verification['errors']))
     if verification['unverifiable']:

@@ -171,7 +171,63 @@ def fidelity(ref, cand, cfg, norm, ceiling):
     out['sharpness'] = {'gradient_energy_ratio_edges': _f(ec / er) if er > 0 else 'nan',
                         'laplacian_energy_ratio_edges': _f(np.sum(lc ** 2) / np.sum(lr ** 2)) if lr.size and np.sum(lr ** 2) > 0 else 'nan'}
     out['neutral'] = neutral(rn, cn, cfg['neutral_mask'])
+    # Experimental (EXP-001): no modifica métricas existentes; mide discontinuidades en fronteras 8×8.
+    out['experimental_block'] = block_boundaries(rn, cn, block=8, peak=cfg['psnr_peak'])
     return out, edges
+
+
+def block_boundaries(ref, cand, block=8, peak=1.0):
+    """Error en fronteras de bloques DCT 8×8 frente al interior, y saltos de luma en esas fronteras.
+
+    Experimental: documentado en docs/experiment-pocket-og-deblock-ablation.md. El submuestreo de croma
+    puede cambiar la periodicidad observable en RGB; aquí se mide sobre luminancia P3 y RGB completo.
+    """
+    h, w = ref.shape[:2]
+    border = np.zeros((h, w), dtype=bool)
+    border[:, 0::block] = True
+    border[:, block - 1::block] = True
+    border[0::block, :] = True
+    border[block - 1::block, :] = True
+    # Excluir el marco exterior de la imagen (no es frontera entre bloques codificados).
+    border[:, 0] = False
+    border[0, :] = False
+    if w >= block:
+        border[:, w - 1] = False
+    if h >= block:
+        border[h - 1, :] = False
+    interior = ~border
+    yr, yc = luminance(ref), luminance(cand)
+
+    def seam_steps(y):
+        """Media de |Δ| horizontal/vertical en fronteras de bloque vs posiciones interiores."""
+        hb, hi, vb, vi = [], [], [], []
+        for x in range(1, w):
+            step = np.abs(y[:, x] - y[:, x - 1])
+            (hb if x % block == 0 else hi).append(float(step.mean()))
+        for r in range(1, h):
+            step = np.abs(y[r, :] - y[r - 1, :])
+            (vb if r % block == 0 else vi).append(float(step.mean()))
+        return {
+            'horizontal_border_mean': _f(np.mean(hb)) if hb else 'nan',
+            'horizontal_interior_mean': _f(np.mean(hi)) if hi else 'nan',
+            'vertical_border_mean': _f(np.mean(vb)) if vb else 'nan',
+            'vertical_interior_mean': _f(np.mean(vi)) if vi else 'nan',
+            'horizontal_border_minus_interior': _f(np.mean(hb) - np.mean(hi)) if hb and hi else 'nan',
+            'vertical_border_minus_interior': _f(np.mean(vb) - np.mean(vi)) if vb and vi else 'nan',
+        }
+
+    out = {'block_size': block, 'border_pixels': int(border.sum()), 'interior_pixels': int(interior.sum())}
+    if border.any():
+        out['border'] = basic(ref[border], cand[border], peak)
+    if interior.any():
+        out['interior'] = basic(ref[interior], cand[interior], peak)
+    if border.any() and interior.any():
+        out['border_minus_interior_mae'] = _f(out['border']['mae'] - out['interior']['mae'])
+        out['border_minus_interior_rmse'] = _f(out['border']['rmse'] - out['interior']['rmse'])
+    out['candidate_seam'] = seam_steps(yc)
+    out['reference_seam'] = seam_steps(yr)
+    out['error_seam'] = seam_steps(yc - yr)
+    return out
 
 
 def neutral(ref, cand, cfg, mask=None):

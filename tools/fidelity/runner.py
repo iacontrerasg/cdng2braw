@@ -113,7 +113,7 @@ def run(args):
     if git['dirty']:
         log('aviso: el árbol tiene cambios sin commit; la identidad del worker es su sha, no el commit')
     if diagnostic:
-        log('aviso: CDNG_* de diagnóstico en el entorno (no se pasan al worker): %s' %
+        log('diagnóstico activo (no entra en identidad de caché): %s' %
             ', '.join('%s=%s' % kv for kv in sorted(diagnostic.items())))
 
     analysis = doc['analysis']
@@ -148,7 +148,8 @@ def run(args):
                 key = result_key(t['id'], frame)
                 ref_meta = refs.get(frame)
                 settings = decode_settings(doc, decode_override_for(refs, frame))
-                img, dec = P.decode(args.brawdec, framework, dec_id, conv['path'], conv['sha256'], frame - start, settings, cache, log, args.no_cache)
+                img, dec = P.decode(args.brawdec, framework, dec_id, conv['path'], conv['sha256'], frame - start, settings,
+                                    cache, log, args.no_cache, expected_iso=t['iso'])
                 cache_use.append({'kind': 'decode', 'key': dec['key'], 'reused': dec['reused']})
                 timing['decodes'].append({'result': key, 'seconds': dec['seconds'], 'reused': dec['reused']})
                 shutil.copyfile(os.path.join(os.path.dirname(dec['path']), 'decode.log'), os.path.join(run_dir, 'logs', 'decode_%s.log' % key))

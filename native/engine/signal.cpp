@@ -6,6 +6,7 @@
 #include <simdjson.h>
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdlib>
 #include <string>
@@ -665,6 +666,16 @@ std::vector<int16_t> rounded(const std::vector<double> &p, double lo, double hi)
 }
 
 }  // namespace
+
+bool ogDeblockPrecompensationEnabled() {
+    const char *value = std::getenv("CDNG_OG_DEBLOCK_PRECOMP");
+    if (!value || !*value) return true;
+    std::string s;
+    for (const char *p = value; *p; ++p) s.push_back(char(std::tolower(static_cast<unsigned char>(*p))));
+    if (s == "1" || s == "on" || s == "true" || s == "yes") return true;
+    if (s == "0" || s == "off" || s == "false" || s == "no") return false;
+    throw Error("CDNG_OG_DEBLOCK_PRECOMP: unsupported value '" + std::string(value) + "' (use 0|1|off|on|false|true)");
+}
 
 CanvasPlanes canvasPlanes(const Planes &planes, const Geometry &g, bool deblock) {
     if (planes.width != g.w || planes.height != g.h) throw Error("Planes do not match the frame geometry");

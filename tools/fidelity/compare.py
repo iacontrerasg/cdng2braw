@@ -13,7 +13,9 @@ from .metrics import flatten
 LOWER = ('mae', 'mse', 'rmse', 'profile_rmse', 'fringe_max', 'duv_mean', 'duv_p95', 'duv_p99', 'duv_max', 'mean_duv',
          'luma_rel_error_abs_mean', 'luma_abs_error_mean', 'mae_mean', 'mae_worst', 'rmse_mean', 'rmse_worst',
          'mean_duv_mean', 'mean_duv_worst', 'profile_rmse_mean', 'profile_rmse_worst', 'fringe_max_mean',
-         'fringe_max_worst', 'duv_mean_mean', 'duv_mean_worst', 'duv_invalid')
+         'fringe_max_worst', 'duv_mean_mean', 'duv_mean_worst', 'duv_invalid',
+         'border_minus_interior_mae', 'border_minus_interior_rmse',
+         'horizontal_border_minus_interior', 'vertical_border_minus_interior')
 HIGHER = ('psnr_db', 'correlation_rgb', 'correlation', 'psnr_db_mean', 'psnr_db_worst', 'duv_valid_fraction')
 ABS = ('signed_mean_error', 'luminance_rel_error_pct', 'luma_rel_error_mean', 'overshoot_delta', 'undershoot_delta',
        'rise_10_90_delta', 'luminance_rel_error_pct_mean', 'luminance_rel_error_pct_worst', 'overshoot_delta_mean',
