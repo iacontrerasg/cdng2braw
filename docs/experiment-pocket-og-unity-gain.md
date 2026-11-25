@@ -110,8 +110,94 @@ por la **ruta RGB**: `Dng::cameraRgb` (LibRaw AHD, `highlight = Clip`, normaliza
   Al borrar el fichero, Resolve siguió leyendo el inodo antiguo con el mismo nombre de clip. Las dos medidas del
   informe («anterior» y «Unity Gain») salieron del BRAW antiguo.
 
-### Pendiente
+## Validación independiente (exportaciones OpenEXR de Resolve, ISO 1600 / BE 3.1)
 
-- Cerrar Resolve (o retirar los clips del proyecto), vaciar la Papelera, importar los BRAW de `~/Desktop/BRAW/` y
-  repetir la medida. Lo esperado con ganancia unitaria: a 0 EV la imagen sale 2 EV más oscura que el DNG de ISO 1600
-  y con el techo en 2.1434; a +2 EV en el RAW de Resolve, las luces llegan a ≈ 8.57 sin recorte prematuro.
+Repetida con los BRAW nuevos importados de nuevo en Resolve:
+
+- Píxeles en el techo de señal: del 19.9154 % al 0.0829 %.
+- Máximo lineal recuperado: 8.573795, frente a 2.143449.
+- Error relativo de luminancia media: +0.0696 %.
+- PSNR entre el DNG a −3 EV y el BRAW a −1 EV: 41.85 dB. Correlación RGB: 0.99768.
+
+La ganancia unitaria queda como base de la solución: la compensación de BaselineExposure **no** se vuelve a aplicar
+sobre el RGB antes de codificar.
+
+## Investigación: exposición no destructiva al abrir el BRAW
+
+Compensación esperada: `BaselineExposure − log2(baselineGain)` = BE − 1.1 EV. Para los clips medidos: BE 0.1 → −1,
+1.1 → 0, 2.1 → +1, 3.1 → +2 EV. Las pruebas se hicieron sobre copias del BRAW de C0039 en `out/trace-run/`,
+decodificadas con el SDK de Resolve (`tools/brawdec`, `out/research/sidecar_probe`). El motor no se modificó.
+
+### Qué escribe hoy `container.cpp` (ruta OG)
+
+- Por fotograma (`frameMetadata`, bloque `bmdf` de 1024 bytes): `srte` (cadencia), `expo` (float32 BE, copiado
+  de la plantilla: 0.0), `isoe` (1250), `wkel`/`wtin` (As Shot inferido), `agpf` (0.0) y `skip`.
+- Por clip (`finalizeClip` → `withProfile`/`minimalMetadata`): `camera_type`, `manufacturer`, `viewing_bmdgen`,
+  `viewing_gamut` "DCI-P3 D65", `viewing_gamma` "Linear", `analog_gain` (0.0), la geometría y la identidad de la
+  toma. `ctrn` lleva la revisión del perfil.
+
+### Atributos del SDK (`brawdec --audit-attributes`, `--frame-info`)
+
+- Fotograma: `expo` float, valor 0, rango −5…+5, escribible; `fiso` lista de solo lectura {1250}; `agpf` float 1;
+  `wbkv` 2000…50000; `wbtn` −150…150.
+- Clip: `gain` 1 y `agic` 1 sin rango; `hlry` (recuperación de altas luces); `lutm` Embedded/Sidecar/Disabled; tono
+  (`tcon`, `tsat`…).
+- Metadatos de fotograma del SDK: `exposure` es la entrada `expo` del `bmdf`. También expone `as_shot_kelvin` y
+  `as_shot_tint` (0 en nuestros clips), pero no hay `as_shot_exposure`. A nivel de clip no existe `exposure`:
+  `SetMetadata` devuelve `0x80000003`.
+
+### Pruebas sobre copias
+
+| Variante | Resultado en el SDK |
+| --- | --- |
+| `expo` = 2.0 en cada `bmdf` | `expo` efectivo 2; imagen idéntica a decodificar con `--exposure 2` (media 0.867443, máximo 8.5738) |
+| `agpf` = 1.0 | sin efecto |
+| `agpf` = 2.0 o 4.0 | el SDK revienta (segfault, código 139) |
+| `analog_gain` de clip = 4.0 | se lee 4, pero la salida lineal no cambia (media 0.216861) |
+| `isoe` = 1600 (fuera de la lista del perfil) | `fiso` efectivo 1600 y el SDK revienta (segfault) |
+| Sidecar escrito por `SaveSidecarFile` tras `frame.SetMetadata("exposure", 2)` | `{"exposure": {"07:56:49:00": 2.000000}}`; el BRAW no cambia; al reabrir se adjunta solo y el valor se mantiene en los fotogramas siguientes |
+| Sidecar con `"exposure": 2.0` o `"iso": 1600` escalares | `PARSE FAILURE` |
+| Sidecar 0.5 sobre `expo` embebido 2.0 | efectivo 0.5: el sidecar **sustituye**, no suma |
+
+### Perfil calibrado
+
+`pocket_og_cinemadng_camera_support.json` (modo «CinemaDNG calibration»):
+- `iso_params[0]`: `base_iso` 1250 y `iso_gain_table` con una sola entrada {iso 1250, `pre_gain` 1, `post_gain` 1}.
+- `native_iso` 1250; `iso_modification_supported` false.
+- `stops_above_mid_grey_at_native_iso` 3.5739: 0.18 · 2^3.5739 = 2.1435 = `baselineGain`.
+
+El SDK solo carga perfiles desde `/Library/Application Support/Blackmagic Design/Blackmagic RAW/Camera Support` (no
+hay variable de entorno para otra carpeta): probar una tabla ISO requiere instalar un perfil modificado y reiniciar Resolve.
+
+### Alternativas
+
+1. **`expo` embebido por fotograma** (escribir BE − 1.1 en el `bmdf`).
+   - A favor: comprobado en el SDK; no destructivo; sin ficheros extra; no toca el perfil ni la calibración.
+   - En contra: es el mismo parámetro que el control «Exposure» del usuario. Resolve lo mostraría como 2.0, no como 0;
+     un ajuste del usuario o un sidecar lo sustituye (no se suma), y ocupa parte del rango ±5.
+   - Por verificar en Resolve: que «Decode using: Camera metadata» abra con +2, y qué pasa con «Clip» y «Project».
+2. **Tabla ISO en el perfil** (una entrada por ISO de la cámara, con la ganancia en `pre_gain`/`post_gain`, e
+   `isoe` por clip según BE).
+   - A favor: es como tratan la ISO las cámaras Blackmagic: metadato no destructivo, independiente del control
+     Exposure. Con `iso_modification_supported` false el usuario no puede cambiarla.
+   - En contra: modifica el perfil calibrado (SHA, `profile_sha256`, reinstalación). Toda ISO escrita debe estar en la
+     tabla o el SDK revienta. Falta medir qué hacen `pre_gain` y `post_gain` con el techo. Los DNG de la Pocket OG no
+     traen ISO en EXIF, así que la ISO se deduciría de BE.
+3. **Varias revisiones del perfil** (una por BE, con `stops_above_mid_grey_at_native_iso` distinto, elegida con `ctrn`).
+   - A favor: offset independiente del usuario.
+   - En contra: multiplica perfiles y calibraciones, y es lo más difícil de mantener.
+4. **Sidecar `.sidecar`** generado junto al BRAW con la línea temporal `exposure`.
+   - A favor: formato del SDK; no destructivo.
+   - En contra: fichero externo que se pierde al mover el BRAW; está en la misma capa que los ajustes del usuario
+     (Resolve lo reescribe); no aporta nada sobre la opción 1.
+5. **Descartadas por evidencia**: `agpf` ≠ 1 (segfault), `analog_gain` de clip (sin efecto en lineal), `exposure`
+   de clip (no admitido), sidecar escalar (no se parsea), ISO fuera del perfil (segfault) y ganancia RGB antes de
+   codificar (destructiva).
+
+### Recomendación provisional
+
+- Para que Resolve abra con la exposición correcta sin tocar la calibración, la candidata es la opción 1.
+- Si hace falta que la compensación sea independiente del control creativo del usuario, la candidata es la opción 2,
+  después de un experimento controlado con un perfil de prueba instalado aparte.
+- Siguiente paso propuesto: abrir en Resolve la copia `out/trace-run/exp_expo2.braw` y comprobar el panel RAW con
+  «Camera metadata», «Clip» y «Project».
