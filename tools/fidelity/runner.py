@@ -144,6 +144,12 @@ def run(args):
             timing['conversions'].append({'test': t['id'], 'range': [start, count], 'seconds': conv['seconds'], 'reused': conv['reused']})
             shutil.copyfile(os.path.join(os.path.dirname(conv['path']), 'convert.log'),
                             os.path.join(run_dir, 'logs', 'convert_%s_%03d-%03d.log' % (t['id'], start, start + count - 1)))
+            cache_dir = os.path.dirname(conv['path'])
+            for name in ('clip.pipeline-trace.txt', 'pipeline-trace.identity.json'):
+                src = os.path.join(cache_dir, name)
+                if os.path.isfile(src):
+                    dest = os.path.join(run_dir, 'logs', '%s_%03d-%03d_%s' % (t['id'], start, start + count - 1, name))
+                    shutil.copyfile(src, dest)
             for frame in fs:
                 key = result_key(t['id'], frame)
                 ref_meta = refs.get(frame)

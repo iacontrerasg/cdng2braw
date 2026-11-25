@@ -274,6 +274,20 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
             'kelvin': {'status': '0', 'value': 5600.0}, 'tint': {'status': '0', 'value': 10.0}}))
         self.assertFalse(bad['ok'])
 
+    def test_parse_worker_events_rejects_invalid_json(self):
+        from tools.fidelity import pipeline as P
+        events = P.parse_worker_events('{"event":"started","og_deblock_precomp":true}\n')
+        self.assertEqual(events[0]['og_deblock_precomp'], True)
+        with self.assertRaises(P.PipelineError):
+            P.parse_worker_events('{"event":"started","og_deblock_precomp":on}\n')
+
+    def test_conversion_diagnostics_flags(self):
+        from tools.fidelity import pipeline as P
+        self.assertFalse(P.conversion_diagnostics({}))
+        self.assertFalse(P.conversion_diagnostics({'CDNG_PIPELINE_TRACE': '0'}))
+        self.assertTrue(P.conversion_diagnostics({'CDNG_PIPELINE_TRACE': '1'}))
+        self.assertTrue(P.conversion_diagnostics({'CDNG_DUMP_CANVAS': '/tmp/x'}))
+
     def test_og_deblock_precomp_in_output_env(self):
         from tools.fidelity import pipeline as P, identity
         self.assertIn('CDNG_OG_DEBLOCK_PRECOMP', P.OUTPUT_ENV)

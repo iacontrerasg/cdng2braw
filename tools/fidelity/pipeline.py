@@ -193,6 +193,109 @@ def worker_environ(process_env):
     return {k: v for k, v in process_env.items() if not k.startswith('CDNG_')}
 
 
+def conversion_diagnostics(diagnostic):
+    """Diagnósticos que exigen ejecutar el worker aunque el BRAW ya esté en caché."""
+    if not diagnostic:
+        return False
+    if diagnostic.get('CDNG_PIPELINE_TRACE') not in (None, '', '0'):
+        return True
+    if diagnostic.get('CDNG_DUMP_CANVAS'):
+        return True
+    if diagnostic.get('CDNG_PROFILE_LOG'):
+        return True
+    return False
+
+
+def parse_worker_events(stdout):
+    """Todas las líneas JSON del stdout del worker; falla si alguna línea `{…}` no es JSON válido."""
+    events = []
+    for i, line in enumerate(stdout.splitlines()):
+        text = line.strip()
+        if not text or text[0] != '{':
+            continue
+        try:
+            events.append(json.loads(text))
+        except ValueError as e:
+            raise PipelineError('evento JSON del worker ilegible (línea %d): %s' % (i + 1, text[:240])) from e
+    return events
+
+
+def _write_trace_identity(directory, key, material, braw_sha, diagnostic, instrumented_braw_sha256=None):
+    """Registra a qué conversión corresponde la traza; sella el .txt para no reutilizar trazas huérfanas.
+
+    braw_sha256 es el de la caché de imagen (la que usa el banco). Si la re-ejecución instrumentada
+    produjo otro fichero (códec no bit-idéntico), se anota en instrumented_braw_sha256 sin sustituir la caché.
+    """
+    meta = {
+        'conversion_key': key,
+        'braw_sha256': braw_sha,
+        'material': material,
+        'diagnostic_env': diagnostic,
+        'generated': time.strftime('%Y-%m-%dT%H:%M:%S'),
+    }
+    if instrumented_braw_sha256 is not None:
+        meta['instrumented_braw_sha256'] = instrumented_braw_sha256
+        meta['braw_matched_instrumented'] = instrumented_braw_sha256 == braw_sha
+    path = os.path.join(directory, 'pipeline-trace.identity.json')
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(meta, f, indent=1, sort_keys=True, ensure_ascii=False)
+        f.write('\n')
+    trace = os.path.join(directory, 'clip.pipeline-trace.txt')
+    if os.path.isfile(trace):
+        with open(trace, encoding='utf-8', errors='replace') as f:
+            lines = f.read().splitlines(True)
+        while lines and lines[0].startswith(('# conversion_key ', '# braw_sha256 ', '# generated ')):
+            lines.pop(0)
+        stamp = '# conversion_key %s\n# braw_sha256 %s\n# generated %s\n' % (key, braw_sha, meta['generated'])
+        with open(trace, 'w', encoding='utf-8') as f:
+            f.write(stamp)
+            f.writelines(lines)
+    return path
+
+
+def _require_requested_traces(directory, diagnostic):
+    if diagnostic.get('CDNG_PIPELINE_TRACE') not in (None, '', '0'):
+        path = os.path.join(directory, 'clip.pipeline-trace.txt')
+        ident = os.path.join(directory, 'pipeline-trace.identity.json')
+        if not os.path.isfile(path) or not os.path.isfile(ident):
+            raise PipelineError('CDNG_PIPELINE_TRACE solicitado pero falta la traza o su identidad en %s' % directory)
+
+
+def _run_convert_worker(converter, clip_dir, staged, req, env, diagnostic, tmp):
+    """Ejecuta cdng-convert en tmp/; devuelve (out_path, events, completed, seconds)."""
+    src = os.path.join(tmp, 'staging', os.path.basename(clip_dir))
+    os.makedirs(src)
+    for f in staged:
+        os.symlink(os.path.realpath(f), os.path.join(src, os.path.basename(f)))
+    out = os.path.join(tmp, 'clip.braw')
+    request = dict(req, input=src, output=out)
+    with open(os.path.join(tmp, 'request.json'), 'w') as f:
+        json.dump(request, f, indent=1)
+    child_env = worker_environ(os.environ)
+    child_env.update(env)
+    child_env.update(diagnostic)
+    t0 = time.monotonic()
+    r = subprocess.run([os.path.join(converter, 'cdng-convert'), '--request', os.path.join(tmp, 'request.json')],
+                       capture_output=True, text=True, env=child_env)
+    seconds = time.monotonic() - t0
+    log_path = os.path.join(tmp, 'convert.log')
+    with open(log_path, 'w', encoding='utf-8') as f:
+        f.write(r.stdout + ('\n--- stderr ---\n' + r.stderr if r.stderr else ''))
+    events = parse_worker_events(r.stdout)
+    done = [e for e in events if e.get('event') == 'completed']
+    if r.returncode or not done or not os.path.isfile(out):
+        errors = [e.get('message') for e in events if e.get('event') == 'error']
+        raise PipelineError('el worker falló (código %d): %s; ver %s' % (
+            r.returncode, errors or r.stderr.strip()[-500:], log_path))
+    if done[0].get('replaced_frames'):
+        raise PipelineError('el worker sustituyó fotogramas %s por negro' % done[0]['replaced_frames'])
+    for e in events:
+        if e.get('event') == 'started' and 'og_deblock_precomp' in e and not isinstance(e['og_deblock_precomp'], bool):
+            raise PipelineError('started.og_deblock_precomp debe ser booleano JSON, got %r' % e['og_deblock_precomp'])
+    shutil.rmtree(os.path.join(tmp, 'staging'))
+    return out, events, done[0], seconds
+
+
 def convert(converter, converter_id, clip_dir, files, start, count, encode, cache, log, no_cache=False):
     """Convierte los DNG [start, start + count) de un clip. Devuelve la entrada de caché (ruta, sha, evento final)."""
     staged = files[start:start + count]
@@ -203,63 +306,71 @@ def convert(converter, converter_id, clip_dir, files, start, count, encode, cach
     material = conversion_material(converter_id, clip_dir, staged, start, req, effective)
     key = identity.sha256_json(material)
     directory = os.path.join(cache, 'braw', key[:24])
-    if os.path.isdir(directory) and not no_cache:
-        saved = _verify(directory, material, 'clip.braw')
-        log('BRAW reutilizado %s (%s, fotogramas %d–%d; worker %s; identidad verificada)' % (
-            key[:12], material['clip'], start, start + count - 1, converter_id['cdng_convert_sha256'][:12]))
-        return dict(saved, path=os.path.join(directory, 'clip.braw'), key=key, reused=True,
-                    experimental_env=effective, inputs=material['inputs'])
-    if os.path.isdir(directory):
-        shutil.rmtree(directory)
-    tmp = directory + '.tmp'
-    shutil.rmtree(tmp, ignore_errors=True)
-    src = os.path.join(tmp, 'staging', os.path.basename(clip_dir))
-    os.makedirs(src)
-    for f in staged:
-        os.symlink(os.path.realpath(f), os.path.join(src, os.path.basename(f)))
-    out = os.path.join(tmp, 'clip.braw')
-    request = dict(req, input=src, output=out)
-    with open(os.path.join(tmp, 'request.json'), 'w') as f:
-        json.dump(request, f, indent=1)
-    rate_note = ''
-    if env.get('CDNG_RATE') == 'search':
-        rate_note = ' búsqueda exacta'
+    want_diag = conversion_diagnostics(diagnostic)
+    rate_note = ' búsqueda exacta' if env.get('CDNG_RATE') == 'search' else ''
     exp_note = ''
     active = {k: v for k, v in effective.items() if v is not None}
     if active:
         exp_note = '; experimental %s' % ','.join('%s=%s' % kv for kv in sorted(active.items()))
-    log('convirtiendo %s fotogramas %d–%d (%s%s%s) con worker %s' % (
+    convert_msg = 'convirtiendo %s fotogramas %d–%d (%s%s%s) con worker %s' % (
         material['clip'], start, start + count - 1,
         'q %s' % req['q'] if 'q' in req else 'ratio %s:1' % req['ratio'], rate_note, exp_note,
-        converter_id['cdng_convert_sha256'][:12]))
-    child_env = worker_environ(os.environ)
-    child_env.update(env)
-    child_env.update(diagnostic)
-    t0 = time.monotonic()
-    r = subprocess.run([os.path.join(converter, 'cdng-convert'), '--request', os.path.join(tmp, 'request.json')],
-                       capture_output=True, text=True, env=child_env)
-    seconds = time.monotonic() - t0
-    with open(os.path.join(tmp, 'convert.log'), 'w', encoding='utf-8') as f:
-        f.write(r.stdout + ('\n--- stderr ---\n' + r.stderr if r.stderr else ''))
-    events = []
-    for line in r.stdout.splitlines():
+        converter_id['cdng_convert_sha256'][:12])
+
+    if os.path.isdir(directory) and not no_cache:
+        saved = _verify(directory, material, 'clip.braw')
+        if not want_diag:
+            log('BRAW reutilizado %s (%s, fotogramas %d–%d; worker %s; identidad verificada)' % (
+                key[:12], material['clip'], start, start + count - 1, converter_id['cdng_convert_sha256'][:12]))
+            return dict(saved, path=os.path.join(directory, 'clip.braw'), key=key, reused=True,
+                        experimental_env=effective, inputs=material['inputs'], trace=None)
+        # Caché de imagen intacta: regenerar solo instrumentación y comprobar que el BRAW no cambia.
+        log('BRAW en caché %s; regenerando instrumentación (identidad de imagen verificada después)' % key[:12])
+        log(convert_msg + ' [diagnóstico]')
+        instr = directory + '.instr.tmp'
+        shutil.rmtree(instr, ignore_errors=True)
+        os.makedirs(instr)
         try:
-            events.append(json.loads(line))
-        except ValueError:
-            pass
-    done = [e for e in events if e.get('event') == 'completed']
-    if r.returncode or not done or not os.path.isfile(out):
-        errors = [e.get('message') for e in events if e.get('event') == 'error']
-        raise PipelineError('el worker falló (código %d): %s; ver %s' % (r.returncode, errors or r.stderr.strip()[-500:], os.path.join(tmp, 'convert.log')))
-    if done[0].get('replaced_frames'):
-        raise PipelineError('el worker sustituyó fotogramas %s por negro' % done[0]['replaced_frames'])
-    shutil.rmtree(os.path.join(tmp, 'staging'))
-    saved = {'material': material, 'sha256': identity.sha256_file(out), 'completed': done[0], 'seconds': seconds}
+            out, events, done, seconds = _run_convert_worker(
+                converter, clip_dir, staged, req, env, diagnostic, instr)
+            new_sha = identity.sha256_file(out)
+            # El códec/rate-search no es bit-idéntico entre corridas; la imagen de trabajo sigue siendo
+            # la de la caché. La traza se asocia a conversion_key + braw_sha256 de la caché.
+            if new_sha != saved['sha256']:
+                log('aviso: re-encode con diagnóstico produjo otro BRAW (%s ≠ caché %s); '
+                    'se conserva la caché (la traza describe el pipeline, no sustituye la imagen)' % (
+                        new_sha[:12], saved['sha256'][:12]))
+            for name in ('clip.pipeline-trace.txt', 'convert.log'):
+                src = os.path.join(instr, name)
+                if os.path.isfile(src):
+                    shutil.copy2(src, os.path.join(directory, name))
+            trace_id = _write_trace_identity(directory, key, material, saved['sha256'], diagnostic,
+                                            instrumented_braw_sha256=new_sha)
+            _require_requested_traces(directory, diagnostic)
+        finally:
+            shutil.rmtree(instr, ignore_errors=True)
+        return dict(saved, path=os.path.join(directory, 'clip.braw'), key=key, reused=True,
+                    experimental_env=effective, inputs=material['inputs'], seconds=seconds,
+                    trace=trace_id, trace_refreshed=True, completed=done)
+
+    if os.path.isdir(directory):
+        shutil.rmtree(directory)
+    tmp = directory + '.tmp'
+    shutil.rmtree(tmp, ignore_errors=True)
+    os.makedirs(tmp)
+    log(convert_msg)
+    out, events, done, seconds = _run_convert_worker(
+        converter, clip_dir, staged, req, env, diagnostic, tmp)
+    saved = {'material': material, 'sha256': identity.sha256_file(out), 'completed': done, 'seconds': seconds}
     with open(os.path.join(tmp, 'identity.json'), 'w') as f:
         json.dump(saved, f, indent=1, sort_keys=True)
     os.rename(tmp, directory)
+    trace_id = None
+    if want_diag:
+        trace_id = _write_trace_identity(directory, key, material, saved['sha256'], diagnostic)
+        _require_requested_traces(directory, diagnostic)
     return dict(saved, path=os.path.join(directory, 'clip.braw'), key=key, reused=False,
-                experimental_env=effective, inputs=material['inputs'])
+                experimental_env=effective, inputs=material['inputs'], trace=trace_id)
 
 
 def decode_args(settings):

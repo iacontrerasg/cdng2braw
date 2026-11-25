@@ -414,8 +414,8 @@ int convert(const std::filesystem::path &requestPath) {
         .raw("q", q ? std::to_string(*q) : "null").num("ratio", request.options.ratio)
         .num("noise_scale", std::round(noise.scale * 100) / 100)
         .raw("nr", "[" + json::number(request.options.nrLuma) + ", " + json::number(request.options.nrChroma) + "]")
-        .raw("noise_synthesis", request.options.noiseSynthesis ? "true" : "false")
-        .raw("og_deblock_precomp", ogDeblockPrecomp ? "on" : "off")
+        .boolean("noise_synthesis", request.options.noiseSynthesis)
+        .boolean("og_deblock_precomp", ogDeblockPrecomp)
         .str("build", trace::buildId()).str("trace", trace::path().string()));
     const auto start = std::chrono::steady_clock::now();
     auto seconds = [&] { return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count(); };
@@ -531,11 +531,24 @@ int convert(const std::filesystem::path &requestPath) {
                     const auto encodeFrom = std::chrono::steady_clock::now();
                     // Solo Pocket OG respeta CDNG_OG_DEBLOCK_PRECOMP; VA/Pocket 4K conservan la precompensación.
                     const bool deblock = (route == Route::Og) ? ogDeblockPrecomp : true;
-                    const auto canvas = canvasPlanes(planes, geometry, deblock);
                     if (trace::active()) {
                         trace::line(std::string("canvasPlanes: og_deblock_precomp=") + (ogDeblockPrecomp ? "on" : "off") +
                                     " effective_deblock=" + (deblock ? "on" : "off") +
                                     " route=" + (route == Route::Og ? "og" : route == Route::Va ? "va" : "pocket"));
+                        std::vector<double> yf, cbf, crf;
+                        floatCanvasPlanes(planes, geometry, deblock, yf, cbf, crf);
+                        trace::rangeStats("Y before round/clamp (effective deblock path)", measureCodeRange(yf, 0, 4095));
+                        trace::rangeStats("Cb before round/clamp", measureCodeRange(cbf, -4096, 4095));
+                        trace::rangeStats("Cr before round/clamp", measureCodeRange(crf, -4096, 4095));
+                        // Contrafactual: misma señal con el otro estado de precompensación (no altera el códec).
+                        std::vector<double> yAlt, cbAlt, crAlt;
+                        floatCanvasPlanes(planes, geometry, !deblock, yAlt, cbAlt, crAlt);
+                        trace::rangeStats(deblock ? "Y before round (without deblock, counterfactual)"
+                                                  : "Y before round (with deblock, counterfactual)",
+                                          measureCodeRange(yAlt, 0, 4095));
+                    }
+                    const auto canvas = canvasPlanes(planes, geometry, deblock);
+                    if (trace::active()) {
                         trace::canvas("canvasPlanes (effective path: rounded/clamped, input to the codec)", canvas, geometry);
                         if (deblock)
                             trace::canvas("canvasPlanes without deblock precompensation (reference)", canvasPlanes(planes, geometry, false), geometry);

@@ -677,6 +677,51 @@ bool ogDeblockPrecompensationEnabled() {
     throw Error("CDNG_OG_DEBLOCK_PRECOMP: unsupported value '" + std::string(value) + "' (use 0|1|off|on|false|true)");
 }
 
+RangeStats measureCodeRange(const std::vector<double> &samples, double lo, double hi) {
+    RangeStats s;
+    s.samples = samples.size();
+    for (double v : samples) {
+        if (v < lo) {
+            ++s.math_below;
+            const double ex = lo - v;
+            s.excess_sum += ex;
+            if (ex > s.excess_max) s.excess_max = ex;
+        } else if (v > hi) {
+            ++s.math_above;
+            const double ex = v - hi;
+            s.excess_sum += ex;
+            if (ex > s.excess_max) s.excess_max = ex;
+        }
+        const double r = std::nearbyint(v);
+        if (r < lo) ++s.round_below;
+        else if (r > hi) ++s.round_above;
+        const double c = std::clamp(r, lo, hi);
+        if (c != r) {
+            if (r < lo) ++s.clamped_low;
+            else ++s.clamped_high;
+        }
+        if (c == lo) {
+            ++s.at_lo;
+            if (c == r) ++s.at_lo_natural;
+        }
+        if (c == hi) {
+            ++s.at_hi;
+            if (c == r) ++s.at_hi_natural;
+        }
+    }
+    return s;
+}
+
+void floatCanvasPlanes(const Planes &planes, const Geometry &g, bool deblock,
+                       std::vector<double> &y, std::vector<double> &cb, std::vector<double> &cr) {
+    if (planes.width != g.w || planes.height != g.h) throw Error("Planes do not match the frame geometry");
+    y = place(planes.y.data(), g.w, g.h, g.ws, g.hs, g.x0, g.y0);
+    if (deblock) precompensate(y, g.ws, g.hs, 8, 8);
+    const int hx = g.x0 / 2, hy = g.y0 / 2, hw = g.w / 2, hh = g.h / 2;
+    cb = place(planes.cb.data(), hw, hh, g.ws / 2, g.hs / 2, hx, hy);
+    cr = place(planes.cr.data(), hw, hh, g.ws / 2, g.hs / 2, hx, hy);
+}
+
 CanvasPlanes canvasPlanes(const Planes &planes, const Geometry &g, bool deblock) {
     if (planes.width != g.w || planes.height != g.h) throw Error("Planes do not match the frame geometry");
     CanvasPlanes out;

@@ -390,19 +390,19 @@ void autonomous(const OgModel &og) {
         CHECK(q.y == p.y && q.cb == p.cb);
     }
     {   // CDNG_OG_DEBLOCK_PRECOMP: por defecto on; 0 desactiva; valor inválido → Error
-        unsetenv("CDNG_OG_DEBLOCK_PRECOMP");
+        check::EnvVar env("CDNG_OG_DEBLOCK_PRECOMP");
+        env.unset();
         CHECK(ogDeblockPrecompensationEnabled());
-        setenv("CDNG_OG_DEBLOCK_PRECOMP", "1", 1);
+        env.set("1");
         CHECK(ogDeblockPrecompensationEnabled());
-        setenv("CDNG_OG_DEBLOCK_PRECOMP", "0", 1);
+        env.set("0");
         CHECK(!ogDeblockPrecompensationEnabled());
-        setenv("CDNG_OG_DEBLOCK_PRECOMP", "off", 1);
+        env.set("off");
         CHECK(!ogDeblockPrecompensationEnabled());
         bool rejected = false;
-        setenv("CDNG_OG_DEBLOCK_PRECOMP", "maybe", 1);
+        env.set("maybe");
         try { ogDeblockPrecompensationEnabled(); } catch (const Error &) { rejected = true; }
         CHECK(rejected);
-        unsetenv("CDNG_OG_DEBLOCK_PRECOMP");
         // Un escalón en frontera de bloque 8×8: con precompensación el Y redondeado difiere del sin ella.
         Planes p(16, 16);
         std::fill(p.y.begin(), p.y.end(), 1000.f);
@@ -412,6 +412,13 @@ void autonomous(const OgModel &og) {
         const auto on = canvasPlanes(p, g, true), off = canvasPlanes(p, g, false);
         CHECK(on.y != off.y);
         CHECK(on.cb == off.cb && on.cr == off.cr);   // la precompensación solo toca Y
+        // Overshoot matemático vs clip: valor >4095 se marca como math_above y clamped_high; at_hi ≠ solo clip.
+        const RangeStats over = measureCodeRange({100.0, 4095.0, 4100.5, -1.0}, 0, 4095);
+        CHECK(over.math_above == 1 && over.math_below == 1);
+        CHECK(over.clamped_high == 1 && over.clamped_low == 1);
+        CHECK(over.at_hi == 2);            // 4095 natural + 4100.5 clampado
+        CHECK(over.at_hi_natural == 1);   // solo el 4095 natural
+        CHECK(over.excess_max >= 5.0);
     }
     {   // ruta pocket: gris medio dentro del modelo, vista previa de vuelta al mismo gris
         const auto pocket = pocketMap(Resources);

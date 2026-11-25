@@ -116,12 +116,19 @@ python -m tools.fidelity compare \
   out/benchmark/runs/exp001-series-a-ablation \
   --allow-setup-differences --dest out/benchmark/comparisons/exp001-ablation-vs-control
 
-# Trazas (no alteran caché de BRAW)
-make benchmark DATASET=~/Desktop/BMD TEST=A04 RUN=exp001-a04-control-trace \
+# Trazas: diagnostic_env no entra en la identidad de caché del BRAW. Si el BRAW ya
+# está en caché, el banco re-ejecuta el worker solo para instrumentación, conserva
+# el BRAW cacheado (el códec/rate-search no es bit-idéntico entre corridas) y escribe
+# clip.pipeline-trace.txt + pipeline-trace.identity.json (conversion_key + braw_sha256
+# de la caché; instrumented_braw_sha256 si el re-encode difirió). No hace falta --no-cache.
+make benchmark DATASET=~/Desktop/BMD TEST=A04 SERIES= RUN=exp001-a04-control-trace \
   MANIFEST=benchmark/experiments/exp001-control-3to1-trace.json
+make benchmark DATASET=~/Desktop/BMD TEST=A04 SERIES= RUN=exp001-a04-ablation-trace \
+  MANIFEST=benchmark/experiments/exp001-ablation-3to1-trace.json
+# Las trazas se copian a out/benchmark/runs/<run>/logs/*_clip.pipeline-trace.txt
 ```
 
-Fase 3 (q fijo): ajustar `q` en `exp001-*-fixed-q.json` al valor típico del control 3:1 y repetir A04.
+Fase 3 (q fijo): `exp001-*-fixed-q.json` usa **q=18** (q del control 3:1 en A04).
 
 ## 8. Resultados medidos
 
@@ -137,7 +144,7 @@ Worker idéntico en todas las corridas: `17cb31433336…`. Baseline `main-352cfa
 | Δu'v' en bordes | 0.01489 | 0.01415 | −0.00074 | Menos error cromático en bordes |
 | Δu'v' en regiones neutras | 0.01085 | 0.01041 | −0.00044 | Ligera mejora |
 | Cromaticidad inválida (bordes) | 0 | 0 | 0 | Sin cambio |
-| Overshoot / Y==4095 (traza A04) | 61 px (0.003 %) | 0 | −61 | Sin precomp no hay clip de Y en lienzo |
+| Y==4095 tras redondeo (traza A04, informe inicial) | 61 px | 0 | — | **No equivale a clamp** (ver §8.1) |
 | Muestras recortadas (techo RGB) | 0.000820 | 0.000753 | −0.000067 | Ligera bajada |
 | Error frontera−interior bloques | −9.4e−5 | +2.4e−5 | +1.2e−4 | Ablación empeora fronteras (bloques) |
 | Energía de gradiente (ratio) | 1.007 | 0.918 | −0.089 | Ablación más suave en bordes |
@@ -167,9 +174,34 @@ Informes HTML:
 
 ## 9. Conclusiones
 
+### 8.1 Revisión de los 61 píxeles Y==4095
+
+La traza inicial de EXP-001 etiquetaba `Y == 4095` como «recortado». Eso era **incorrecto**: un código final en el techo puede ser natural (señal ya en 4095) o resultado de clamp.
+
+La instrumentación actual (`measureCodeRange` / `trace::rangeStats`) distingue, por plano:
+
+| Contador | Significado |
+|---|---|
+| `math_below` / `math_above` | Fuera de rango **antes** de `nearbyint` |
+| `round_below` / `round_above` | `nearbyint` fuera del intervalo |
+| `clamped_low` / `clamped_high` | Clamp efectivo |
+| `at_hi` / `at_hi_natural` | Final == techo; natural = sin clamp |
+| `excess_sum` / `excess_max` | Exceso acumulado y máximo fuera de rango (pre-redondeo) |
+
+Tras regenerar trazas (A04_f044 control, `exp001-a04-control-trace-review`):
+
+| Contador Y (precomp ON) | Valor |
+|---|---:|
+| `math_above` | **61** |
+| `clamped_high` | **61** |
+| `excess_max` | ≈1601 códigos |
+| Contrafactual sin precomp `math_above` | **0** |
+
+Los 61 del informe inicial coinciden con **overshoot matemático + clamp efectivo**, no con un mero conteo de techo natural. El enunciado «Y==4095 ⇒ recortado» sigue siendo falso en general; en este fotograma concreto el número 61 era el de muestras clampadas.
+
 ### Hipótesis confirmadas
 
-1. La precompensación actúa **solo sobre Y** y puede producir códigos >4095 que `rounded` recorta (61 px en A04 control; 0 en ablación).
+1. La precompensación actúa **solo sobre Y**. Puede generar overshoot matemático (`math_above`) que el clamp convierte en `clamped_high`; el techo natural (`at_hi_natural`) es otra categoría.
 2. Desactivarla **cambia el q** elegido a ratio 3:1 (≈18 → ≈15): hay efecto indirecto vía complejidad.
 3. A **q fijo**, el PSNR frente a CinemaDNG **no mejora** al quitar la precompensación; el error en fronteras de bloque aumenta y cae el ratio de energía de gradiente.
 

@@ -102,6 +102,27 @@ CanvasPlanes canvasPlanes(const Planes &planes, const Geometry &geometry, bool d
 // Ausente / 1 / on / true → activada (producción). 0 / off / false → desactivada (ablación).
 // Cualquier otro valor lanza Error. En rutas no OG el codificador ignora el valor tras validarlo.
 bool ogDeblockPrecompensationEnabled();
+
+// Instrumentación (no altera el códec): overshoot/clipping de un plano en coma flotante.
+struct RangeStats {
+    std::size_t samples = 0;
+    std::size_t math_below = 0;       // v < lo antes de redondear
+    std::size_t math_above = 0;       // v > hi antes de redondear
+    std::size_t round_below = 0;      // nearbyint(v) < lo
+    std::size_t round_above = 0;      // nearbyint(v) > hi
+    std::size_t clamped_low = 0;      // clamp cambió el valor hacia lo
+    std::size_t clamped_high = 0;     // clamp cambió el valor hacia hi
+    std::size_t at_lo = 0;            // resultado final == lo (incluye naturales y clamp)
+    std::size_t at_hi = 0;            // resultado final == hi (NO implica clamp)
+    std::size_t at_hi_natural = 0;    // final == hi sin haber sido clamp
+    std::size_t at_lo_natural = 0;
+    double excess_sum = 0;            // Σ max(0, v−hi) + max(0, lo−v) antes de redondear
+    double excess_max = 0;            // máximo de esos excesos
+};
+RangeStats measureCodeRange(const std::vector<double> &samples, double lo, double hi);
+// Mismos place (+ precomp Y) que canvasPlanes, sin nearbyint/clamp. Solo para trazas.
+void floatCanvasPlanes(const Planes &planes, const Geometry &geometry, bool deblock,
+                       std::vector<double> &y, std::vector<double> &cb, std::vector<double> &cr);
 // Inversa para la vista previa de la compresión: filtro antibloques del decodificador sobre la luma (DEBLOCK_TAPS
 // 3-10-3 en los dos píxeles de cada frontera de bloque; el inverso de la precompensación) y recorte al tamaño entregado.
 Planes decodedPlanes(const CanvasPlanes &canvas, const Geometry &geometry);
