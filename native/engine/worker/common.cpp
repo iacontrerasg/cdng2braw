@@ -200,7 +200,7 @@ SourceInfo sourceInfo(const Dng &dng, const OgModel &og) {
     if (const auto crop = dng.numeric(50720); crop && crop->size() >= 2) info.defaultCrop = {int((*crop)[0]), int((*crop)[1])};
     if (info.route == Route::Og) {
         const auto shot = ogSourceInfo(dng, og);
-        info.gain = 1; info.iso = shot.iso; info.kelvin = shot.kelvin; info.tint = shot.tint; info.profile = profileFor(info.route);
+        info.gain = shot.gain; info.iso = shot.iso; info.kelvin = shot.kelvin; info.tint = shot.tint; info.profile = profileFor(info.route);
         return info;
     }
     const auto baseline = dng.numeric(50730);
