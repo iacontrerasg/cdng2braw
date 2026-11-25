@@ -1,0 +1,981 @@
+{
+  "schema": 1,
+  "name": "Pocket Cinema Camera (2013) — banco de fidelidad",
+  "dataset": {
+    "description": "CinemaDNG originales de la Pocket OG; una carpeta por toma, un DNG por fotograma.",
+    "default_root": "~/Desktop/BMD",
+    "references_root": "../EXR",
+    "notes": [
+      "El dataset, los EXR y los BRAW no se versionan."
+    ]
+  },
+  "camera": {
+    "route": "og",
+    "calibration_iso": 400,
+    "signal_ceiling_iso400": 2.14344883,
+    "signal_ceiling_source": "decode(4095) × baseline_exposure_gain de la curva calibrada (traza del pipeline); a ISO N el techo es × N/400."
+  },
+  "encode": {
+    "compression": "quality",
+    "q": 4,
+    "ratio": null,
+    "rate_search": true,
+    "noise_synthesis": true,
+    "workers": 2,
+    "experimental_env": {},
+    "notes": [
+      "noise_synthesis true es el valor por defecto de la app y del worker.",
+      "rate_search solo se aplica en modo ratio (CDNG_RATE=search): sin él el control de tasa depende del orden de los hilos y no es reproducible por fotograma.",
+      "experimental_env declara CDNG_* que afectan al BRAW (OUTPUT_ENV en tools/fidelity/pipeline.py). El banco rechaza las heredadas no declaradas."
+    ]
+  },
+  "decode": {
+    "gamut": "DCI-P3 D65",
+    "gamma": "Linear",
+    "color_science_gen": 5,
+    "highlight_recovery": 0,
+    "white_balance": "as_shot",
+    "iso": "as_shot",
+    "exposure": 0,
+    "scale": "full",
+    "framework": "/Applications/DaVinci Resolve/DaVinci Resolve.app/Contents/Frameworks/BlackmagicRawAPI.framework/BlackmagicRawAPI",
+    "camera_support": "/Library/Application Support/Blackmagic Design/Blackmagic RAW/Camera Support",
+    "notes": [
+      "color_science_gen 5 es la única opción que ofrece el SDK para estos BRAW; «Gen 4» se refiere al revelado del CinemaDNG en Resolve.",
+      "Ajustes explícitos comprobados idénticos bit a bit a los valores por defecto de brawdec (P3 D65, Linear, csgn 5, hlry 0)."
+    ]
+  },
+  "analysis": {
+    "normalize_to_iso": 200,
+    "psnr_peak": 1.0,
+    "luminance": "P3-D65",
+    "luminance_bins": [
+      0.0,
+      0.0025,
+      0.01,
+      0.04,
+      0.16,
+      0.64,
+      1000000000.0
+    ],
+    "error_percentiles": [
+      50,
+      90,
+      95,
+      99,
+      99.9
+    ],
+    "chroma_min_luminance": 0.005,
+    "edge_mask": {
+      "percentile": 90,
+      "dilate": 1,
+      "min_luminance": 0.002
+    },
+    "neutral_mask": {
+      "max_duv": 0.01,
+      "min_luminance": 0.01
+    },
+    "ceiling_margin": 0.9999,
+    "alignment": {
+      "search": 8,
+      "min_detail_correlation": 0.74,
+      "basis": "Correlación del detalle (paso alto de log2 Y) entre el BRAW revelado y el EXR del DNG, medida en la serie A con los BRAW v2: 0.819–0.820 en el fotograma correcto, 0.637–0.657 en fotogramas vecinos, 0.42 con otra toma de la misma escena. 0.74 separa ambos grupos."
+    }
+  },
+  "visualization": {
+    "display_exposure": 2.0,
+    "abs_error_max": 0.02,
+    "signed_error_max": 0.01,
+    "chroma_error_max": 0.02,
+    "histogram_max": 0.05,
+    "histogram_bins": 100,
+    "roi_zoom": 6
+  },
+  "scenes": {
+    "chart_wall": {
+      "rois": "rois/chart_wall.json"
+    }
+  },
+  "decoder_equivalence": [
+    {
+      "braw": "~/Desktop/BRAW/v2/BMPCC_1_2000-03-02_0756_C0037_3to1.braw",
+      "frame": 29,
+      "reference": "BRAW400_00086516.exr",
+      "iso": 400,
+      "decode": {}
+    },
+    {
+      "braw": "~/Desktop/BRAW/v2/BMPCC_1_2000-03-02_0756_C0039_3to1.braw",
+      "frame": 44,
+      "reference": "BRAW1600MINUS3_00086731.exr",
+      "iso": 1600,
+      "decode": {
+        "exposure": -3
+      }
+    }
+  ],
+  "tests": [
+    {
+      "id": "A01",
+      "series": "A",
+      "category": "iso",
+      "status": "complete",
+      "clip": "BMPCC_1_2000-03-02_0756_C0036",
+      "frame_count": 87,
+      "baseline_exposure": 0.1,
+      "iso": 200,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [
+        52
+      ],
+      "references": [
+        {
+          "frame": 52,
+          "file": "DNG200_00086452.exr",
+          "kind": "resolve_cinemadng_exr",
+          "timeline_timecode": "01:00:02:04",
+          "decode": {}
+        }
+      ],
+      "notes": [
+        "Apertura no registrada en los DNG (sin IFD EXIF): pendiente de completar."
+      ]
+    },
+    {
+      "id": "A02",
+      "series": "A",
+      "category": "iso",
+      "status": "complete",
+      "clip": "BMPCC_1_2000-03-02_0756_C0037",
+      "frame_count": 102,
+      "baseline_exposure": 1.1,
+      "iso": 400,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [
+        29
+      ],
+      "references": [
+        {
+          "frame": 29,
+          "file": "DNG400_00086516.exr",
+          "kind": "resolve_cinemadng_exr",
+          "timeline_timecode": "01:00:04:20",
+          "decode": {}
+        }
+      ],
+      "notes": [
+        "Apertura no registrada en los DNG (sin IFD EXIF): pendiente de completar."
+      ]
+    },
+    {
+      "id": "A03",
+      "series": "A",
+      "category": "iso",
+      "status": "complete",
+      "clip": "BMPCC_1_2000-03-02_0756_C0038",
+      "frame_count": 98,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [
+        46
+      ],
+      "references": [
+        {
+          "frame": 46,
+          "file": "DNG800_00086635.exr",
+          "kind": "resolve_cinemadng_exr",
+          "timeline_timecode": "01:00:09:19",
+          "decode": {}
+        }
+      ],
+      "notes": [
+        "Apertura no registrada en los DNG (sin IFD EXIF): pendiente de completar."
+      ]
+    },
+    {
+      "id": "A04",
+      "series": "A",
+      "category": "iso",
+      "status": "complete",
+      "clip": "BMPCC_1_2000-03-02_0756_C0039",
+      "frame_count": 103,
+      "baseline_exposure": 3.1,
+      "iso": 1600,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [
+        44,
+        49
+      ],
+      "references": [
+        {
+          "frame": 44,
+          "file": "DNG1600MINUS3_00086731.exr",
+          "kind": "resolve_cinemadng_exr",
+          "timeline_timecode": "01:00:13:19",
+          "decode": {
+            "exposure": -3
+          }
+        },
+        {
+          "frame": 49,
+          "file": "DNG1600_00086736.exr",
+          "kind": "resolve_cinemadng_exr",
+          "timeline_timecode": "01:00:14:00",
+          "decode": {}
+        }
+      ],
+      "notes": [
+        "Apertura no registrada en los DNG (sin IFD EXIF): pendiente de completar."
+      ]
+    },
+    {
+      "id": "A05",
+      "series": "A",
+      "category": "iso_control",
+      "status": "complete",
+      "clip": "BMPCC_1_2000-03-02_0757_C0040",
+      "frame_count": 108,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [
+        53
+      ],
+      "references": [
+        {
+          "frame": 53,
+          "file": "DNG800CONTROL00086843.exr",
+          "kind": "resolve_cinemadng_exr",
+          "timeline_timecode": "01:00:18:11",
+          "decode": {}
+        }
+      ],
+      "notes": [
+        "Toma de control: misma ISO que A03, grabada después de A04.",
+        "Apertura no registrada en los DNG (sin IFD EXIF): pendiente de completar."
+      ]
+    },
+    {
+      "id": "B01",
+      "series": "B",
+      "category": "aperture",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0757_C0041",
+      "frame_count": 84,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [],
+      "references": [],
+      "observed": {
+        "sensor_p50_green_mid_frame": 0.00597417261
+      },
+      "notes": [
+        "Asignación a la serie B inferida: BaselineExposure y AsShotNeutral constantes con nivel de sensor creciente. Confirmar.",
+        "Apertura no registrada en los DNG: pendiente de completar.",
+        "Fotogramas y referencias EXR pendientes."
+      ]
+    },
+    {
+      "id": "B02",
+      "series": "B",
+      "category": "aperture",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0757_C0042",
+      "frame_count": 99,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [],
+      "references": [],
+      "observed": {
+        "sensor_p50_green_mid_frame": 0.0112343794
+      },
+      "notes": [
+        "Asignación a la serie B inferida: BaselineExposure y AsShotNeutral constantes con nivel de sensor creciente. Confirmar.",
+        "Apertura no registrada en los DNG: pendiente de completar.",
+        "Fotogramas y referencias EXR pendientes."
+      ]
+    },
+    {
+      "id": "B03",
+      "series": "B",
+      "category": "aperture",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0757_C0043",
+      "frame_count": 101,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [],
+      "references": [],
+      "observed": {
+        "sensor_p50_green_mid_frame": 0.0239784978
+      },
+      "notes": [
+        "Asignación a la serie B inferida: BaselineExposure y AsShotNeutral constantes con nivel de sensor creciente. Confirmar.",
+        "Apertura no registrada en los DNG: pendiente de completar.",
+        "Fotogramas y referencias EXR pendientes."
+      ]
+    },
+    {
+      "id": "B04",
+      "series": "B",
+      "category": "aperture",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0758_C0044",
+      "frame_count": 98,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [],
+      "references": [],
+      "observed": {
+        "sensor_p50_green_mid_frame": 0.0449273102
+      },
+      "notes": [
+        "Asignación a la serie B inferida: BaselineExposure y AsShotNeutral constantes con nivel de sensor creciente. Confirmar.",
+        "Apertura no registrada en los DNG: pendiente de completar.",
+        "Fotogramas y referencias EXR pendientes."
+      ]
+    },
+    {
+      "id": "B05",
+      "series": "B",
+      "category": "aperture",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0758_C0045",
+      "frame_count": 97,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [],
+      "references": [],
+      "observed": {
+        "sensor_p50_green_mid_frame": 0.0879291221
+      },
+      "notes": [
+        "Asignación a la serie B inferida: BaselineExposure y AsShotNeutral constantes con nivel de sensor creciente. Confirmar.",
+        "Apertura no registrada en los DNG: pendiente de completar.",
+        "Fotogramas y referencias EXR pendientes."
+      ]
+    },
+    {
+      "id": "B06",
+      "series": "B",
+      "category": "aperture",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0759_C0046",
+      "frame_count": 88,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [],
+      "references": [],
+      "observed": {
+        "sensor_p50_green_mid_frame": 0.102191493
+      },
+      "notes": [
+        "Asignación a la serie B inferida: BaselineExposure y AsShotNeutral constantes con nivel de sensor creciente. Confirmar.",
+        "Apertura no registrada en los DNG: pendiente de completar.",
+        "Fotogramas y referencias EXR pendientes."
+      ]
+    },
+    {
+      "id": "B07",
+      "series": "B",
+      "category": "aperture",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0759_C0047",
+      "frame_count": 88,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [],
+      "references": [],
+      "observed": {
+        "sensor_p50_green_mid_frame": 0.12145336
+      },
+      "notes": [
+        "Asignación a la serie B inferida: BaselineExposure y AsShotNeutral constantes con nivel de sensor creciente. Confirmar.",
+        "Apertura no registrada en los DNG: pendiente de completar.",
+        "Fotogramas y referencias EXR pendientes."
+      ]
+    },
+    {
+      "id": "B08",
+      "series": "B",
+      "category": "aperture",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0759_C0048",
+      "frame_count": 90,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [],
+      "references": [],
+      "observed": {
+        "sensor_p50_green_mid_frame": 0.134228155
+      },
+      "notes": [
+        "Asignación a la serie B inferida: BaselineExposure y AsShotNeutral constantes con nivel de sensor creciente. Confirmar.",
+        "Apertura no registrada en los DNG: pendiente de completar.",
+        "Fotogramas y referencias EXR pendientes."
+      ]
+    },
+    {
+      "id": "B09",
+      "series": "B",
+      "category": "aperture",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0759_C0049",
+      "frame_count": 103,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [],
+      "references": [],
+      "observed": {
+        "sensor_p50_green_mid_frame": 0.167537689
+      },
+      "notes": [
+        "Asignación a la serie B inferida: BaselineExposure y AsShotNeutral constantes con nivel de sensor creciente. Confirmar.",
+        "Apertura no registrada en los DNG: pendiente de completar.",
+        "Fotogramas y referencias EXR pendientes."
+      ]
+    },
+    {
+      "id": "B10",
+      "series": "B",
+      "category": "aperture",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0759_C0050",
+      "frame_count": 108,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [],
+      "references": [],
+      "observed": {
+        "sensor_p50_green_mid_frame": 0.214940891
+      },
+      "notes": [
+        "Asignación a la serie B inferida: BaselineExposure y AsShotNeutral constantes con nivel de sensor creciente. Confirmar.",
+        "Apertura no registrada en los DNG: pendiente de completar.",
+        "Fotogramas y referencias EXR pendientes."
+      ]
+    },
+    {
+      "id": "B11",
+      "series": "B",
+      "category": "aperture",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0800_C0051",
+      "frame_count": 95,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [],
+      "references": [],
+      "observed": {
+        "sensor_p50_green_mid_frame": 0.306388766
+      },
+      "notes": [
+        "Asignación a la serie B inferida: BaselineExposure y AsShotNeutral constantes con nivel de sensor creciente. Confirmar.",
+        "Apertura no registrada en los DNG: pendiente de completar.",
+        "Fotogramas y referencias EXR pendientes."
+      ]
+    },
+    {
+      "id": "C01",
+      "series": "C",
+      "category": "white_balance",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0802_C0052",
+      "frame_count": 87,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.8714,
+          1.0,
+          0.5743
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [],
+      "references": [],
+      "notes": [
+        "Ajuste de balance de blancos de la cámara (Kelvin/tinte) no registrado en los DNG; solo AsShotNeutral. Pendiente.",
+        "Fotogramas y referencias EXR pendientes."
+      ]
+    },
+    {
+      "id": "C02",
+      "series": "C",
+      "category": "white_balance",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0802_C0053",
+      "frame_count": 90,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.7,
+          1.0,
+          0.6867
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [],
+      "references": [],
+      "notes": [
+        "Ajuste de balance de blancos de la cámara (Kelvin/tinte) no registrado en los DNG; solo AsShotNeutral. Pendiente.",
+        "Fotogramas y referencias EXR pendientes."
+      ]
+    },
+    {
+      "id": "C03",
+      "series": "C",
+      "category": "white_balance",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0802_C0054",
+      "frame_count": 98,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [],
+      "references": [],
+      "notes": [
+        "Ajuste de balance de blancos de la cámara (Kelvin/tinte) no registrado en los DNG; solo AsShotNeutral. Pendiente.",
+        "Fotogramas y referencias EXR pendientes."
+      ]
+    },
+    {
+      "id": "C04",
+      "series": "C",
+      "category": "white_balance",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0803_C0055",
+      "frame_count": 101,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.5961,
+          1.0,
+          0.8302
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [],
+      "references": [],
+      "notes": [
+        "Ajuste de balance de blancos de la cámara (Kelvin/tinte) no registrado en los DNG; solo AsShotNeutral. Pendiente.",
+        "Fotogramas y referencias EXR pendientes."
+      ]
+    },
+    {
+      "id": "C05",
+      "series": "C",
+      "category": "white_balance",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0803_C0056",
+      "frame_count": 112,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.5705,
+          1.0,
+          0.882
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": "chart_wall",
+      "frames": [],
+      "references": [],
+      "notes": [
+        "Ajuste de balance de blancos de la cámara (Kelvin/tinte) no registrado en los DNG; solo AsShotNeutral. Pendiente.",
+        "Fotogramas y referencias EXR pendientes."
+      ]
+    },
+    {
+      "id": "D01",
+      "series": "D",
+      "category": "dark_frame",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0814_C0057",
+      "frame_count": 82,
+      "baseline_exposure": 0.1,
+      "iso": 200,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": null,
+      "frames": [],
+      "references": [],
+      "observed": {
+        "sensor_p50_green_mid_frame": -6.82128484e-06
+      },
+      "notes": [
+        "Dark frame (mediana del sensor ≈ 0 tras restar el negro). Fotogramas pendientes."
+      ]
+    },
+    {
+      "id": "D02",
+      "series": "D",
+      "category": "dark_frame",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0815_C0058",
+      "frame_count": 85,
+      "baseline_exposure": 1.1,
+      "iso": 400,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": null,
+      "frames": [],
+      "references": [],
+      "observed": {
+        "sensor_p50_green_mid_frame": -6.82128484e-06
+      },
+      "notes": [
+        "Dark frame (mediana del sensor ≈ 0 tras restar el negro). Fotogramas pendientes."
+      ]
+    },
+    {
+      "id": "D03",
+      "series": "D",
+      "category": "dark_frame",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0815_C0059",
+      "frame_count": 84,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": null,
+      "frames": [],
+      "references": [],
+      "observed": {
+        "sensor_p50_green_mid_frame": -6.82128484e-06
+      },
+      "notes": [
+        "Dark frame (mediana del sensor ≈ 0 tras restar el negro). Fotogramas pendientes."
+      ]
+    },
+    {
+      "id": "D04",
+      "series": "D",
+      "category": "dark_frame",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-03-02_0815_C0060",
+      "frame_count": 83,
+      "baseline_exposure": 3.1,
+      "iso": 1600,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.6306,
+          1.0,
+          0.7728
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": null,
+      "frames": [],
+      "references": [],
+      "observed": {
+        "sensor_p50_green_mid_frame": -6.82128484e-06
+      },
+      "notes": [
+        "Dark frame (mediana del sensor ≈ 0 tras restar el negro). Fotogramas pendientes."
+      ]
+    },
+    {
+      "id": "X_C0019",
+      "series": "X",
+      "category": "unclassified",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-01-29_0727_C0019",
+      "frame_count": 1338,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.7,
+          1.0,
+          0.6867
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": null,
+      "frames": [],
+      "references": [],
+      "notes": [
+        "Toma de otra sesión (2000-01-29), fuera de las series A–D."
+      ]
+    },
+    {
+      "id": "X_C0030",
+      "series": "X",
+      "category": "unclassified",
+      "status": "pending",
+      "clip": "BMPCC_1_2000-01-29_1106_C0030",
+      "frame_count": 232,
+      "baseline_exposure": 2.1,
+      "iso": 800,
+      "white_balance": {
+        "mode": "as_shot",
+        "as_shot_neutral": [
+          0.7,
+          1.0,
+          0.6867
+        ],
+        "kelvin": null,
+        "tint": null
+      },
+      "aperture": null,
+      "scene": null,
+      "frames": [],
+      "references": [],
+      "notes": [
+        "Toma de otra sesión (2000-01-29), fuera de las series A–D."
+      ]
+    }
+  ]
+}

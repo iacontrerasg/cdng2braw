@@ -1,0 +1,498 @@
+{
+  "schema": 1,
+  "scene": "chart_wall",
+  "image_size": [
+    1920,
+    1080
+  ],
+  "source": "Coordenadas medidas sobre DNG400_00086516.exr (A02, fotograma 29); cámara fija en toda la serie A.",
+  "notes": [
+    "rect = [x, y, ancho, alto] en píxeles; line = [x0, y0, x1, y1], perpendicular al borde, con width píxeles promediados.",
+    "neutral = true marca parches de la escala de grises del ColorChecker Video y las bandas blanca y gris (supuesto: neutros)."
+  ],
+  "rois": [
+    {
+      "name": "cc_r1c1",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1055,
+        369,
+        24,
+        24
+      ],
+      "neutral": false
+    },
+    {
+      "name": "cc_r1c2",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1118,
+        369,
+        24,
+        24
+      ],
+      "neutral": false
+    },
+    {
+      "name": "cc_r1c3",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1181,
+        369,
+        24,
+        24
+      ],
+      "neutral": true
+    },
+    {
+      "name": "cc_r1c4",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1246,
+        369,
+        24,
+        24
+      ],
+      "neutral": true
+    },
+    {
+      "name": "cc_r2c1",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1057,
+        433,
+        24,
+        24
+      ],
+      "neutral": false
+    },
+    {
+      "name": "cc_r2c2",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1120,
+        433,
+        24,
+        24
+      ],
+      "neutral": false
+    },
+    {
+      "name": "cc_r2c3",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1183,
+        433,
+        24,
+        24
+      ],
+      "neutral": true
+    },
+    {
+      "name": "cc_r2c4",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1248,
+        433,
+        24,
+        24
+      ],
+      "neutral": true
+    },
+    {
+      "name": "cc_r3c1",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1059,
+        499,
+        24,
+        24
+      ],
+      "neutral": false
+    },
+    {
+      "name": "cc_r3c2",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1123,
+        499,
+        24,
+        24
+      ],
+      "neutral": false
+    },
+    {
+      "name": "cc_r3c3",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1185,
+        499,
+        24,
+        24
+      ],
+      "neutral": true
+    },
+    {
+      "name": "cc_r3c4",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1250,
+        499,
+        24,
+        24
+      ],
+      "neutral": true
+    },
+    {
+      "name": "cc_r4c1",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1062,
+        564,
+        24,
+        24
+      ],
+      "neutral": false
+    },
+    {
+      "name": "cc_r4c2",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1125,
+        564,
+        24,
+        24
+      ],
+      "neutral": false
+    },
+    {
+      "name": "cc_r4c3",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1188,
+        564,
+        24,
+        24
+      ],
+      "neutral": true
+    },
+    {
+      "name": "cc_r4c4",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1252,
+        564,
+        24,
+        24
+      ],
+      "neutral": true
+    },
+    {
+      "name": "cc_r5c1",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1064,
+        629,
+        24,
+        24
+      ],
+      "neutral": false
+    },
+    {
+      "name": "cc_r5c2",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1128,
+        629,
+        24,
+        24
+      ],
+      "neutral": false
+    },
+    {
+      "name": "cc_r5c3",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1190,
+        629,
+        24,
+        24
+      ],
+      "neutral": true
+    },
+    {
+      "name": "cc_r5c4",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1254,
+        629,
+        24,
+        24
+      ],
+      "neutral": true
+    },
+    {
+      "name": "cc_r6c1",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1066,
+        693,
+        24,
+        24
+      ],
+      "neutral": false
+    },
+    {
+      "name": "cc_r6c2",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1130,
+        693,
+        24,
+        24
+      ],
+      "neutral": false
+    },
+    {
+      "name": "cc_r6c3",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1192,
+        693,
+        24,
+        24
+      ],
+      "neutral": true
+    },
+    {
+      "name": "cc_r6c4",
+      "type": "patch",
+      "category": "colorchecker",
+      "rect": [
+        1256,
+        693,
+        24,
+        24
+      ],
+      "neutral": true
+    },
+    {
+      "name": "strip_white",
+      "type": "patch",
+      "category": "uniform",
+      "rect": [
+        692,
+        430,
+        44,
+        260
+      ],
+      "neutral": true
+    },
+    {
+      "name": "strip_grey",
+      "type": "patch",
+      "category": "uniform",
+      "rect": [
+        788,
+        430,
+        44,
+        260
+      ],
+      "neutral": true
+    },
+    {
+      "name": "card_black",
+      "type": "region",
+      "category": "uniform",
+      "rect": [
+        868,
+        460,
+        48,
+        230
+      ]
+    },
+    {
+      "name": "text_colorchecker_right",
+      "type": "region",
+      "category": "text",
+      "rect": [
+        1140,
+        318,
+        152,
+        32
+      ]
+    },
+    {
+      "name": "text_colorchecker_left",
+      "type": "region",
+      "category": "text",
+      "rect": [
+        780,
+        328,
+        150,
+        30
+      ]
+    },
+    {
+      "name": "text_calibrite_left",
+      "type": "region",
+      "category": "text",
+      "rect": [
+        662,
+        326,
+        68,
+        34
+      ]
+    },
+    {
+      "name": "metal_specular",
+      "type": "region",
+      "category": "specular",
+      "rect": [
+        360,
+        485,
+        115,
+        125
+      ]
+    },
+    {
+      "name": "cloth_black_mesh",
+      "type": "region",
+      "category": "black_texture",
+      "rect": [
+        1400,
+        620,
+        150,
+        140
+      ]
+    },
+    {
+      "name": "cloth_purple",
+      "type": "region",
+      "category": "black_texture",
+      "rect": [
+        1620,
+        655,
+        210,
+        80
+      ]
+    },
+    {
+      "name": "shadow_under_ledge",
+      "type": "region",
+      "category": "deep_shadow",
+      "rect": [
+        20,
+        620,
+        310,
+        80
+      ]
+    },
+    {
+      "name": "wire_on_wall",
+      "type": "region",
+      "category": "edge",
+      "rect": [
+        1380,
+        340,
+        380,
+        70
+      ]
+    },
+    {
+      "name": "edge_wire_h",
+      "type": "edge",
+      "category": "edge",
+      "line": [
+        1500,
+        345,
+        1500,
+        400
+      ],
+      "width": 9
+    },
+    {
+      "name": "edge_wall_to_cloth",
+      "type": "edge",
+      "category": "edge",
+      "line": [
+        1450,
+        560,
+        1450,
+        600
+      ],
+      "width": 9
+    },
+    {
+      "name": "edge_post_right",
+      "type": "edge",
+      "category": "edge",
+      "line": [
+        1822,
+        450,
+        1862,
+        450
+      ],
+      "width": 9
+    },
+    {
+      "name": "edge_white_strip_left",
+      "type": "edge",
+      "category": "edge",
+      "line": [
+        664,
+        550,
+        704,
+        550
+      ],
+      "width": 9
+    },
+    {
+      "name": "edge_grey_strip_right",
+      "type": "edge",
+      "category": "edge",
+      "line": [
+        828,
+        550,
+        868,
+        550
+      ],
+      "width": 9
+    },
+    {
+      "name": "edge_patch_top",
+      "type": "edge",
+      "category": "edge",
+      "line": [
+        1258,
+        336,
+        1258,
+        376
+      ],
+      "width": 9
+    }
+  ]
+}

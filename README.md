@@ -81,6 +81,19 @@ Pocket 2013 DNG Film from DWG Intermediate"; on the scene it was fitted on, the
 Sigma fp needed about 6200 K and tint 0 to match the Pocket at its As Shot white
 balance.
 
+## Image fidelity benchmark
+
+For measuring the Pocket OG pipeline against Resolve's CinemaDNG OpenEXR
+exports (and regressions between builds) without opening Resolve each time:
+
+```bash
+make venv && make worker && make brawdec
+make benchmark DATASET=~/Desktop/BMD SERIES=A
+```
+
+See [docs/image-fidelity-benchmark.md](docs/image-fidelity-benchmark.md). The
+CinemaDNG dataset and EXRs stay outside Git (`~/Desktop/BMD`, `~/Desktop/EXR`).
+
 ## Getting it
 
 There is a macOS app (Apple Silicon, macOS 26 or later) and a portable Windows

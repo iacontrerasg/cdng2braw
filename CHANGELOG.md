@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Image fidelity benchmark (`make benchmark`): convert selected CinemaDNG frames
+  with the worker, decode with `brawdec`, compare RGB float to Resolve OpenEXR
+  references and to frozen baselines; ROI metrics, error maps and HTML reports
+  under `out/benchmark/` (see `docs/image-fidelity-benchmark.md`). Series A
+  manifest included; series B–D pending completion from the DNGs.
 - Original Pocket Cinema Camera: the sensor data is encoded at unity gain and
   the exposure travels as the clip's ISO (200, 400, 800 or 1600, inferred from
   the DNG's BaselineExposure and checked against its EXIF ISO when there is
