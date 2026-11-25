@@ -23,9 +23,16 @@ OgShot ogSourceInfo(const Dng &dng, const OgModel &model) {
     if (!(allclose(color.cm1, m.cm1) && allclose(color.cm2, m.cm2) && color.k1 == m.k1 && color.k2 == m.k2))
         throw Error("source matrices differ from calibrated DNG");
     const auto baseline = dng.scalar(50730);
-    const double gain = std::pow(2.0, baseline ? *baseline : 0.0);
-    if (std::fabs(gain - m.baselineGain) > 1e-6) throw Error("source BaselineExposure differs from profile");
+    if (!baseline || !std::isfinite(*baseline)) throw Error("Invalid source BaselineExposure");
+    const double gain = std::pow(2.0, *baseline);
     OgShot shot;
+    // Experimental: normalize exposure to the calibrated sensor response.
+    // Keep the reference ISO and camera profile unchanged.
+    shot.gain = gain / m.baselineGain;
+    if (!std::isfinite(shot.gain) || shot.gain <= 0.0)
+        throw Error("Invalid source BaselineExposure");
+    // Preserve exact unity for the original calibrated input.
+    if (std::fabs(gain - m.baselineGain) <= 1e-6) shot.gain = 1.0;
     const auto iso = dng.numeric(34855);
     if (iso && !iso->empty() && (*iso)[0] != 0) {
         shot.iso = int((*iso)[0]);
