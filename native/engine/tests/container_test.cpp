@@ -4,6 +4,8 @@
 #include "check.hpp"
 
 #include <algorithm>
+#include <cstring>
+#include <map>
 #include <random>
 
 using namespace cdng;
@@ -44,6 +46,34 @@ std::size_t bmdfValue(const std::vector<uint8_t> &data, std::size_t frame, const
     return 0;
 }
 
+// Metadatos de clip QuickTime (keys + ilst) del primer meta del fichero: nombre → valor del átomo data.
+std::map<std::string, std::vector<uint8_t>> clipMetadata(const std::vector<uint8_t> &data) {
+    std::map<std::string, std::vector<uint8_t>> out;
+    const std::string keysTag = "keys", ilstTag = "ilst";
+    const auto k = std::search(data.begin(), data.end(), keysTag.begin(), keysTag.end());
+    if (k == data.end()) return out;
+    const std::size_t keys = std::size_t(k - data.begin()) - 4, keysEnd = keys + be32(&data[keys]);
+    std::vector<std::string> names;
+    for (std::size_t off = keys + 16; off + 8 <= keysEnd;) {
+        const std::size_t size = be32(&data[off]);
+        if (size < 8) break;
+        names.emplace_back(reinterpret_cast<const char *>(&data[off + 8]), size - 8);
+        off += size;
+    }
+    const auto l = std::search(data.begin() + std::ptrdiff_t(keysEnd), data.end(), ilstTag.begin(), ilstTag.end());
+    if (l == data.end()) return out;
+    const std::size_t ilst = std::size_t(l - data.begin()) - 4, ilstEnd = ilst + be32(&data[ilst]);
+    for (std::size_t off = ilst + 8; off + 8 <= ilstEnd;) {
+        const std::size_t size = be32(&data[off]), index = be32(&data[off + 4]);
+        if (size < 24) break;
+        // item → data: tamaño, "data", tipo (4), locale (4), valor
+        if (index >= 1 && index <= names.size() && std::memcmp(&data[off + 12], "data", 4) == 0)
+            out[names[index - 1]] = std::vector<uint8_t>(data.begin() + std::ptrdiff_t(off + 24), data.begin() + std::ptrdiff_t(off + 8 + be32(&data[off + 8])));
+        off += size;
+    }
+    return out;
+}
+
 void standalone() {
     const auto samples = videoSamples(templatePath());
     CHECK(samples.size() == 2);
@@ -56,7 +86,7 @@ void standalone() {
     CHECK(tpl.gap.size() == std::size_t(FirstSlice - 0x80 - 4 * tpl.header[2] * tpl.header[3]));
 
     const fs::path dir = tempDir();
-    const fs::path clip = dir / "clip.braw";
+    const fs::path clip = dir / "clip.braw", clipOg = dir / "clip_og.braw";
     const auto c0 = templateChunk(0), c1 = templateChunk(1);
     {
         StreamMux mux(templatePath(), clip);
@@ -65,6 +95,10 @@ void standalone() {
         FrameMeta pocket = va; pocket.route = Route::Pocket;
         mux.addFrame(c1, pocket);
         CHECK(mux.frames() == 2);
+        FrameMeta ogFrame = va; ogFrame.route = Route::Og; ogFrame.iso = 1600;
+        StreamMux ogMux(templatePath(), clipOg);
+        ogMux.addFrame(c0, ogFrame);
+        ogMux.finish(1000, nullptr, {24000, 1001}, true);
         Pcm24 pcm; pcm.data.assign(6 * 50000, 7); pcm.frames = 50000; pcm.rate = 48000;
         mux.finish(1000, &pcm, {24000, 1001}, true);
     }
@@ -93,6 +127,17 @@ void standalone() {
     CHECK(be32(&data[bmdfValue(data, out[0].offset, "agpf")]) == bits);
     CHECK(be32(&data[bmdfValue(data, out[1].offset, "agpf")]) == 0);
     CHECK(bmdfValue(data, out[0].offset, "shtv") == 0);   // minimal_frame quita lo que no está en KEEP_FRAME
+    {   // Pocket original: ISO inferida en isoe, sin compensación en expo y ganancia analógica unitaria en agpf.
+        const auto ogData = readFile(clipOg);
+        const auto frame = videoSamples(clipOg).at(0).offset;
+        const float one = ogAnalogGain, zero = 0.0f;
+        uint32_t oneBits, zeroBits; std::memcpy(&oneBits, &one, 4); std::memcpy(&zeroBits, &zero, 4);
+        CHECK(one == 1.0f);
+        CHECK(be32(&ogData[bmdfValue(ogData, frame, "isoe")]) == 1600);
+        CHECK(bmdfValue(ogData, frame, "expo") != 0 && be32(&ogData[bmdfValue(ogData, frame, "expo")]) == zeroBits);
+        CHECK(be32(&ogData[bmdfValue(ogData, frame, "agpf")]) == oneBits);
+        CHECK(be32(&ogData[bmdfValue(ogData, frame, "wkel")]) == 4300);
+    }
     // mdat ampliado hasta el moov final.
     const uint64_t mdatEnd = 8 + be64(&data[16]);
     CHECK(mdatEnd < data.size() && std::memcmp(&data[mdatEnd + 4], "moov", 4) == 0);
@@ -101,7 +146,8 @@ void standalone() {
     // Identidades del moov.
     const Geometry g(4096, 2160);
     const fs::path og = dir / "og.braw", pocket = dir / "pocket.braw", fpL = dir / "fpl.braw", bad = dir / "bad.braw";
-    fs::copy_file(clip, og); fs::copy_file(clip, pocket); fs::copy_file(clip, fpL); fs::copy_file(clip, bad);
+    const fs::path isoClip = dir / "og_iso.braw";
+    fs::copy_file(clip, og); fs::copy_file(clip, pocket); fs::copy_file(clip, fpL); fs::copy_file(clip, bad); fs::copy_file(clip, isoClip);
     finalizeClip(clip, g, Route::Va, nullptr);   // por defecto, SIGMA fp
     data = readFile(clip);
     CHECK(contains(data, "SIGMA fp") && !contains(data, "SIGMA fp L"));
@@ -122,9 +168,23 @@ void standalone() {
     CHECK(contains(data, extras.cameraId) && contains(data, "C0025") && contains(data, "Nikkor 24mm"));
     CHECK(contains(data, "Blackmagic Pocket Cinema Camera") && !contains(data, "Pocket Cinema Camera 4K"));
     CHECK(contains(data, "DCI-P3 D65") && contains(data, "Linear"));   // se abre en P3-D65 lineal
-    CHECK(!contains(data, "analog_gain_is_constant") && !contains(data, "post_3dlut_mode"));
+    CHECK(!contains(data, "post_3dlut_mode"));
+    {   // ganancia analógica unitaria y constante, como la ruta va
+        const auto meta = clipMetadata(data);
+        uint32_t oneBits; const float one = 1.0f; std::memcpy(&oneBits, &one, 4);
+        CHECK(meta.count("analog_gain") && meta.at("analog_gain").size() == 4 && be32(meta.at("analog_gain").data()) == oneBits);
+        CHECK(meta.count("analog_gain_is_constant") && meta.at("analog_gain_is_constant").size() == 2 &&
+              be16(meta.at("analog_gain_is_constant").data()) == 1);
+        CHECK(meta.count("camera_type") && std::string(meta.at("camera_type").begin(), meta.at("camera_type").end()) ==
+              "Blackmagic Pocket Cinema Camera");
+    }
     const std::string ctrn = std::string("\0\0\0\x0c" "ctrn", 8) + "CTNG";
     CHECK(contains(data, ctrn));
+    {   // cada revisión del perfil queda en el ctrn del clip que la usa
+        model.revision = 1128878927u;   // "CISO"
+        finalizeClip(isoClip, g, Route::Og, &model, "SIGMA fp", extras);
+        CHECK(contains(readFile(isoClip), std::string("\0\0\0\x0c" "ctrn", 8) + "CISO"));
+    }
     fs::remove_all(dir);
 }
 

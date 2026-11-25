@@ -455,6 +455,11 @@ Bytes frameMetadata(const Bytes &base, const FrameMeta &meta) {
     if (tint + 2 > body.size()) throw Error("truncated frame metadata");
     put16(&body[tint], uint16_t(int16_t(meta.tint)));
     if (meta.route == Route::Va) putAt(body, entry(entries, "agpf").offset, floatBits(vaGainFor(meta.camera)));
+    // Ruta og: la ISO (isoe) lleva toda la compensación con el pre_gain 1 del perfil; Exposure queda en 0 para el usuario.
+    if (meta.route == Route::Og) {
+        putAt(body, entry(entries, "agpf").offset, floatBits(ogAnalogGain));
+        putAt(body, entry(entries, "expo").offset, floatBits(0.0f));
+    }
     // Python solo escribe srte si info['rate'] existe; el proceso de trabajo siempre la da.
     const std::size_t srte = entry(entries, "srte").offset;
     putAt(body, srte, u32(meta.rate.num)); putAt(body, srte + 4, u32(meta.rate.den));
@@ -566,7 +571,7 @@ Bytes withProfile(const Bytes &data, const std::string &cameraType, int gen, con
 Bytes minimalMetadata(const Bytes &meta, const std::string &cameraType) {
     static const std::set<std::string> keep{"camera_type", "manufacturer", "sensor_area_captured", "crop_origin",
                                             "crop_size", "viewing_gamma", "viewing_gamut", "viewing_bmdgen",
-                                            "analog_gain"};
+                                            "analog_gain", "analog_gain_is_constant"};
     // La identidad de la toma (finalizeClip) se conserva si está, pero no se exige.
     static const std::set<std::string> optional{"sensor_line_time", "lens_type", "camera_id", "clip_number", "date_recorded"};
     const Metadata m = metadataEntries(meta);
@@ -579,7 +584,6 @@ Bytes minimalMetadata(const Bytes &meta, const std::string &cameraType) {
         if (!keep.count(name) && !optional.count(name)) continue;
         Bytes body(meta.begin() + std::ptrdiff_t(item.body()), meta.begin() + std::ptrdiff_t(item.end()));
         if (name == "camera_type") body = replaceData(body, 0, body.size(), Bytes(cameraType.begin(), cameraType.end()), nullptr);
-        if (name == "analog_gain") body = replaceData(body, 0, body.size(), be32Bytes(0), nullptr);
         names.push_back(name);
         char index[4];
         put32(reinterpret_cast<uint8_t *>(index), uint32_t(names.size()));
@@ -811,6 +815,8 @@ void finalizeClip(const std::filesystem::path &path, const Geometry &geometry, R
         // Resolve sin gestión de color abre el clip con el espacio y la gamma de visualización: P3-D65 lineal es donde el
         // BRAW coincide con el DNG (con «Blackmagic Design Film» no puede: el DNG usa la Film Gen 1, que el SDK no tiene).
         Changes changes{{"manufacturer", Bytes(maker.begin(), maker.end())},
+                        {"analog_gain", be32Bytes(floatBits(ogAnalogGain))},
+                        {"analog_gain_is_constant", be16Bytes(1)},
                         {"viewing_gamut", Bytes(ogViewingGamut, ogViewingGamut + std::strlen(ogViewingGamut))},
                         {"viewing_gamma", Bytes(ogViewingGamma, ogViewingGamma + std::strlen(ogViewingGamma))}};
         changes.insert(changes.end(), clip.begin(), clip.end());

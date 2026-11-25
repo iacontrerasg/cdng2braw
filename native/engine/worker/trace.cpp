@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <ctime>
 #include <fstream>
 #include <iostream>
@@ -101,8 +102,17 @@ std::string buildId() {
     return std::string(CDNG_BUILD_COMMIT) + " (" + CDNG_BUILD_BRANCH + ", compiled " + __DATE__ + " " + __TIME__ + ")";
 }
 
+bool enabled() {
+    static const bool on = [] {
+        const char *value = std::getenv("CDNG_PIPELINE_TRACE");
+        return value && *value && std::string(value) != "0";
+    }();
+    return on;
+}
+
 void open(const std::filesystem::path &path, const std::filesystem::path &root, const std::filesystem::path &input,
           const std::filesystem::path &output) {
+    if (!enabled()) return;
     std::lock_guard<std::mutex> lock(mutex);
     filePath = path;
     file.open(path, std::ios::out | std::ios::trunc);
@@ -112,6 +122,7 @@ void open(const std::filesystem::path &path, const std::filesystem::path &root, 
     std::strftime(stamp, sizeof stamp, "%Y-%m-%d %H:%M:%S", std::localtime(&now));
     const auto exe = executablePath();
     const auto signal = root / "model/pocket_og_cinemadng_signal.json";
+    const auto profile = root / "model/pocket_og_cinemadng_iso_camera_support.json";
     h << "# cdng2braw pipeline trace\n"
       << "time: " << stamp << "\n"
       << "build: " << buildId() << "\n"
@@ -121,6 +132,7 @@ void open(const std::filesystem::path &path, const std::filesystem::path &root, 
       << "resources: " << root.string() << "\n"
       << "og_signal_json: " << signal.string() << "\n"
       << "og_signal_json_sha256: " << fileSha(signal) << "\n"
+      << "og_profile_json_sha256: " << fileSha(profile) << "\n"
       << "input: " << input.string() << "\n"
       << "output: " << output.string() << "\n"
       << "output_existed_before: " << (std::filesystem::exists(output) ? "yes" : "no") << "\n";
@@ -130,7 +142,7 @@ void open(const std::filesystem::path &path, const std::filesystem::path &root, 
 
 std::filesystem::path path() { return filePath; }
 bool active() { return tracing; }
-void setActive(bool on) { tracing = on; }
+void setActive(bool on) { tracing = on && enabled(); }
 
 void line(const std::string &text) {
     if (!tracing) return;

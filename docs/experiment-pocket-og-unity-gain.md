@@ -379,7 +379,7 @@ Identidad de un perfil externo:
 | Cambio de ISO | `SetFrameAttribute(fiso)` funciona y es independiente de Exposure | — | no disponible (sin control) |
 | `iso_modification_supported` | controla el `readonly` de la lista por clip | sin efecto | sin efecto visible |
 | Analog gain / constante | `gain` = 1, `agic` = 1 | se usaría como clave de la tabla | se leen, pero la consulta falla antes |
-| Metadato `analog_gain` | `minimalMetadata` lo escribe a 0; la ruta OG omite `analog_gain_is_constant` | — | Resolve no lo usa |
+| Metadato `analog_gain` | durante la investigación, `minimalMetadata` lo escribía a 0 y la ruta OG omitía `analog_gain_is_constant`; ahora son 1.0 y 1 | — | Resolve no lo usa |
 
 ### Conclusiones
 
@@ -398,3 +398,38 @@ Identidad de un perfil externo:
   externos a través de `IBlackmagicRawConstants`.
 - Mejora menor independiente, sin efecto en el selector: escribir en la ruta OG `analog_gain` = `pre_gain` (1.0) y
   `analog_gain_is_constant` = 1, como hace la ruta Va con la SIGMA fp, en lugar de `analog_gain` = 0.
+
+## Implementación (rama `feat/pocket-og-iso-exposure-model`)
+
+La investigación del selector se da por cerrada: se acepta la limitación de `IBlackmagicRawConstants` para perfiles
+externos, sin suplantar ninguna cámara ni modificar el SDK. El modelo resultante está documentado en
+[pocket-og-exposure.md](pocket-og-exposure.md). En resumen:
+
+- Revisión nueva del perfil, 1128878927 («CISO»), con la tabla ISO 200/400/800/1600 en `post_gain` (0.5/1/2/4),
+  `pre_gain` 1, `base_iso`/`native_iso` 400 como referencia de calibración e `iso_modification_supported` true. La
+  genera `tools/make_pocket_og_iso_profile.py` a partir de la calibrada, que se conserva intacta (1128549959, mismo
+  SHA-256) e instalada al lado para los BRAW ya escritos. Matrices, curva `inv_sqrt` y tablas de balance, idénticas.
+- Codificación con ganancia unitaria. La ISO se infiere del BaselineExposure con tolerancia de ±0.01 EV y se valida
+  contra la ISO EXIF si existe; un BE fuera de la tabla detiene la conversión (nunca se elige la ISO más cercana).
+- Por fotograma: `isoe` = ISO inferida, `expo` = 0, `agpf` = 1.0. Por clip: `analog_gain` = 1.0 y
+  `analog_gain_is_constant` = 1.
+- La traza de runtime queda tras `CDNG_PIPELINE_TRACE=1` (desactivada por defecto); no altera el BRAW (las únicas
+  diferencias entre conversiones con y sin traza están en el `moov`: fechas e identificadores del clip).
+- El instalador gestiona las dos revisiones como un conjunto: instala, actualiza desde la calibrada sola (la conserva
+  y añade la nueva), consolida duplicados y desinstala ambas.
+
+Validación con `brawdec` y el SDK de Resolve 21, con las dos revisiones instaladas (`out/iso-final/validate.py`):
+
+| Toma | BE | `fiso` | `agpf` / `expo` | Lista ISO | Frente a la misma toma a ISO 400 | Máximo / techo esperado |
+|---|---:|---:|---|---|---|---|
+| C0036 | 0.1 | 200 | 1 / 0 | 200 400 800 1600 | ×0.5, idéntico bit a bit | 1.0717 / 1.0717 |
+| C0037 | 1.1 | 400 | 1 / 0 | 200 400 800 1600 | ×1, idéntico | 2.1434 / 2.1434 |
+| C0038 | 2.1 | 800 | 1 / 0 | 200 400 800 1600 | ×2, idéntico | 4.2869 / 4.2869 |
+| C0039 | 3.1 | 1600 | 1 / 0 | 200 400 800 1600 | ×4, idéntico | 8.5738 / 8.5738 |
+| C0040 | 2.1 | 800 | 1 / 0 | 200 400 800 1600 | ×2, idéntico | 4.2869 / 4.2869 |
+
+- Regresión: C0039 y C0037 de la revisión calibrada (generados en esta rama experimental con `agpf` 0) siguen
+  abriéndose (ISO 1250, lista [1250]). El BRAW nuevo a su ISO es idéntico bit a bit al antiguo con Exposure
+  log2(`post_gain`), y a ISO 400 al antiguo con Exposure 0: `agpf`/`analog_gain` = 1 no cambian la imagen.
+- Una toma con BE 1.6 se rechaza antes de escribir nada.
+- Fuera de alcance (BUG-002): debayer, deblocking, crominancia y compresión no se han tocado.

@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- Original Pocket Cinema Camera: the sensor data is encoded at unity gain and
+  the exposure travels as the clip's ISO (200, 400, 800 or 1600, inferred from
+  the DNG's BaselineExposure and checked against its EXIF ISO when there is
+  one), applied when the clip is decoded. Highlights that ISO 800 and 1600 takes
+  used to clip are kept, and Resolve opens them with Exposure at 0. Takes with
+  a BaselineExposure outside the table are refused.
+- A new revision of the Pocket camera profile with that ISO table. The installer
+  keeps the earlier revision next to it, so BRAW files written before keep
+  opening; the colour and signal calibration are unchanged.
+- The clip and frames now declare unity analog gain (`analog_gain` 1,
+  `analog_gain_is_constant` 1, `agpf` 1), with no change to the decoded image.
+- `CDNG_PIPELINE_TRACE=1` writes a pipeline trace next to each BRAW (off by
+  default).
+- Known limitation: Resolve shows no ISO selector for cameras added through
+  Camera Support profiles (the SDK does not expose their ISO list to it).
+
 ## 1.0.0
 
 The first public release.

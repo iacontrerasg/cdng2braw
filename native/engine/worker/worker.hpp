@@ -89,10 +89,12 @@ std::pair<int, int> outputSize(int requestWidth, int requestHeight, std::pair<in
 int convert(const std::filesystem::path &request);
 int previewServer();
 
-// Trazado diagnóstico del pipeline (experiment/pocket-og-unity-gain): un fichero de texto junto al BRAW con el
-// identificador de build y las medidas del primer fotograma. Solo escribe en el hilo que tiene activo el fotograma.
+// Trazado diagnóstico del pipeline, desactivado salvo con CDNG_PIPELINE_TRACE=1: un fichero de texto junto al BRAW
+// (<nombre>.pipeline-trace.txt) con el identificador de build y las medidas del primer fotograma. Solo escribe en el
+// hilo que tiene activo el fotograma.
 namespace trace {
 std::string buildId();
+bool enabled();
 void open(const std::filesystem::path &file, const std::filesystem::path &root, const std::filesystem::path &input,
           const std::filesystem::path &output);
 std::filesystem::path path();

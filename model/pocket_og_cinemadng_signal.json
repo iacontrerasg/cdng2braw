@@ -1,7 +1,7 @@
 {
   "kind": "native decoder Camera Support calibration, no post-process correction",
   "camera_type": "Blackmagic Pocket Cinema Camera",
-  "revision": 1128549959,
+  "revision": 1128878927,
   "gen": 5,
   "baseline_exposure_gain": 2.1435469250725863,
   "signal_map_kind": "sqrt",
@@ -17,7 +17,6 @@
     "knee_raw": -0.007499999933878726
   },
   "black_offset": 0.02,
-  "source_iso": 1250,
   "code_from_ycc": [
     [
       1.0,
@@ -220,7 +219,7 @@
     25,
     30
   ],
-  "profile_filename": "pocket_og_cinemadng_camera_support.json",
+  "profile_filename": "pocket_og_cinemadng_iso_camera_support.json",
   "dng_fingerprint": {
     "CM1": [
       [
@@ -259,5 +258,28 @@
     ],
     "K2": 6504.0
   },
-  "profile_sha256": "63a0358740bfc98a459769a68d5490345785d1cbba42aa7086c6fe192d62fb5c"
+  "profile_sha256": "5344084f2ab960c6595a9c886f94ac52ade86d07c6c6a14b190877980c29dee6",
+  "legacy_revisions": [
+    1128549959
+  ],
+  "reference_iso": 400,
+  "iso_table": [
+    {
+      "iso": 200,
+      "baseline_exposure": 0.1
+    },
+    {
+      "iso": 400,
+      "baseline_exposure": 1.1
+    },
+    {
+      "iso": 800,
+      "baseline_exposure": 2.1
+    },
+    {
+      "iso": 1600,
+      "baseline_exposure": 3.1
+    }
+  ],
+  "baseline_exposure_tolerance": 0.01
 }

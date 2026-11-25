@@ -112,7 +112,7 @@ void checkResources(const std::filesystem::path &root) {
     static const char *resources[] = {
         "model/cam/orig.braw", "model/quant_steps.json", "model/vlc-table.json", "model/noise_synthesis.json",
         "model/video_assist_input_transform.json", "model/raw_to_709.json",
-        "model/pocket_og_cinemadng_signal.json", "model/pocket_og_cinemadng_camera_support.json",
+        "model/pocket_og_cinemadng_signal.json", "model/pocket_og_cinemadng_iso_camera_support.json",
         "model/nr_normals_6000x64.f32", "model/pocket_inverse_gen4.bin", "model/pocket_forward_gen4.bin"};
     for (const char *name : resources)
         if (!std::filesystem::is_regular_file(root / name)) throw Error(t("The embedded calibration is damaged: ") + name);
@@ -210,10 +210,10 @@ SourceInfo sourceInfo(const Dng &dng, const OgModel &og) {
             trace::line("source_iso_exif: " + (iso && !iso->empty() ? std::to_string(int((*iso)[0])) : std::string("none")) +
                         "  shot.iso: " + std::to_string(shot.iso));
             trace::line("BaselineExposure: " + std::to_string(shot.baselineExposure) + " EV");
-            trace::line("2^BaselineExposure: " + std::to_string(shot.exposureGain));
-            trace::line("profile baselineGain: " + std::to_string(og.impl->baselineGain));
-            trace::line("computed gain (2^BE / baselineGain): " + std::to_string(shot.computedGain));
-            trace::line("shot.gain (effective): " + std::to_string(shot.gain));
+            trace::line("profile baselineGain: " + std::to_string(og.impl->baselineGain) + "  revision " + std::to_string(og.revision));
+            trace::line("inferred ISO (isoe): " + std::to_string(shot.iso) + "  profile post_gain: " + std::to_string(shot.postGain) +
+                        " (" + std::to_string(std::log2(shot.postGain)) + " EV at decode)");
+            trace::line("encode gain (shot.gain): " + std::to_string(shot.gain));
             trace::line("info.gain: " + std::to_string(info.gain) + "  kelvin/tint: " + std::to_string(shot.kelvin) + "/" + std::to_string(shot.tint));
         }
         return info;

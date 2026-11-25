@@ -7,6 +7,7 @@
 #include "geometry.hpp"
 
 #include <memory>
+#include <optional>
 
 namespace cdng {
 
@@ -25,12 +26,19 @@ struct OgModel {
 };
 OgModel loadOgModel(const std::filesystem::path &signalJson);
 
+// Exposición de la ruta og. Los DNG de la Pocket original expresan la ISO con BaselineExposure (sin ISO en EXIF):
+// cada ISO de la tabla del perfil tiene su BaselineExposure en el JSON de señal y su post_gain en el Camera Support,
+// que el SDK aplica al decodificar. Los datos se codifican siempre con ganancia unitaria. Rechaza un BaselineExposure
+// que no esté en la tabla (con la tolerancia del JSON) y una ISO EXIF que no coincida: nunca elige la más cercana.
+struct OgExposure { int iso = 0; double postGain = 1; };
+OgExposure ogExposure(const OgModel &model, double baselineExposure, std::optional<int> exifIso);
+
 // source_info de la ruta og: comprueba matrices, BaselineExposure e ISO frente a la calibración y estima el As
-// Shot con la tabla de balance del perfil (infer_as_shot). Lanza Error con los mismos mensajes que el Python.
+// Shot con la tabla de balance del perfil (infer_as_shot).
 struct OgShot {
-    int iso = 1250; int kelvin = 5600; int tint = 10; double gain = 1.0;
-    // Diagnóstico: BaselineExposure del DNG, 2^BaselineExposure y la ganancia calculada antes de forzarla.
-    double baselineExposure = 0, exposureGain = 1, computedGain = 1;
+    int iso = 400; int kelvin = 5600; int tint = 10;
+    double gain = 1.0;                       // ganancia antes del mapa de señal: siempre 1 (la ISO va en el clip)
+    double baselineExposure = 0, postGain = 1;   // diagnóstico: BaselineExposure del DNG y post_gain de su ISO
 };
 OgShot ogSourceInfo(const Dng &dng, const OgModel &model);
 

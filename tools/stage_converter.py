@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RESOURCES = [
     'model/cam/orig.braw', 'model/quant_steps.json', 'model/vlc-table.json', 'model/noise_synthesis.json',
     'model/video_assist_input_transform.json', 'model/raw_to_709.json',
-    'model/pocket_og_cinemadng_signal.json', 'model/pocket_og_cinemadng_camera_support.json',
+    'model/pocket_og_cinemadng_signal.json', 'model/pocket_og_cinemadng_iso_camera_support.json',
     'model/nr_normals_6000x64.f32', 'model/pocket_inverse_gen4.bin', 'model/pocket_forward_gen4.bin',
 ]
 

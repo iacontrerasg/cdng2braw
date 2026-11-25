@@ -3,6 +3,7 @@
     <file alias="sigma_fp_cinemadng_camera_support.json">../model/sigma_fp_cinemadng_camera_support.json</file>
     <file alias="sigma_fp_cinemadng_signal.json">../model/sigma_fp_cinemadng_signal.json</file>
     <file alias="pocket_og_cinemadng_camera_support.json">../model/pocket_og_cinemadng_camera_support.json</file>
+    <file alias="pocket_og_cinemadng_iso_camera_support.json">../model/pocket_og_cinemadng_iso_camera_support.json</file>
     <file alias="pocket_og_cinemadng_signal.json">../model/pocket_og_cinemadng_signal.json</file>
     <file alias="pocket_og_dng_film_from_dwg_intermediate.cube">../model/pocket_og_dng_film_from_dwg_intermediate.cube</file>
     <file alias="sigma_fp_to_pocket_og_dng_film_from_dwg_intermediate.cube">../model/sigma_fp_to_pocket_og_dng_film_from_dwg_intermediate.cube</file>
