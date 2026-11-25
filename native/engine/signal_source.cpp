@@ -33,6 +33,9 @@ OgShot ogSourceInfo(const Dng &dng, const OgModel &model) {
         throw Error("Invalid source BaselineExposure");
     // Preserve exact unity for the original calibrated input.
     if (std::fabs(gain - m.baselineGain) <= 1e-6) shot.gain = 1.0;
+    // DIAGNOSTIC (experiment/pocket-og-unity-gain): BaselineExposure is still validated above,
+    // but the dynamic gain is not applied before encoding.
+    shot.gain = 1.0;
     const auto iso = dng.numeric(34855);
     if (iso && !iso->empty() && (*iso)[0] != 0) {
         shot.iso = int((*iso)[0]);
