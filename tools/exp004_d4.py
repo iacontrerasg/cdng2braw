@@ -53,11 +53,8 @@ def impulse_centroid(rgb, bg=0.18, window=32):
 
 
 def esf_mtf(profile):
-    p = np.asarray(profile, np.float64)
-    lsf = np.diff(p, prepend=p[0])
-    spec = np.abs(np.fft.rfft(lsf - lsf.mean()))
-    spec = spec / max(spec[0] if spec.size else 1, 1e-12)
-    return {'lsf_energy': float(np.sum(lsf ** 2)), 'mtf_half': float(spec[len(spec) // 2] if spec.size else math.nan)}
+    from tools.exp004_halo import esf_mtf as _esf
+    return _esf(profile)
 
 
 def analyze_dump(frame_dir):

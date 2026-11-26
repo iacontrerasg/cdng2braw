@@ -125,17 +125,129 @@ def profile_metrics(y, cb, cr, y_ref=None, cb_ref=None, cr_ref=None, thresh=None
     return out
 
 
-def mtf_1d(profile, dx=1.0):
-    """MTF grosera: |FFT| del LSF (derivada del ESF), normalizada en DC."""
+def mtf50_from(freq, mtf):
+    """Primera frecuencia donde MTF cruza 0.5 (ciclos/píxel). Ausente → nan."""
+    f = np.asarray(freq, dtype=np.float64)
+    m = np.asarray(mtf, dtype=np.float64)
+    for i in range(1, len(m)):
+        if m[i - 1] >= 0.5 > m[i]:
+            t = (0.5 - m[i - 1]) / (m[i] - m[i - 1] + 1e-18)
+            return float(f[i - 1] + t * (f[i] - f[i - 1]))
+    return float('nan')
+
+
+def esf_mtf(profile, dx=1.0, n_keep=None):
+    """MTF del ESF: |FFT(LSF)| / DC. No se resta la media de la LSF (anularía el DC)."""
     p = np.asarray(profile, dtype=np.float64)
+    if p.size < 4 or not np.isfinite(p).all():
+        return {'absent': 'esf_too_short_or_nonfinite', 'mtf50': 'nan'}
     lsf = np.diff(p, prepend=p[0])
     spec = np.abs(np.fft.rfft(lsf))
-    if spec[0] == 0:
-        return {'mtf': [0.0], 'freq_cycles_per_px': [0.0]}
-    mtf = spec / spec[0]
+    dc = float(spec[0]) if spec.size else 0.0
+    if dc <= 1e-18:
+        return {'absent': 'lsf_dc_zero', 'mtf50': 'nan', 'dc': dc}
+    mtf = spec / dc
     freq = np.fft.rfftfreq(len(lsf), d=dx)
-    return {'mtf': [_f(v) for v in mtf[: min(32, len(mtf))]],
-            'freq_cycles_per_px': [_f(v) for v in freq[: min(32, len(freq))]]}
+    n = len(mtf) if n_keep is None else min(n_keep, len(mtf))
+    out = {
+        'mtf': [_f(v) for v in mtf[:n]],
+        'freq_cycles_per_px': [_f(v) for v in freq[:n]],
+        'mtf50': _f(mtf50_from(freq, mtf)),
+        'mtf_at': {
+            '0.125': _f(_interp_mtf(freq, mtf, 0.125)),
+            '0.25': _f(_interp_mtf(freq, mtf, 0.25)),
+            '0.5': _f(_interp_mtf(freq, mtf, 0.5)),
+        },
+        'dc': _f(dc),
+    }
+    return out
+
+
+def _interp_mtf(freq, mtf, f0):
+    if f0 > float(freq[-1]):
+        return float('nan')
+    return float(np.interp(f0, freq, mtf))
+
+
+def mtf_1d(profile, dx=1.0):
+    """Alias de esf_mtf (G0: sin restar media de LSF)."""
+    r = esf_mtf(profile, dx=dx, n_keep=32)
+    if r.get('absent'):
+        return {'mtf': ['nan'], 'freq_cycles_per_px': [0.0], 'absent': r['absent']}
+    return {'mtf': r['mtf'], 'freq_cycles_per_px': r['freq_cycles_per_px'],
+            'mtf50': r['mtf50'], 'mtf_at': r['mtf_at']}
+
+
+def luma_chroma_split(rgb):
+    """P3-D65: Y y residuo RGB (crominancia de escena, independiente del gradiente de luma)."""
+    y = M.luminance(rgb)
+    chroma = rgb - y[..., None]
+    return y, chroma
+
+
+def chroma_signed_profile(rgb, line, width=9):
+    """Proyección del residuo RGB sobre el salto de crominancia del perfil (no sobre Y)."""
+    _, chroma = luma_chroma_split(rgb)
+    prof = extract_profile(chroma, line, width)
+    a = prof[: max(2, len(prof) // 5)].mean(0)
+    b = prof[-max(2, len(prof) // 5):].mean(0)
+    axis = b - a
+    n = float(np.linalg.norm(axis))
+    if n < 1e-6:
+        return None, {'absent': 'no_chroma_step'}
+    signed = prof @ (axis / n)
+    return signed, {'chroma_step_norm': _f(n)}
+
+
+def chroma_esf_mtf(rgb, line, width=9, dx=1.0):
+    signed, meta = chroma_signed_profile(rgb, line, width)
+    if signed is None:
+        return meta
+    out = esf_mtf(signed, dx=dx)
+    out['chroma_step_norm'] = meta['chroma_step_norm']
+    out['overshoot'] = _f(float(np.max(signed) - max(signed[0], signed[-1])))
+    out['undershoot'] = _f(float(min(signed[0], signed[-1]) - np.min(signed)))
+    out['centroid'] = _f(edge_centroid(signed))
+    return out
+
+
+def binomial_taps(name):
+    if name == 'b3':
+        return np.array([1, 2, 1], dtype=np.float64) / 4
+    if name == 'b5':
+        return np.array([1, 4, 6, 4, 1], dtype=np.float64) / 16
+    if name == 'b7':
+        return np.array([1, 6, 15, 20, 15, 6, 1], dtype=np.float64) / 64
+    raise ValueError(name)
+
+
+def freq_response_binomial_box(name, n=256):
+    """Respuesta |H| 1D: binomial * caja 2×2 ([1,1]/2). No solo el binomial."""
+    taps = binomial_taps(name)
+    box = np.array([0.5, 0.5], dtype=np.float64)
+    freq = np.linspace(0, 0.5, n, dtype=np.float64)
+    w = 2 * math.pi * freq
+
+    def dtft(h, omega):
+        c = (len(h) - 1) / 2.0
+        acc = np.zeros_like(omega, dtype=np.complex128)
+        for k, t in enumerate(h):
+            acc += t * np.exp(-1j * omega * (k - c))
+        return acc
+
+    hb, hx = dtft(taps, w), dtft(box, w)
+    comb = hb * hx
+    return {
+        'kernel': name,
+        'binomial_taps': [float(x) for x in taps],
+        'box_taps': [0.5, 0.5],
+        'freq_cycles_per_px': [_f(x) for x in freq[::8]],
+        'mag_binomial': [_f(x) for x in np.abs(hb)[::8]],
+        'mag_box2x2': [_f(x) for x in np.abs(hx)[::8]],
+        'mag_combined': [_f(x) for x in np.abs(comb)[::8]],
+        'dc_combined': _f(float(np.abs(comb[0]))),
+        'note': 'H_eff(ω)=H_binomial(ω)·cos(ω/2) (caja 2 muestras, fase centrada). Subsample 2×2 aplica esto en x e y.',
+    }
 
 
 def residual_spectrum(cb, cr):

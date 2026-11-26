@@ -89,6 +89,7 @@ def build_set(h=128, w=128):
         'edge_rg_v': _levels(h, w, red, green, 1, 0),
         'edge_by_v': _levels(h, w, blue, yellow, 1, 0),
         'edge_neutral_diag': diagonal(h, w, lo_n, hi_n),
+        'flat_bg': np.full((h, w, 3), 0.18, np.float32),
         'impulse_chroma': impulse(h, w, (0.6, 0.05, 0.4), w // 2, h // 2),
         # Celdas 4:2:0 distintas: even (2x,2y) vs odd del cuarteto vecino (2x+3,2y+3).
         'impulse_even': impulse(h, w, (0.7, 0.05, 0.05), (w // 2) & ~1, (h // 2) & ~1),

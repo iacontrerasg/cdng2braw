@@ -210,6 +210,46 @@ def phase_d4(args):
     return out
 
 
+# Serie A completa (6 fotogramas con EXR). B/C no tienen referencias en el manifiesto.
+G1_FRAMES = [
+    ('A01', '52'),
+    ('A02', '29'),
+    ('A03', '46'),
+    ('A04', '44'),
+    ('A04', '49'),
+    ('A05', '53'),
+]
+G1_MODES = [
+    ('c0', None, 'C0 baseline'),
+    ('c1', None, 'C1 mean mapped Cb/Cr'),
+    ('c2', 'b3', 'C2 binomial 3'),
+]
+
+
+def phase_g1(args):
+    """Validación final C0/C1/C2-b3. C3/C4 inactivos. No se amplía la familia de filtros."""
+    out = []
+    for q in (2, 18):
+        for test, frames in G1_FRAMES:
+            for mode, kern, note in G1_MODES:
+                tag = mode + (('-' + kern) if kern else '')
+                run_id = 'exp004-g1-%s-%s-f%s-q%d' % (tag, test.lower(), frames, q)
+                man_kw = dict(q=q, alpha=1.0, deadzone=0.0, chroma_mode=mode, chroma_kernel=kern,
+                              notes='G1 %s %s f%s q%d' % (note, test, frames, q))
+                vkw = dict(q=q, alpha=1.0, deadzone=0.0)
+                out.append(_do(args, run_id, run_id + '.json', test, frames, man_kw, vkw))
+    # Fondo plano para restar impulsos SDK (G0.4).
+    fxdir = os.path.join(args.out, 'experiments', 'exp004', 'fixtures')
+    fx = build_set(1080, 1920)
+    bg = write_fixture(fxdir, 'flat_bg', fx['flat_bg'])
+    run_id = 'exp004-g0-flat-bg-q2'
+    out.append(_do(args, run_id, run_id + '.json', 'A04', '44',
+                   dict(q=2, alpha=1.0, deadzone=0.0, inject_rgb=bg, inject_at='pre_map',
+                        notes='G0 flat 0.18 background for impulse residual'),
+                   dict(q=2), no_reference=True))
+    return out
+
+
 def phase_candidates(args):
     """C0–C2/C4 sobre A04_f044 (q2/18/24) y C1 en A04_f049 / A01_f052 @ q24."""
     jobs = []
@@ -246,7 +286,7 @@ def main():
     p.add_argument('--out', default=os.path.join(ROOT, 'out', 'benchmark'))
     p.add_argument('--converter', default=os.path.join(ROOT, 'build', 'worker', 'converter'))
     p.add_argument('--brawdec', default=os.path.join(ROOT, 'tools', 'brawdec', 'brawdec'))
-    p.add_argument('--phase', choices=('real', 'synth', 'identity', 'd4', 'candidates', 'all'),
+    p.add_argument('--phase', choices=('real', 'synth', 'identity', 'd4', 'candidates', 'g1', 'all'),
                    default='all')
     p.add_argument('--skip-existing', action='store_true')
     p.add_argument('--no-cache', action='store_true')
@@ -262,6 +302,8 @@ def main():
         phase_d4(args)
     if args.phase in ('candidates', 'all'):
         phase_candidates(args)
+    if args.phase == 'g1':
+        phase_g1(args)
 
 
 if __name__ == '__main__':

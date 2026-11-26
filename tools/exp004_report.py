@@ -178,16 +178,13 @@ def main():
                 grey = np.mean(cand, axis=-1, keepdims=True)
                 vis_residual(np.repeat(grey, 3, -1), cand, os.path.join(vis_root, rid + '_' + key + '_chroma_dev.png'), 0.05)
                 if rid.startswith('exp004-cand-') and key.endswith('f044'):
+                    from tools.fidelity import viz as V
                     x, y, cw, ch = CROP
                     crop = cand[y:y + ch, x:x + cw]
                     nn = np.repeat(np.repeat(crop, 4, 0), 4, 1)
-                    lo, hi = np.percentile(cand, 0.5), np.percentile(cand, 99.5)
-                    def disp(im):
-                        t = np.clip((im - lo) / max(hi - lo, 1e-8), 0, 1)
-                        return (t * 255).astype(np.uint8)
-                    images.write_png(os.path.join(vis_root, rid + '_' + key + '_full.png'), disp(cand))
-                    images.write_png(os.path.join(vis_root, rid + '_' + key + '_crop.png'), disp(crop))
-                    images.write_png(os.path.join(vis_root, rid + '_' + key + '_crop_nn4.png'), disp(nn))
+                    images.write_png(os.path.join(vis_root, rid + '_' + key + '_full.png'), V.display(cand, 2.0))
+                    images.write_png(os.path.join(vis_root, rid + '_' + key + '_crop.png'), V.display(crop, 2.0))
+                    images.write_png(os.path.join(vis_root, rid + '_' + key + '_crop_nn4.png'), V.display(nn, 2.0))
             try:
                 row = RD.frame_row(run, key, res, require_bitstream=True)
             except Exception:

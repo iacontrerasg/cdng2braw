@@ -6,7 +6,8 @@ import unittest
 import numpy as np
 
 from tools.exp004_fixtures import build_set, mosaic_rggb, write_fixture
-from tools.exp004_halo import extract_profile, halo_extent_px, profile_metrics
+from tools.exp004_halo import (chroma_esf_mtf, esf_mtf, extract_profile,
+                               freq_response_binomial_box, halo_extent_px, profile_metrics)
 from tools.fidelity import images, pipeline as P, stage_io
 
 
@@ -20,6 +21,41 @@ class HaloMetricTests(unittest.TestCase):
         self.assertEqual(len(prof), 32)
         mag = np.abs(np.diff(prof, prepend=prof[0]))
         self.assertGreater(halo_extent_px(mag, mag.max() * 0.2), 0)
+
+    def test_esf_mtf_ideal_step_dc_is_one(self):
+        step = np.concatenate([np.zeros(32), np.ones(32)])
+        r = esf_mtf(step)
+        self.assertNotIn('absent', r)
+        self.assertAlmostEqual(r['mtf'][0], 1.0, places=9)
+        # LSF impulso: MTF plana ~1 (no se resta la media: eso anularía DC).
+        self.assertGreater(min(r['mtf'][:8]), 0.99)
+
+    def test_esf_mtf_does_not_zero_dc_by_mean_subtraction(self):
+        step = np.concatenate([np.zeros(64), np.ones(64)])
+        lsf = np.diff(step, prepend=step[0])
+        spec_ok = np.abs(np.fft.rfft(lsf))
+        spec_bad = np.abs(np.fft.rfft(lsf - lsf.mean()))
+        self.assertGreater(spec_ok[0], 0.5)
+        self.assertLess(spec_bad[0], spec_ok[0] * 0.1)
+
+    def test_chroma_mtf_ignores_luma_step(self):
+        img = np.zeros((32, 64, 3), np.float32)
+        img[:, :] = 0.2
+        img[:, 32:] = 0.6  # solo luma, RGB iguales
+        r = chroma_esf_mtf(img, [0, 16, 63, 16], 1)
+        self.assertEqual(r.get('absent'), 'no_chroma_step')
+        img2 = img.copy()
+        img2[:, 32:, 0] = 0.7
+        img2[:, 32:, 1] = 0.1
+        img2[:, 32:, 2] = 0.1
+        r2 = chroma_esf_mtf(img2, [0, 16, 63, 16], 1)
+        self.assertNotIn('absent', r2)
+        self.assertAlmostEqual(r2['mtf'][0], 1.0, places=6)
+
+    def test_binomial_box_dc_unity(self):
+        for k in ('b3', 'b5', 'b7'):
+            r = freq_response_binomial_box(k)
+            self.assertAlmostEqual(r['dc_combined'], 1.0, places=9)
 
     def test_mosaic_rggb_keeps_sites(self):
         rgb = np.zeros((4, 4, 3), np.float32)

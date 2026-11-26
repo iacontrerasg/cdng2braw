@@ -3,7 +3,7 @@
 **Rama:** `experiment/pocket-og-chromatic-fidelity`  
 **Base:** `048af3ad6ea147e2e64adbb6bd95620c68ae4127` (main tras merge PR #8 / EXP-003b)  
 **Encoder por defecto:** sin cambios. RDOQ experimental y **OFF**. NR y synthesis **OFF** en esta campaña.  
-**Alcance:** A–D2 (auditoría) + D3–D4 (integridad/aislamiento) + E (candidatos experimentales C0–C4) + F (comparación preliminar). **No** EXP-005. **No** EXP-007/008. Defaults de producción **sin cambios**.
+**Alcance:** A–F (RCA y candidatos) + G–H (validación final C0/C1/C2-b3). **No** EXP-005. **No** EXP-007/008. Defaults de producción **sin cambios**. C3/C4 inactivos.
 
 Leyenda de afirmaciones: **[código]** verificado en el árbol; **[exp]** medido en esta campaña; **[hip]** hipótesis.
 
@@ -188,6 +188,37 @@ No se toca curva del sensor, matriz YCbCr, VLC, DCT, QMax, ISO, debayer de produ
 
 A04_f044 / A04_f049 / A01_f052; q2, q18, q24; NR/synth/RDOQ OFF; α=1, DZ=0. Métricas en `exp004-results-summary.json` (`candidate_comparison`). Una bajada de halo que aplaste MTF de croma **no** cuenta como mejora.
 
+## G0 — Correcciones del banco
+
+1. `esf_mtf` / `mtf_1d`: |FFT(LSF)| / DC. **No** se resta la media de la LSF (anularía el DC). Pruebas con escalón sintético.
+2. MTF cromática: residuo RGB ⊥ luma P3, perfil proyectado sobre el salto de crominancia. Un escalón solo de luma → `absent=no_chroma_step`.
+3. Visualización: `viz.display` con `display_exposure=2.0` del manifiesto, común a referencia y candidatos. Sin percentiles por imagen.
+4. Impulsos SDK: se resta el decode de `flat_bg` (0.18) por el mismo SDK; residuos de luma y croma por separado.
+5. Cobertura: runs ausentes, EXR B/C ausentes y métricas `absent` se registran; no se aprueban por omisión.
+6. Filtro efectivo C2: \(H(\omega)=H_{\mathrm{binomial}}(\omega)\cdot\cos(\omega/2)\) (caja 2×2). DC combinado = 1 (b3/b5/b7).
+7. C3/C4 **inactivos**. Sin kernels nuevos.
+
+## G1 — Validación C0 / C1 / C2-b3
+
+Seis fotogramas de la serie A (A01_f052, A02_f029, A03_f046, A04_f044, A04_f049, A05_f053) × q2 y q18. NR/synth/RDOQ OFF, α=1, DZ=0.
+
+Y **bit-identical** en S5 entre C0/C1/C2-b3 (12/12 grupos).
+
+B y C: referencias EXR **ausentes** en el manifiesto (`status: pending`). No se infiere dependencia de exposición/WB de cámara.
+
+## G2 — Hojas de contacto
+
+`out/benchmark/experiments/exp004/g2/contact.html`: CinemaDNG / C0 / C1 / C2-b3, full, crop 1:1, NN×4, ROI de halo. Revelado común; SDK ±2 EV y kelvin 3200/6500; RGB post (sat×2, contraste, lift). El PSNR no se usa como prueba de desaparición del halo.
+
+## H — Cierre
+
+| Candidato | Clase | Motivo |
+|-----------|-------|--------|
+| C1 | **D** | Δu′v′ ≈ −2·10⁻⁵; ΔPSNR ≈ +0.018. Sin ventaja práctica. |
+| C2-b3 | **D** | Δu′v′ ≈ −2.2·10⁻⁴ y ΔPSNR ≈ +0.54, pero **MTF50 de croma baja** (~−0.025). No se acepta como arreglo de halo. |
+
+No hay candidato para EXP-005. El halo **permanece** en G2. **BUG-002 abierto P0.** Defecto residual: subsample 4:2:0 no lineal + upsample SDK + posible AHD (EXP-005). Defaults sin cambio.
+
 ---
 
 ## Cómo reproducir
@@ -201,6 +232,8 @@ PYTHON=out/.venv-exr/bin/python python tools/exp004_sweep.py --phase d4 --skip-e
 PYTHON=out/.venv-exr/bin/python python tools/exp004_sweep.py --phase candidates --skip-existing
 PYTHON=out/.venv-exr/bin/python python tools/exp004_d4.py
 PYTHON=out/.venv-exr/bin/python python tools/exp004_report.py
+PYTHON=out/.venv-exr/bin/python python tools/exp004_sweep.py --phase g1 --skip-existing
+PYTHON=out/.venv-exr/bin/python python tools/exp004_g.py
 ```
 
 Resumen: `benchmark/experiments/exp004-results-summary.json`.  
