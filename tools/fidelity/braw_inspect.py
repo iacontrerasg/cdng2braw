@@ -125,24 +125,105 @@ def frame_payloads(path):
     return out
 
 
+def _moov_children(moov, types):
+    """Recorre moov y devuelve el primer átomo cuyo tipo esté en types (ruta libre)."""
+    stack = [(8, len(moov))]
+    found = {t: None for t in types}
+    while stack:
+        base, limit = stack.pop()
+        for o, s, t in read_atoms(moov, base, limit):
+            if t in found and found[t] is None:
+                found[t] = moov[o:o + s]
+            if t in (b'trak', b'mdia', b'minf', b'stbl', b'moov'):
+                stack.append((o + 8, o + s))
+    return found
+
+
+def decode_relevant_moov_fingerprint(path):
+    """Partes del moov que pueden afectar al revelado: geometría de pista, stsd y tamaños stsz.
+
+    Se ignoran timestamps, UUID/udta y demás metadatos de contenedor que varían entre corridas
+    sin cambiar la imagen (EXP-001: moov distinto, RGB idéntico).
+    """
+    moov = atom_bytes(path, b'moov')
+    if moov is None:
+        return None
+    atoms = _moov_children(moov, (b'tkhd', b'stsd', b'stsz'))
+    parts = []
+    tkhd = atoms[b'tkhd']
+    if tkhd and len(tkhd) >= 84:
+        ver = tkhd[8]
+        # width/height fixed16.16 al final de tkhd v0/v1
+        if ver == 0 and len(tkhd) >= 92:
+            parts.append(b'tkhd-wh' + tkhd[84:92])
+        elif ver == 1 and len(tkhd) >= 104:
+            parts.append(b'tkhd-wh' + tkhd[96:104])
+    if atoms[b'stsd']:
+        parts.append(b'stsd' + atoms[b'stsd'])
+    stsz = atoms[b'stsz']
+    if stsz and len(stsz) >= 20:
+        # sample size table (sin el header de átomo): afecta a la lectura de samples
+        parts.append(b'stsz' + stsz[8:])
+    if not parts:
+        return None
+    return sha256_bytes(b''.join(parts))
+
+
 def media_fingerprint(path):
-    """Huella de la imagen almacenada: mdat + payloads (el moov puede variar entre corridas)."""
+    """Huellas separadas: payload comprimido, mdat, moov completo y moov relevante al revelado."""
     frames = frame_payloads(path)
     return {
         'mdat_sha256': atom_sha256(path, b'mdat'),
         'moov_sha256': atom_sha256(path, b'moov'),
+        'decode_relevant_moov_sha256': decode_relevant_moov_fingerprint(path),
         'frames': [{
             'index': f['index'], 'q': f['q'], 'payload_sha256': f['payload_sha256'],
             'sample_size': f['sample_size'], 'bmdf_sha256': f['bmdf_sha256'],
             'hdr_sha256': f['hdr_sha256'],
         } for f in frames],
         'payloads_sha256': sha256_bytes(''.join(f['payload_sha256'] for f in frames).encode()),
+        'bmdf_sha256': sha256_bytes(''.join(f['bmdf_sha256'] for f in frames).encode()),
     }
 
 
-def same_media(a, b):
-    """True si el contenido de imagen (mdat/payloads/q) coincide; ignora el moov."""
+def equivalence(a, b, decoded_rgb_sha_a=None, decoded_rgb_sha_b=None):
+    """Capas de identidad.
+
+    - payload: slices/hdr/bmdf/q por fotograma
+    - decode_relevant_meta: payload + tkhd/stsd/stsz (no UUID/udta/tiempos del moov)
+    - decoded_rgb: verdad de suelo opcional
+
+    mdat igual no basta por sí solo si la metadata de revelado del moov difiere.
+    """
     fa, fb = media_fingerprint(a), media_fingerprint(b)
-    if fa['mdat_sha256'] and fb['mdat_sha256']:
-        return fa['mdat_sha256'] == fb['mdat_sha256']
-    return fa['frames'] == fb['frames']
+    payload_equal = fa['frames'] == fb['frames']
+    mdat_equal = bool(fa['mdat_sha256'] and fa['mdat_sha256'] == fb['mdat_sha256'])
+    moov_equal = bool(fa['moov_sha256'] and fa['moov_sha256'] == fb['moov_sha256'])
+    moov_relevant_equal = bool(fa['decode_relevant_moov_sha256'] and
+                               fa['decode_relevant_moov_sha256'] == fb['decode_relevant_moov_sha256'])
+    bmdf_equal = fa.get('bmdf_sha256') == fb.get('bmdf_sha256')
+    decode_relevant_meta_equal = bool(payload_equal and moov_relevant_equal)
+    decoded_rgb_equal = None
+    if decoded_rgb_sha_a is not None and decoded_rgb_sha_b is not None:
+        decoded_rgb_equal = decoded_rgb_sha_a == decoded_rgb_sha_b
+    binds = bool(decode_relevant_meta_equal)
+    if decoded_rgb_equal is False:
+        binds = False
+    return {
+        'payload_equal': payload_equal,
+        'mdat_equal': mdat_equal,
+        'moov_equal': moov_equal,
+        'decode_relevant_moov_equal': moov_relevant_equal,
+        'bmdf_equal': bmdf_equal,
+        'decode_relevant_meta_equal': decode_relevant_meta_equal,
+        'decoded_rgb_equal': decoded_rgb_equal,
+        'binds_to_evaluated_image': binds,
+        'mdat_sha256_a': fa['mdat_sha256'], 'mdat_sha256_b': fb['mdat_sha256'],
+        'moov_sha256_a': fa['moov_sha256'], 'moov_sha256_b': fb['moov_sha256'],
+        'decode_relevant_moov_sha256_a': fa['decode_relevant_moov_sha256'],
+        'decode_relevant_moov_sha256_b': fb['decode_relevant_moov_sha256'],
+    }
+
+def same_media(a, b):
+    """Compat: True si la traza puede asociarse a la misma imagen evaluada (payload + meta revelado)."""
+    return equivalence(a, b)['binds_to_evaluated_image']

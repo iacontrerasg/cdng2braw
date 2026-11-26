@@ -39,6 +39,8 @@ OUTPUT_ENV = (
     'CDNG_NR_THREADS',           # hilos de NR (puede alterar el resultado con NR activo)
     'CDNG_RESOURCES',            # raíz de model/; si se hereda, no es el worker empaquetado
     'CDNG_OG_DEBLOCK_PRECOMP',   # Pocket OG: 1/on (defecto) o 0/off — precompensación antibloques
+    'CDNG_OG_DEBLOCK_ALPHA',     # EXP-001b: intensidad ∈ {0,0.25,0.5,0.75,1}; solo con PRECOMP on
+    'CDNG_OG_DEBLOCK_BOUNDED',   # EXP-001b: 1/on — precompensación restringida (excluye ALPHA)
 )
 
 # Diagnóstico o i18n: no alteran el BRAW. No entran en la identidad de caché; se pasan al worker solo si se
@@ -154,6 +156,25 @@ def encode_request(encode, environ=None):
 
     # Solo las que tienen valor concreto van al entorno del proceso hijo (identidad de caché).
     env = {k: v for k, v in effective.items() if v is not None}
+    # EXP-001b: coherencia PRECOMP / ALPHA / BOUNDED (el worker también rechaza).
+    pre = env.get('CDNG_OG_DEBLOCK_PRECOMP')
+    alpha = env.get('CDNG_OG_DEBLOCK_ALPHA')
+    bounded = env.get('CDNG_OG_DEBLOCK_BOUNDED')
+    pre_off = pre is not None and pre.lower() in ('0', 'off', 'false', 'no')
+    bounded_on = bounded is not None and bounded.lower() in ('1', 'on', 'true', 'yes')
+    if pre_off and alpha is not None:
+        raise PipelineError('CDNG_OG_DEBLOCK_ALPHA no admite valor con CDNG_OG_DEBLOCK_PRECOMP=0')
+    if pre_off and bounded_on:
+        raise PipelineError('CDNG_OG_DEBLOCK_BOUNDED=1 contradice CDNG_OG_DEBLOCK_PRECOMP=0')
+    if bounded_on and alpha is not None:
+        raise PipelineError('CDNG_OG_DEBLOCK_BOUNDED y CDNG_OG_DEBLOCK_ALPHA son mutuamente excluyentes')
+    if alpha is not None:
+        try:
+            av = float(alpha)
+        except ValueError as e:
+            raise PipelineError('CDNG_OG_DEBLOCK_ALPHA inválido: %s' % alpha) from e
+        if not any(abs(av - a) < 1e-12 for a in (0.0, 0.25, 0.5, 0.75, 1.0)):
+            raise PipelineError('CDNG_OG_DEBLOCK_ALPHA debe ser 0|0.25|0.5|0.75|1 (got %s)' % alpha)
     # Diagnóstico: manifiesto explícito gana; el ambiente se registra y también se pasa (no altera el BRAW).
     diagnostic = {k: ambient[k] for k in DIAGNOSTIC_ENV if k in ambient}
     for k, v in diag_declared.items():
@@ -258,6 +279,11 @@ def _publish_fresh_trace(instr_dir, directory, key, material, evaluated_braw_sha
     _stamp_trace_text(dest, key, evaluated_braw_sha, producer_braw_sha, generated, body_sha)
     with open(dest, 'rb') as f:
         published_sha = hashlib.sha256(f.read()).hexdigest()
+    # Verificar inmediatamente el SHA del fichero sellado publicado.
+    with open(dest, 'rb') as f:
+        verify_sha = hashlib.sha256(f.read()).hexdigest()
+    if verify_sha != published_sha:
+        raise PipelineError('SHA-256 de la traza publicada inconsistente tras el sello')
     meta = {
         'conversion_key': key,
         'material': material,
@@ -269,7 +295,7 @@ def _publish_fresh_trace(instr_dir, directory, key, material, evaluated_braw_sha
         'producer_braw_sha256': producer_braw_sha,
         'braw_file_sha_equal': evaluated_braw_sha == producer_braw_sha,
         'media_equivalent': bool(media_equivalent),
-        # Solo si mdat/payload coinciden la traza describe la imagen evaluada.
+        # Solo con payload + metadata de revelado equivalente (no basta mdat solo si moov estructural difiere).
         'binds_to_evaluated_image': bool(media_equivalent),
         'instrumented': instrumented_meta,
         # Alias históricos
@@ -283,7 +309,7 @@ def _publish_fresh_trace(instr_dir, directory, key, material, evaluated_braw_sha
     return path, meta
 
 
-def _require_requested_traces(directory, diagnostic, expect_body_sha=None):
+def _require_requested_traces(directory, diagnostic, expect_body_sha=None, expect_published_sha=None):
     if diagnostic.get('CDNG_PIPELINE_TRACE') not in (None, '', '0'):
         path = os.path.join(directory, 'clip.pipeline-trace.txt')
         ident = os.path.join(directory, 'pipeline-trace.identity.json')
@@ -291,10 +317,16 @@ def _require_requested_traces(directory, diagnostic, expect_body_sha=None):
             raise PipelineError('CDNG_PIPELINE_TRACE solicitado pero falta la traza o su identidad en %s' % directory)
         with open(ident, encoding='utf-8') as f:
             meta = json.load(f)
-        if not meta.get('generated') or not meta.get('trace_body_sha256'):
-            raise PipelineError('pipeline-trace.identity.json incompleto (falta generated/trace_body_sha256)')
+        if not meta.get('generated') or not meta.get('trace_body_sha256') or not meta.get('trace_sha256'):
+            raise PipelineError('pipeline-trace.identity.json incompleto (falta generated/trace_*_sha256)')
         if expect_body_sha is not None and meta.get('trace_body_sha256') != expect_body_sha:
             raise PipelineError('la traza publicada no coincide con la generada en esta ejecución')
+        with open(path, 'rb') as f:
+            got = hashlib.sha256(f.read()).hexdigest()
+        if got != meta.get('trace_sha256'):
+            raise PipelineError('SHA-256 de la traza publicada no coincide con pipeline-trace.identity.json')
+        if expect_published_sha is not None and got != expect_published_sha:
+            raise PipelineError('SHA-256 de la traza publicada no coincide con el esperado de esta ejecución')
         if meta.get('producer_braw_sha256') and meta.get('evaluated_braw_sha256'):
             if (not meta.get('media_equivalent') and
                     meta.get('binds_to_evaluated_image')):
@@ -330,8 +362,14 @@ def _run_convert_worker(converter, clip_dir, staged, req, env, diagnostic, tmp):
     if done[0].get('replaced_frames'):
         raise PipelineError('el worker sustituyó fotogramas %s por negro' % done[0]['replaced_frames'])
     for e in events:
-        if e.get('event') == 'started' and 'og_deblock_precomp' in e and not isinstance(e['og_deblock_precomp'], bool):
+        if e.get('event') != 'started':
+            continue
+        if 'og_deblock_precomp' in e and not isinstance(e['og_deblock_precomp'], bool):
             raise PipelineError('started.og_deblock_precomp debe ser booleano JSON, got %r' % e['og_deblock_precomp'])
+        if 'og_deblock_bounded' in e and not isinstance(e['og_deblock_bounded'], bool):
+            raise PipelineError('started.og_deblock_bounded debe ser booleano JSON, got %r' % e['og_deblock_bounded'])
+        if 'og_deblock_alpha' in e and not isinstance(e['og_deblock_alpha'], (int, float)):
+            raise PipelineError('started.og_deblock_alpha debe ser número JSON, got %r' % e['og_deblock_alpha'])
     shutil.rmtree(os.path.join(tmp, 'staging'))
     return out, events, done[0], seconds
 
@@ -375,24 +413,25 @@ def convert(converter, converter_id, clip_dir, files, start, count, encode, cach
                 converter, clip_dir, staged, req, env, diagnostic, instr)
             producer_sha = identity.sha256_file(out)
             evaluated_path = os.path.join(directory, 'clip.braw')
-            media_eq = braw_inspect.same_media(evaluated_path, out)
+            eq = braw_inspect.equivalence(evaluated_path, out)
+            media_eq = eq['binds_to_evaluated_image']
             if producer_sha != saved['sha256']:
                 log('aviso: SHA del contenedor BRAW instrumentado (%s) ≠ caché (%s); '
-                    'mdat/payload %s' % (
+                    'payload=%s meta_revelado=%s → binds=%s' % (
                         producer_sha[:12], saved['sha256'][:12],
-                        'idénticos — la traza describe la misma imagen' if media_eq
-                        else 'DIFEREN — la traza NO se presenta como de la imagen cacheada'))
+                        eq['payload_equal'], eq['decode_relevant_meta_equal'], media_eq))
             if not media_eq:
-                log('aviso: imagen decodificable distinta entre caché e instrumentación; '
-                    'binds_to_evaluated_image=false')
+                log('aviso: payload o metadata de revelado (tkhd/stsd/stsz) difieren; '
+                    'binds_to_evaluated_image=false (mdat igual no basta por sí solo)')
             instrumented = {
                 'seconds': seconds,
                 'completed': done,
                 'braw_sha256': producer_sha,
                 'media_equivalent': media_eq,
                 'file_sha_equal': producer_sha == saved['sha256'],
-                'mdat_sha256': braw_inspect.atom_sha256(out, b'mdat'),
-                'moov_sha256': braw_inspect.atom_sha256(out, b'moov'),
+                'equivalence': eq,
+                'mdat_sha256': eq.get('mdat_sha256_b'),
+                'moov_sha256': eq.get('moov_sha256_b'),
             }
             src_log = os.path.join(instr, 'convert.log')
             if os.path.isfile(src_log):
@@ -401,7 +440,9 @@ def convert(converter, converter_id, clip_dir, files, start, count, encode, cach
             trace_id, trace_meta = _publish_fresh_trace(
                 instr, directory, key, material, saved['sha256'], producer_sha,
                 diagnostic, media_eq, instrumented)
-            _require_requested_traces(directory, diagnostic, expect_body_sha=trace_meta['trace_body_sha256'])
+            _require_requested_traces(directory, diagnostic,
+                                     expect_body_sha=trace_meta['trace_body_sha256'],
+                                     expect_published_sha=trace_meta['trace_sha256'])
         finally:
             shutil.rmtree(instr, ignore_errors=True)
         # completed/seconds del BRAW efectivamente evaluado (caché); instrumented aparte.
@@ -409,7 +450,7 @@ def convert(converter, converter_id, clip_dir, files, start, count, encode, cach
                     experimental_env=effective, inputs=material['inputs'],
                     completed=saved['completed'], seconds=saved['seconds'],
                     instrumented=instrumented, media_equivalent=media_eq,
-                    binds_to_evaluated_image=media_eq,
+                    binds_to_evaluated_image=media_eq, equivalence=eq,
                     trace=trace_id, trace_refreshed=True, trace_meta=trace_meta)
 
     if os.path.isdir(directory):
@@ -437,8 +478,24 @@ def convert(converter, converter_id, clip_dir, files, start, count, encode, cach
         trace_id, trace_meta = _publish_fresh_trace(
             tmp, tmp, key, material, saved['sha256'], saved['sha256'],
             diagnostic, True, instrumented)
-        _require_requested_traces(tmp, diagnostic, expect_body_sha=trace_meta['trace_body_sha256'])
+        _require_requested_traces(tmp, diagnostic,
+                                 expect_body_sha=trace_meta['trace_body_sha256'],
+                                 expect_published_sha=trace_meta['trace_sha256'])
     os.rename(tmp, directory)
+    # Tras el rename, la ruta de identidad debe apuntar al directorio final (no al .tmp).
+    if trace_id is not None:
+        trace_id = os.path.join(directory, 'pipeline-trace.identity.json')
+        if trace_meta is not None:
+            trace_meta = dict(trace_meta)
+            # Recalcular/verificar SHA sobre la ruta final publicada.
+            published = os.path.join(directory, 'clip.pipeline-trace.txt')
+            with open(published, 'rb') as f:
+                final_sha = hashlib.sha256(f.read()).hexdigest()
+            if final_sha != trace_meta.get('trace_sha256'):
+                raise PipelineError('SHA-256 de la traza cambió tras renombrar la caché')
+            _require_requested_traces(directory, diagnostic,
+                                     expect_body_sha=trace_meta['trace_body_sha256'],
+                                     expect_published_sha=final_sha)
     return dict(saved, path=os.path.join(directory, 'clip.braw'), key=key, reused=False,
                 experimental_env=effective, inputs=material['inputs'],
                 instrumented=None, media_equivalent=True, binds_to_evaluated_image=True,

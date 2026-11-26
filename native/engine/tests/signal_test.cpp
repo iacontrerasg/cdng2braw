@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <functional>
 #include <set>
 
 // ogSourceInfo necesita el lector DNG del bloque A: poner a 1 cuando dng.cpp esté implementado.
@@ -391,8 +392,14 @@ void autonomous(const OgModel &og) {
     }
     {   // CDNG_OG_DEBLOCK_PRECOMP: por defecto on; 0 desactiva; valor inválido → Error
         check::EnvVar env("CDNG_OG_DEBLOCK_PRECOMP");
-        env.unset();
+        check::EnvVar alpha("CDNG_OG_DEBLOCK_ALPHA");
+        check::EnvVar bounded("CDNG_OG_DEBLOCK_BOUNDED");
+        env.unset(); alpha.unset(); bounded.unset();
         CHECK(ogDeblockPrecompensationEnabled());
+        {
+            const auto cfg = ogDeblockPrecompensation();
+            CHECK(cfg.enabled && !cfg.bounded && cfg.alpha == 1.0);
+        }
         env.set("1");
         CHECK(ogDeblockPrecompensationEnabled());
         env.set("0");
@@ -403,6 +410,31 @@ void autonomous(const OgModel &og) {
         env.set("maybe");
         try { ogDeblockPrecompensationEnabled(); } catch (const Error &) { rejected = true; }
         CHECK(rejected);
+        env.set("1"); alpha.set("0.5");
+        CHECK(std::fabs(ogDeblockPrecompensation().alpha - 0.5) < 1e-12);
+        alpha.set("0.3");
+        rejected = false;
+        try { ogDeblockPrecompensation(); } catch (const Error &) { rejected = true; }
+        CHECK(rejected);
+        alpha.unset();
+        env.set("0"); alpha.set("0.5");
+        rejected = false;
+        try { ogDeblockPrecompensation(); } catch (const Error &) { rejected = true; }
+        CHECK(rejected);
+        alpha.unset(); bounded.set("1");
+        rejected = false;
+        try { ogDeblockPrecompensation(); } catch (const Error &) { rejected = true; }
+        CHECK(rejected);   // PRECOMP=0 + BOUNDED
+        env.set("1"); alpha.set("0.5"); bounded.set("1");
+        rejected = false;
+        try { ogDeblockPrecompensation(); } catch (const Error &) { rejected = true; }
+        CHECK(rejected);   // ALPHA + BOUNDED
+        alpha.unset();
+        {
+            const auto cfg = ogDeblockPrecompensation();
+            CHECK(cfg.enabled && cfg.bounded);
+        }
+        bounded.unset();
         // Un escalón en frontera de bloque 8×8: con precompensación el Y redondeado difiere del sin ella.
         Planes p(16, 16);
         std::fill(p.y.begin(), p.y.end(), 1000.f);
@@ -412,6 +444,22 @@ void autonomous(const OgModel &og) {
         const auto on = canvasPlanes(p, g, true), off = canvasPlanes(p, g, false);
         CHECK(on.y != off.y);
         CHECK(on.cb == off.cb && on.cr == off.cr);   // la precompensación solo toca Y
+        // alpha=1 ≡ original; alpha=0 ≡ ablación; Cb/Cr intactos.
+        DeblockPrecomp a1; a1.enabled = true; a1.alpha = 1.0;
+        DeblockPrecomp a0; a0.enabled = true; a0.alpha = 0.0;
+        DeblockPrecomp ab; ab.enabled = false;
+        CHECK(canvasPlanes(p, g, a1).y == on.y);
+        CHECK(canvasPlanes(p, g, a0).y == off.y);
+        CHECK(canvasPlanes(p, g, ab).y == off.y);
+        CHECK(canvasPlanes(p, g, a1).cb == off.cb && canvasPlanes(p, g, a0).cr == off.cr);
+        DeblockPrecomp half; half.enabled = true; half.alpha = 0.5;
+        const auto mid = canvasPlanes(p, g, half);
+        CHECK(mid.y != on.y && mid.y != off.y);
+        // Bounded: valores Y representables; en escalón suave coincide con el original si no hay overshoot.
+        DeblockPrecomp bd; bd.enabled = true; bd.bounded = true;
+        const auto bdc = canvasPlanes(p, g, bd);
+        CHECK(std::all_of(bdc.y.begin(), bdc.y.end(), [](int16_t v) { return v >= 0 && v <= 4095; }));
+        CHECK(bdc.cb == on.cb && bdc.cr == on.cr);
         // Overshoot matemático vs clip: valor >4095 se marca como math_above y clamped_high; at_hi ≠ solo clip.
         const RangeStats over = measureCodeRange({100.0, 4095.0, 4100.5, -1.0}, 0, 4095);
         CHECK(over.math_above == 1 && over.math_below == 1);
@@ -419,6 +467,30 @@ void autonomous(const OgModel &og) {
         CHECK(over.at_hi == 2);            // 4095 natural + 4100.5 clampado
         CHECK(over.at_hi_natural == 1);   // solo el 4095 natural
         CHECK(over.excess_max >= 5.0);
+    }
+    {   // EXP-001b: en borde cerca del techo, bounded no empeora el MSE de reconstrucción vs inversa+clamp.
+        Planes p(16, 16);
+        std::fill(p.y.begin(), p.y.end(), 3800.f);
+        for (int y = 0; y < 16; ++y) for (int x = 8; x < 16; ++x) p.y[std::size_t(y) * 16 + x] = 4095.f;
+        std::fill(p.cb.begin(), p.cb.end(), 0.f); std::fill(p.cr.begin(), p.cr.end(), 0.f);
+        const Geometry g(16, 16);
+        DeblockPrecomp orig; orig.enabled = true; orig.alpha = 1.0;
+        DeblockPrecomp bd; bd.enabled = true; bd.bounded = true;
+        const auto rOrig = decodedPlanes(canvasPlanes(p, g, orig), g);
+        const auto rBd = decodedPlanes(canvasPlanes(p, g, bd), g);
+        auto mseTo = [&](const Planes &recon) {
+            double s = 0;
+            for (std::size_t i = 0; i < p.y.size(); ++i) {
+                const double d = double(recon.y[i]) - double(p.y[i]);
+                s += d * d;
+            }
+            return s / double(p.y.size());
+        };
+        CHECK(mseTo(rBd) <= mseTo(rOrig) * 1.001 + 1e-6);
+        // alpha=1 idéntico al bool deblock=true; alpha=0 idéntico a deblock=false.
+        CHECK(canvasPlanes(p, g, orig).y == canvasPlanes(p, g, true).y);
+        DeblockPrecomp a0; a0.enabled = true; a0.alpha = 0.0;
+        CHECK(canvasPlanes(p, g, a0).y == canvasPlanes(p, g, false).y);
     }
     {   // ruta pocket: gris medio dentro del modelo, vista previa de vuelta al mismo gris
         const auto pocket = pocketMap(Resources);
@@ -599,6 +671,113 @@ void parity(const OgModel &og) {
 
 }  // namespace
 
+void writeExp001bSyntheticReport(const std::filesystem::path &path) {
+    struct Case {
+        const char *name;
+        std::function<void(Planes &)> fill;
+    };
+    const Geometry g(32, 32);
+    auto mseTo = [](const Planes &recon, const Planes &want) {
+        double s = 0;
+        for (std::size_t i = 0; i < want.y.size(); ++i) {
+            const double d = double(recon.y[i]) - double(want.y[i]);
+            s += d * d;
+        }
+        return s / double(want.y.size());
+    };
+    auto rangeY = [](const DeblockPrecomp &cfg, const Planes &p, const Geometry &geom) {
+        std::vector<double> y, cb, cr;
+        floatCanvasPlanes(p, geom, cfg, y, cb, cr);
+        return measureCodeRange(y, 0, 4095);
+    };
+    std::vector<Case> cases = {
+        {"uniform", [](Planes &p) { std::fill(p.y.begin(), p.y.end(), 2000.f); }},
+        {"step_low", [](Planes &p) {
+            std::fill(p.y.begin(), p.y.end(), 1000.f);
+            for (int y = 0; y < p.height; ++y) for (int x = 8; x < p.width; ++x) p.y[std::size_t(y) * p.width + x] = 1200.f;
+        }},
+        {"step_high", [](Planes &p) {
+            std::fill(p.y.begin(), p.y.end(), 1000.f);
+            for (int y = 0; y < p.height; ++y) for (int x = 8; x < p.width; ++x) p.y[std::size_t(y) * p.width + x] = 3000.f;
+        }},
+        {"black_to_white", [](Planes &p) {
+            std::fill(p.y.begin(), p.y.end(), 0.f);
+            for (int y = 0; y < p.height; ++y) for (int x = 8; x < p.width; ++x) p.y[std::size_t(y) * p.width + x] = 4095.f;
+        }},
+        {"white_to_black", [](Planes &p) {
+            std::fill(p.y.begin(), p.y.end(), 4095.f);
+            for (int y = 0; y < p.height; ++y) for (int x = 8; x < p.width; ++x) p.y[std::size_t(y) * p.width + x] = 0.f;
+        }},
+        {"bright_impulse", [](Planes &p) {
+            std::fill(p.y.begin(), p.y.end(), 200.f);
+            p.y[std::size_t(7) * p.width + 7] = 4095.f;
+            p.y[std::size_t(7) * p.width + 8] = 4095.f;
+            p.y[std::size_t(8) * p.width + 7] = 4095.f;
+            p.y[std::size_t(8) * p.width + 8] = 4095.f;
+        }},
+        {"dark_impulse", [](Planes &p) {
+            std::fill(p.y.begin(), p.y.end(), 3800.f);
+            p.y[std::size_t(7) * p.width + 7] = 0.f;
+            p.y[std::size_t(7) * p.width + 8] = 0.f;
+            p.y[std::size_t(8) * p.width + 7] = 0.f;
+            p.y[std::size_t(8) * p.width + 8] = 0.f;
+        }},
+        {"gradient", [](Planes &p) {
+            for (int y = 0; y < p.height; ++y) for (int x = 0; x < p.width; ++x)
+                p.y[std::size_t(y) * p.width + x] = float(x * 4095 / std::max(1, p.width - 1));
+        }},
+        {"high_freq", [](Planes &p) {
+            for (int y = 0; y < p.height; ++y) for (int x = 0; x < p.width; ++x)
+                p.y[std::size_t(y) * p.width + x] = ((x + y) & 1) ? 3200.f : 800.f;
+        }},
+        {"crossing", [](Planes &p) {
+            std::fill(p.y.begin(), p.y.end(), 1500.f);
+            for (int y = 0; y < p.height; ++y) for (int x = 8; x < p.width; ++x) p.y[std::size_t(y) * p.width + x] += 800.f;
+            for (int y = 8; y < p.height; ++y) for (int x = 0; x < p.width; ++x) p.y[std::size_t(y) * p.width + x] += 600.f;
+        }},
+    };
+    std::ofstream out(path);
+    out << "{\n  \"experiment\": \"EXP-001b\",\n  \"model\": \"decodedPlanes (3,10,3)/16\",\n  \"cases\": [\n";
+    DeblockPrecomp orig; orig.enabled = true; orig.alpha = 1.0;
+    DeblockPrecomp abd; abd.enabled = false;
+    DeblockPrecomp bd; bd.enabled = true; bd.bounded = true;
+    const double alphas[] = {0.0, 0.25, 0.5, 0.75, 1.0};
+    for (std::size_t ci = 0; ci < cases.size(); ++ci) {
+        Planes p(g.w, g.h);
+        std::fill(p.cb.begin(), p.cb.end(), 0.f);
+        std::fill(p.cr.begin(), p.cr.end(), 0.f);
+        cases[ci].fill(p);
+        const auto rAbd = decodedPlanes(canvasPlanes(p, g, abd), g);
+        const auto rOrig = decodedPlanes(canvasPlanes(p, g, orig), g);
+        const auto rBd = decodedPlanes(canvasPlanes(p, g, bd), g);
+        const RangeStats sOrig = rangeY(orig, p, g), sBd = rangeY(bd, p, g);
+        out << "    {\"name\": \"" << cases[ci].name << "\","
+            << "\"mse_ablation\": " << mseTo(rAbd, p) << ","
+            << "\"mse_original\": " << mseTo(rOrig, p) << ","
+            << "\"mse_bounded\": " << mseTo(rBd, p) << ","
+            << "\"orig_math_above\": " << sOrig.math_above << ","
+            << "\"orig_clamped_high\": " << sOrig.clamped_high << ","
+            << "\"orig_excess_max\": " << sOrig.excess_max << ","
+            << "\"bounded_math_above\": " << sBd.math_above << ","
+            << "\"bounded_clamped_high\": " << sBd.clamped_high << ","
+            << "\"bounded_excess_max\": " << sBd.excess_max << ","
+            << "\"alpha\": [";
+        for (std::size_t ai = 0; ai < 5; ++ai) {
+            DeblockPrecomp a; a.enabled = true; a.alpha = alphas[ai];
+            const auto ra = decodedPlanes(canvasPlanes(p, g, a), g);
+            const RangeStats sa = rangeY(a, p, g);
+            if (ai) out << ", ";
+            out << "{\"alpha\": " << alphas[ai] << ",\"mse\": " << mseTo(ra, p)
+                << ",\"math_above\": " << sa.math_above << ",\"clamped_high\": " << sa.clamped_high
+                << ",\"excess_max\": " << sa.excess_max << "}";
+        }
+        out << "]}";
+        if (ci + 1 < cases.size()) out << ",";
+        out << "\n";
+    }
+    out << "  ]\n}\n";
+}
+
 int main() {
     const OgModel og = loadOgModel(Resources / "model/pocket_og_cinemadng_signal.json");
     autonomous(og);
@@ -609,5 +788,9 @@ int main() {
     bayerPhase();
     resizeChromaPhase();
     if (!check::skipWithoutGolden("signal_test")) parity(og);
+    if (const char *synth = std::getenv("CDNG_EXP001B_SYNTHETIC")) {
+        writeExp001bSyntheticReport(synth);
+        std::fprintf(stderr, "EXP-001b synthetic report → %s\n", synth);
+    }
     return check::finish("signal_test");
 }

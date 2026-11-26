@@ -1,0 +1,17 @@
+{
+  "base": "../manifest.json",
+  "encode": {
+    "compression": "quality",
+    "q": 18,
+    "ratio": null,
+    "rate_search": false,
+    "noise_synthesis": false,
+    "nr_luma": 0,
+    "nr_chroma": 0,
+    "workers": 2,
+    "experimental_env": {
+      "CDNG_OG_DEBLOCK_PRECOMP": "0"
+    },
+    "notes": ["EXP-001b: ablación completa (PRECOMP=0), q fijo 18."]
+  }
+}
