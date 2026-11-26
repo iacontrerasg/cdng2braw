@@ -3,7 +3,7 @@
   "title": "Decoder-aware Chroma Reconstruction: Feasibility",
   "branch": "experiment/pocket-og-decoder-aware-chroma",
   "base": "main@81cc49a (PR #10 merged)",
-  "generated_utc": "2026-11-26T20:05:25Z",
+  "generated_utc": "2026-11-26T20:31:40Z",
   "defaults_intact": true,
   "aahd_experimental_only": true,
   "ahd_default": true,
@@ -538,17 +538,1048 @@
     "not_sdk_optimum": true
   },
   "sdk_campaign": {
-    "status": "not_run",
-    "reason": "campa\u00f1a S8 no ejecutada en este informe"
+    "status": "measured",
+    "clip": "BMPCC_1_2000-03-02_0756_C0039",
+    "frames": [
+      44,
+      45
+    ],
+    "q": 2,
+    "characterization": {
+      "n_chroma_sites": 16,
+      "n_y_sites": 4,
+      "mean_support_px": 52.5,
+      "negative_lobes": false,
+      "sites": [
+        {
+          "peak": [
+            29,
+            29
+          ],
+          "peak_value": 0.004830132048980215,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 77,
+          "svd_s0_frac": 0.875768144188984,
+          "separable_fro_err": 0.000511282696021676,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": -0.00020642206072807312,
+          "cross_bg_at_peak": 0.0011838145554065704,
+          "rgb_peak": [
+            -0.00043668895959854127,
+            -0.00023026689887046815,
+            0.0009535476565361023
+          ],
+          "plane": "cb",
+          "amp": 80.0,
+          "phase": "even",
+          "band": "ylo",
+          "split": "train",
+          "cx": 80,
+          "cy": 80
+        },
+        {
+          "peak": [
+            29,
+            29
+          ],
+          "peak_value": 0.004389578742612776,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 75,
+          "svd_s0_frac": 0.8774532707039574,
+          "separable_fro_err": 0.00048209287816843125,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": -0.00019538216292858126,
+          "cross_bg_at_peak": 0.0011008810251951218,
+          "rgb_peak": [
+            -0.0004130177199840546,
+            -0.00021763555705547332,
+            0.0008832454681396484
+          ],
+          "plane": "cb",
+          "amp": -80.0,
+          "phase": "even",
+          "band": "ylo",
+          "split": "train",
+          "cx": 176,
+          "cy": 80
+        },
+        {
+          "peak": [
+            29,
+            29
+          ],
+          "peak_value": 0.005365778986351666,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 12,
+          "svd_s0_frac": 0.9556931561916207,
+          "separable_fro_err": 0.00018014472178122198,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": -0.00020719431340694426,
+          "cross_bg_at_peak": 0.0012094474087158838,
+          "rgb_peak": [
+            -0.00043866833051045735,
+            -0.0002314740171035131,
+            0.0009779733916123708
+          ],
+          "plane": "cb",
+          "amp": 240.0,
+          "phase": "even",
+          "band": "ylo",
+          "split": "train",
+          "cx": 272,
+          "cy": 80
+        },
+        {
+          "peak": [
+            28,
+            28
+          ],
+          "peak_value": 0.004701905166183289,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 77,
+          "svd_s0_frac": 0.8759257040265499,
+          "separable_fro_err": 0.0004964258132000577,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": 0.004699376970529556,
+          "cross_bg_at_peak": -0.00015416964888572695,
+          "rgb_peak": [
+            0.0038481131196022034,
+            -0.0008512638509273529,
+            -0.0010054334998130798
+          ],
+          "plane": "cr",
+          "amp": 80.0,
+          "phase": "even",
+          "band": "ylo",
+          "split": "train",
+          "cx": 368,
+          "cy": 80
+        },
+        {
+          "peak": [
+            28,
+            28
+          ],
+          "peak_value": 0.004248531934890256,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 75,
+          "svd_s0_frac": 0.8772500840712965,
+          "separable_fro_err": 0.00046798574694865394,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": 0.0042450234293937685,
+          "cross_bg_at_peak": -0.00017262585461139677,
+          "rgb_peak": [
+            0.0034187357872724534,
+            -0.000826287642121315,
+            -0.0009989134967327117
+          ],
+          "plane": "cr",
+          "amp": -80.0,
+          "phase": "even",
+          "band": "ylo",
+          "split": "held",
+          "cx": 464,
+          "cy": 80
+        },
+        {
+          "peak": [
+            28,
+            28
+          ],
+          "peak_value": 0.005249588175319093,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 12,
+          "svd_s0_frac": 0.9556570911949666,
+          "separable_fro_err": 0.00017563479156207097,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": 0.005247827929755052,
+          "cross_bg_at_peak": -0.0001359339182575544,
+          "rgb_peak": [
+            0.0043594663341840105,
+            -0.0008883615955710411,
+            -0.0010242955138285955
+          ],
+          "plane": "cr",
+          "amp": 240.0,
+          "phase": "even",
+          "band": "ylo",
+          "split": "held",
+          "cx": 560,
+          "cy": 80
+        },
+        {
+          "peak": [
+            29,
+            29
+          ],
+          "peak_value": 0.004830132048980215,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 73,
+          "svd_s0_frac": 0.8585693850505784,
+          "separable_fro_err": 0.0005432301822450566,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": -0.0001857448369264603,
+          "cross_bg_at_peak": 0.001064278557896614,
+          "rgb_peak": [
+            -0.00039293095469474795,
+            -0.00020718611776828765,
+            0.0008570924401283264
+          ],
+          "plane": "cb",
+          "amp": 80.0,
+          "phase": "odd",
+          "band": "ylo",
+          "split": "held",
+          "cx": 660,
+          "cy": 82
+        },
+        {
+          "peak": [
+            28,
+            28
+          ],
+          "peak_value": 0.004701905166183289,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 73,
+          "svd_s0_frac": 0.8588312165855169,
+          "separable_fro_err": 0.0005273542785873056,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": 0.004699376970529556,
+          "cross_bg_at_peak": -0.00015416964888572695,
+          "rgb_peak": [
+            0.0038481131196022034,
+            -0.0008512638509273529,
+            -0.0010054334998130798
+          ],
+          "plane": "cr",
+          "amp": 80.0,
+          "phase": "odd",
+          "band": "ylo",
+          "split": "held",
+          "cx": 756,
+          "cy": 82
+        },
+        {
+          "peak": [
+            29,
+            29
+          ],
+          "peak_value": 0.0035763651746748846,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 25,
+          "svd_s0_frac": 0.9082588511808458,
+          "separable_fro_err": 0.00032423057102763095,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": -0.00020147922138373056,
+          "cross_bg_at_peak": 0.0011143005142609278,
+          "rgb_peak": [
+            -0.000425563504298528,
+            -0.00022408428291479746,
+            0.0008902162313461304
+          ],
+          "plane": "cb",
+          "amp": -240.0,
+          "phase": "odd",
+          "band": "ylo",
+          "split": "held",
+          "cx": 660,
+          "cy": 178
+        },
+        {
+          "peak": [
+            28,
+            28
+          ],
+          "peak_value": 0.00397025888772869,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 13,
+          "svd_s0_frac": 0.9384847013267096,
+          "separable_fro_err": 0.0001908907299117957,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": 0.003965182850758235,
+          "cross_bg_at_peak": -0.00020070026318232223,
+          "rgb_peak": [
+            0.0031254862745602927,
+            -0.0008396965761979421,
+            -0.0010403968393802644
+          ],
+          "plane": "cr",
+          "amp": -240.0,
+          "phase": "odd",
+          "band": "ylo",
+          "split": "held",
+          "cx": 756,
+          "cy": 178
+        },
+        {
+          "peak": [
+            29,
+            29
+          ],
+          "peak_value": 0.011321940447795237,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 77,
+          "svd_s0_frac": 0.8743999591622963,
+          "separable_fro_err": 0.0012252989476261075,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": -0.0004948645830154419,
+          "cross_bg_at_peak": 0.0028232067823410036,
+          "rgb_peak": [
+            -0.0010466575622558594,
+            -0.0005517929792404174,
+            0.002271413803100586
+          ],
+          "plane": "cb",
+          "amp": 80.0,
+          "phase": "even",
+          "band": "yhi",
+          "split": "train",
+          "cx": 80,
+          "cy": 360
+        },
+        {
+          "peak": [
+            29,
+            29
+          ],
+          "peak_value": 0.010798160292067078,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 75,
+          "svd_s0_frac": 0.8790503287508128,
+          "separable_fro_err": 0.0011575107294011947,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": -0.00046941339969635014,
+          "cross_bg_at_peak": 0.0026583105325698854,
+          "rgb_peak": [
+            -0.0009925007820129395,
+            -0.0005230873823165894,
+            0.002135223150253296
+          ],
+          "plane": "cb",
+          "amp": -80.0,
+          "phase": "even",
+          "band": "yhi",
+          "split": "train",
+          "cx": 176,
+          "cy": 360
+        },
+        {
+          "peak": [
+            28,
+            28
+          ],
+          "peak_value": 0.01100397048235035,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 77,
+          "svd_s0_frac": 0.8744723310539018,
+          "separable_fro_err": 0.0011895356805688192,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": 0.010997247695922852,
+          "cross_bg_at_peak": -0.0003845900297164916,
+          "rgb_peak": [
+            0.008964246511459351,
+            -0.002033001184463501,
+            -0.0024175912141799925
+          ],
+          "plane": "cr",
+          "amp": 80.0,
+          "phase": "even",
+          "band": "yhi",
+          "split": "train",
+          "cx": 272,
+          "cy": 360
+        },
+        {
+          "peak": [
+            28,
+            28
+          ],
+          "peak_value": 0.010469791629899073,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 75,
+          "svd_s0_frac": 0.8789766792713459,
+          "separable_fro_err": 0.0011236219267604466,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": 0.010462144017219543,
+          "cross_bg_at_peak": -0.0004000991582870485,
+          "rgb_peak": [
+            0.008469271659851074,
+            -0.001992872357368469,
+            -0.0023929715156555177
+          ],
+          "plane": "cr",
+          "amp": -80.0,
+          "phase": "even",
+          "band": "yhi",
+          "split": "train",
+          "cx": 368,
+          "cy": 360
+        },
+        {
+          "peak": [
+            29,
+            29
+          ],
+          "peak_value": 0.012023689291689557,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 12,
+          "svd_s0_frac": 0.9556557629621718,
+          "separable_fro_err": 0.0004201948072589631,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": -0.0004956424236297606,
+          "cross_bg_at_peak": 0.0028488437334696455,
+          "rgb_peak": [
+            -0.0010486443837483723,
+            -0.0005530019601186117,
+            0.0022958417733510337
+          ],
+          "plane": "cb",
+          "amp": 240.0,
+          "phase": "even",
+          "band": "yhi",
+          "split": "held",
+          "cx": 464,
+          "cy": 360
+        },
+        {
+          "peak": [
+            28,
+            28
+          ],
+          "peak_value": 0.011713099801162192,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 12,
+          "svd_s0_frac": 0.9556899229015126,
+          "separable_fro_err": 0.0004082970481016693,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": 0.01170718272527059,
+          "cross_bg_at_peak": -0.00037226279576619463,
+          "rgb_peak": [
+            0.009606786568959554,
+            -0.0021003961563110353,
+            -0.00247265895207723
+          ],
+          "plane": "cr",
+          "amp": 240.0,
+          "phase": "even",
+          "band": "yhi",
+          "split": "held",
+          "cx": 560,
+          "cy": 360
+        }
+      ],
+      "y_impulses": [
+        {
+          "peak": [
+            28,
+            28
+          ],
+          "peak_value": 0.0011837010974239737,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 13,
+          "svd_s0_frac": 0.8584139388252952,
+          "separable_fro_err": 8.608721931441128e-05,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": 0.0009873610734939574,
+          "cross_bg_at_peak": 0.0006528908014297487,
+          "rgb_peak": [
+            0.001986030340194702,
+            0.0009986692667007446,
+            0.0016515600681304933
+          ],
+          "lx": 900,
+          "ly": 200,
+          "amp": 200.0,
+          "band": "ylo",
+          "plane": "y"
+        },
+        {
+          "peak": [
+            28,
+            28
+          ],
+          "peak_value": 0.0009675054154444924,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 49,
+          "svd_s0_frac": 0.8241562835728635,
+          "separable_fro_err": 9.41586365602683e-05,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": 0.0008070260286331177,
+          "cross_bg_at_peak": 0.0005336438119411469,
+          "rgb_peak": [
+            0.0016232940554618835,
+            0.0008162680268287659,
+            0.0013499118387699128
+          ],
+          "lx": 1100,
+          "ly": 200,
+          "amp": -200.0,
+          "band": "ylo",
+          "plane": "y"
+        },
+        {
+          "peak": [
+            28,
+            28
+          ],
+          "peak_value": 0.002689548341881126,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 15,
+          "svd_s0_frac": 0.8460655506686782,
+          "separable_fro_err": 0.00021916180085398835,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": 0.002243436574935913,
+          "cross_bg_at_peak": 0.0014834630489349364,
+          "rgb_peak": [
+            0.004512560367584228,
+            0.0022691237926483155,
+            0.003752586841583252
+          ],
+          "lx": 900,
+          "ly": 760,
+          "amp": 200.0,
+          "band": "yhi",
+          "plane": "y"
+        },
+        {
+          "peak": [
+            28,
+            28
+          ],
+          "peak_value": 0.002485107921560574,
+          "min_lobe": 0.0,
+          "overshoot": 0.0,
+          "undershoot": 0.0,
+          "support_px": 44,
+          "svd_s0_frac": 0.8334589952234694,
+          "separable_fro_err": 0.0002178409426471731,
+          "linear_separable": false,
+          "linear_nonseparable": true,
+          "has_negative_lobes": false,
+          "cross_rg_at_peak": 0.0020729041099548343,
+          "cross_bg_at_peak": 0.001370704174041748,
+          "rgb_peak": [
+            0.004169554710388184,
+            0.0020966506004333496,
+            0.0034673547744750975
+          ],
+          "lx": 1100,
+          "ly": 760,
+          "amp": -200.0,
+          "band": "yhi",
+          "plane": "y"
+        }
+      ],
+      "polarity": [
+        {
+          "plane": "cb",
+          "band": "ylo",
+          "peak_pos": 0.004830132048980215,
+          "peak_neg": 0.004389578742612776
+        },
+        {
+          "plane": "cb",
+          "band": "ylo",
+          "peak_pos": 0.004389578742612776,
+          "peak_neg": 0.004830132048980215
+        },
+        {
+          "plane": "cr",
+          "band": "ylo",
+          "peak_pos": 0.004701905166183289,
+          "peak_neg": 0.004248531934890256
+        },
+        {
+          "plane": "cr",
+          "band": "ylo",
+          "peak_pos": 0.004248531934890256,
+          "peak_neg": 0.004701905166183289
+        },
+        {
+          "plane": "cb",
+          "band": "yhi",
+          "peak_pos": 0.011321940447795237,
+          "peak_neg": 0.010798160292067078
+        },
+        {
+          "plane": "cb",
+          "band": "yhi",
+          "peak_pos": 0.010798160292067078,
+          "peak_neg": 0.011321940447795237
+        },
+        {
+          "plane": "cr",
+          "band": "yhi",
+          "peak_pos": 0.01100397048235035,
+          "peak_neg": 0.010469791629899073
+        },
+        {
+          "plane": "cr",
+          "band": "yhi",
+          "peak_pos": 0.010469791629899073,
+          "peak_neg": 0.01100397048235035
+        }
+      ],
+      "amplitude": [
+        {
+          "plane": "cb",
+          "band": "ylo",
+          "peak_lo": 0.004830132048980215,
+          "peak_hi": 0.005365778986351666,
+          "ratio": 1.1108969551845984
+        },
+        {
+          "plane": "cr",
+          "band": "ylo",
+          "peak_lo": 0.004701905166183289,
+          "peak_hi": 0.005249588175319093,
+          "ratio": 1.1164810836838674
+        },
+        {
+          "plane": "cb",
+          "band": "yhi",
+          "peak_lo": 0.011321940447795237,
+          "peak_hi": 0.012023689291689557,
+          "ratio": 1.0619813226478305
+        },
+        {
+          "plane": "cr",
+          "band": "yhi",
+          "peak_lo": 0.01100397048235035,
+          "peak_hi": 0.011713099801162192,
+          "ratio": 1.0644430408050656
+        }
+      ],
+      "y_to_chroma_coupling": 0.0025378574058413507,
+      "not_assumed_bilinear": true
+    },
+    "s7": {
+      "has_s7": true,
+      "has_s5": true,
+      "note": "S7 es decodedPlanes local (croma NN); no interpola. S8 es SDK.",
+      "s7_vs_s5_cb_mae": 88.43239536933535
+    },
+    "model_validation": {
+      "held_n": 8,
+      "train_n": 8,
+      "held_mean_peak": 0.006289196310078522,
+      "train_mean_peak": 0.00786015722452996,
+      "s7_vs_s8": "S8 medido en RGB SDK; S7 es NN de c\u00f3digos. No se asume bilinear.",
+      "bilinear_not_assumed": true
+    },
+    "a2_stripes": [
+      {
+        "name": "cam_equal_hi",
+        "x0": 0,
+        "edge": 96,
+        "halo_p99": 0.15980953559709732,
+        "halo_peak": 0.18109472391133097,
+        "halo_integrated": 410.19724934965325,
+        "edge_chroma_p99": 5.067793980307674,
+        "luma_contrast": 2344.383723283565,
+        "dist_to_asn": 0.39773333331606064,
+        "cam_equal": true,
+        "p3_neutral": false
+      },
+      {
+        "name": "cam_equal_lo",
+        "x0": 192,
+        "edge": 288,
+        "halo_p99": 0.0028896186967622963,
+        "halo_peak": 0.004184942000812901,
+        "halo_integrated": 36.63635656927098,
+        "edge_chroma_p99": 1.957218547181806,
+        "luma_contrast": 602.9287054764886,
+        "dist_to_asn": 0.39773333332848476,
+        "cam_equal": true,
+        "p3_neutral": false
+      },
+      {
+        "name": "asn_hi",
+        "x0": 384,
+        "edge": 480,
+        "halo_p99": 0.07020608752276034,
+        "halo_peak": 0.07020608752276034,
+        "halo_integrated": 221.57564663311396,
+        "edge_chroma_p99": 0.07203008670098528,
+        "luma_contrast": 2137.3727065747826,
+        "dist_to_asn": 4.1513089262442314e-11,
+        "cam_equal": false,
+        "p3_neutral": false
+      },
+      {
+        "name": "p3_hi",
+        "x0": 576,
+        "edge": 672,
+        "halo_p99": 0.07020608752276034,
+        "halo_peak": 0.07962046944430991,
+        "halo_integrated": 234.46447085960054,
+        "edge_chroma_p99": 0.07203008670098528,
+        "luma_contrast": 2137.4120547848474,
+        "dist_to_asn": 9.094249033207251e-05,
+        "cam_equal": false,
+        "p3_neutral": true
+      },
+      {
+        "name": "p3_lo",
+        "x0": 768,
+        "edge": 864,
+        "halo_p99": 0.0009979006210516137,
+        "halo_peak": 0.02265809127204571,
+        "halo_integrated": 35.660119056004646,
+        "edge_chroma_p99": 0.006335856713822843,
+        "luma_contrast": 550.3566451433242,
+        "dist_to_asn": 9.094247967659601e-05,
+        "cam_equal": false,
+        "p3_neutral": true
+      },
+      {
+        "name": "saturated",
+        "x0": 960,
+        "edge": 1056,
+        "halo_p99": 0.011866569519042969,
+        "halo_peak": 0.19727659225463867,
+        "halo_integrated": 302.988338470459,
+        "edge_chroma_p99": 8.50742244720459,
+        "luma_contrast": 38.862344807460886,
+        "dist_to_asn": 4.942177777681148,
+        "cam_equal": false,
+        "p3_neutral": false
+      },
+      {
+        "name": "isoluminant",
+        "x0": 1152,
+        "edge": 1248,
+        "halo_p99": 0.5520052058840473,
+        "halo_peak": 0.558991506121037,
+        "halo_integrated": 1244.589446865362,
+        "edge_chroma_p99": 5.3441657117925185,
+        "luma_contrast": 19.239546747257236,
+        "dist_to_asn": 2.0222222222052486,
+        "cam_equal": false,
+        "p3_neutral": false
+      },
+      {
+        "name": "asn_lo",
+        "x0": 1344,
+        "edge": 1440,
+        "halo_p99": 0.0009979006210516137,
+        "halo_peak": 0.0009979006210516137,
+        "halo_integrated": 10.403639101557593,
+        "edge_chroma_p99": 0.006335856713822843,
+        "luma_contrast": 550.3466581485661,
+        "dist_to_asn": 1.165286385903149e-11,
+        "cam_equal": false,
+        "p3_neutral": false
+      },
+      {
+        "name": "cam_equal_phase1",
+        "x0": 1536,
+        "edge": 1633,
+        "halo_p99": 0.033434180784489904,
+        "halo_peak": 0.21436847609160745,
+        "halo_integrated": 326.31400682225393,
+        "edge_chroma_p99": 4.886699256397547,
+        "luma_contrast": 2344.383723283565,
+        "dist_to_asn": 0.39773333331606064,
+        "cam_equal": true,
+        "p3_neutral": false
+      },
+      {
+        "name": "p3_phase1",
+        "x0": 1728,
+        "edge": 1825,
+        "halo_p99": 0.34182618189155545,
+        "halo_peak": 0.6864023045225355,
+        "halo_integrated": 1832.3471704037167,
+        "edge_chroma_p99": 0.6899432255134192,
+        "luma_contrast": 2137.4120547848474,
+        "dist_to_asn": 9.094249033207251e-05,
+        "cam_equal": false,
+        "p3_neutral": true
+      }
+    ],
+    "a2_user_hypothesis": {
+      "white_black_not_exclusive": true,
+      "strongest": "isoluminant",
+      "cam_equal_hi_p99": 0.15980953559709732,
+      "p3_hi_p99": 0.07020608752276034,
+      "asn_hi_p99": 0.07020608752276034,
+      "isoluminant_p99": 0.5520052058840473,
+      "corr_contrast_p99": -0.061742758256123895,
+      "corr_asn_dist_p99": 0.0914035572475038,
+      "note": "Si cam_equal (Cb=Cr=0 en c\u00f3dec) tiene halo S8, el SDK introduce croma desde luma. Si p3/asn dominan, el origen principal es croma de c\u00f3digo por la curva.",
+      "confirmed_exclusive_wb": false
+    },
+    "oracle_s8": {
+      "c0": {
+        "units": {
+          "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+          "percentiles": "same field, common luma mask",
+          "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+          "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+          "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+        },
+        "peak": 0.014444280627617398,
+        "p95": 0.0014389630833387852,
+        "p99": 0.010696370718393255,
+        "p99_9": 0.014444280627617398,
+        "integrated": 41.97228329007699,
+        "mean": 0.00030361894741085785,
+        "n_valid": 138240,
+        "peak_duv": 0.002548767540483699,
+        "peak_rel_y": 0.04151154851566517,
+        "peak_at": {
+          "y": 0,
+          "x": 64
+        },
+        "peak_y_ref": 4.2866451543665605,
+        "peak_y_cand": 4.318346011269222,
+        "peak_in_highlight": true,
+        "peak_clipped": true,
+        "peak_excl_highlight": 0.010696370718393255,
+        "spatial": {
+          "edge_mask_fraction": 0.046875,
+          "hot_p99_fraction": 0.015625,
+          "hot_on_edges_fraction": 1.0,
+          "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+        },
+        "extent_px": "nan"
+      },
+      "o1": {
+        "units": {
+          "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+          "percentiles": "same field, common luma mask",
+          "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+          "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+          "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+        },
+        "peak": 0.46258846252125085,
+        "p95": 0.0014389630833387852,
+        "p99": 0.024910323394661427,
+        "p99_9": 0.258999201071597,
+        "integrated": 250.55003769224209,
+        "mean": 0.0018124279346950383,
+        "n_valid": 138240,
+        "peak_duv": 0.03763671071332513,
+        "peak_rel_y": 0.6035798462317402,
+        "peak_at": {
+          "y": 478,
+          "x": 64
+        },
+        "peak_y_ref": 4.2866451543665605,
+        "peak_y_cand": 4.354374730552776,
+        "peak_in_highlight": true,
+        "peak_clipped": true,
+        "peak_excl_highlight": 0.15552572776245993,
+        "spatial": {
+          "edge_mask_fraction": 0.046875,
+          "hot_p99_fraction": 0.010221354166666667,
+          "hot_on_edges_fraction": 0.5520169851380042,
+          "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+        },
+        "extent_px": "nan"
+      },
+      "o1_p99_reduction": -1.3288575209744886,
+      "o1_integrated_reduction": -4.969416435142491,
+      "redistribution_rejected": false,
+      "excessive_chroma_loss": false,
+      "upsample_used": "bilinear_candidate_for_O1; S8 operator from impulses used for characterization not inverted in this pass if ill-conditioned",
+      "sdk_calls": 6
+    },
+    "e2": null,
+    "joint_y": {
+      "delta_y_rms": 2.5866088663269976e-08,
+      "delta_y_max": 9.5010080258362e-07,
+      "frac_touched": 0.0010416666666666667,
+      "not_blur": true,
+      "halo": {
+        "units": {
+          "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+          "percentiles": "same field, common luma mask",
+          "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+          "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+          "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+        },
+        "peak": 0.46258846252125085,
+        "p95": 0.0014389630833387852,
+        "p99": 0.024910323394661427,
+        "p99_9": 0.258999201071597,
+        "integrated": 250.55003769224209,
+        "mean": 0.0018124279346950383,
+        "n_valid": 138240,
+        "peak_duv": 0.03763671071332513,
+        "peak_rel_y": 0.6035798462317402,
+        "peak_at": {
+          "y": 478,
+          "x": 64
+        },
+        "peak_y_ref": 4.2866451543665605,
+        "peak_y_cand": 4.354374730552776,
+        "peak_in_highlight": true,
+        "peak_clipped": true,
+        "peak_excl_highlight": 0.15552572776245993,
+        "spatial": {
+          "edge_mask_fraction": 0.046875,
+          "hot_p99_fraction": 0.010221354166666667,
+          "hot_on_edges_fraction": 0.5520169851380042,
+          "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+        },
+        "extent_px": "nan"
+      },
+      "p99_reduction": -1.3288575209744886,
+      "integrated_reduction": -4.969416435142491,
+      "braw": {
+        "run_id": "s8-p3-joint",
+        "braw_sha256": "238c4e6a5b8ab4fdee34f402df8d40f820a072027fe6b2f9446d99ea51471132",
+        "reused_braw": true,
+        "reused_decode": true,
+        "seconds_braw": 0.5052146660000005,
+        "seconds_decode": 0.03314458299999856
+      }
+    },
+    "a04": {
+      "white_strip_p99_chroma": 0.4850063645645431,
+      "braw": {
+        "run_id": "s8-a04-c0",
+        "braw_sha256": "27d4d5336c4f6c295cfa5d6033f0352a35fc642ebc62ccb30dcfd5b91b543252",
+        "reused_braw": true,
+        "reused_decode": true,
+        "seconds_braw": 0.5886288329999978,
+        "seconds_decode": 0.0429040839999999
+      },
+      "limitation": "ROI BUG-002 medido sobre S8 C0; sin EXR de WB/EV variantes."
+    },
+    "meta": {
+      "ctrl": {
+        "run_id": "s8-ctrl",
+        "braw_sha256": "3436d107d79de25ed320bc3d2738367bbc31ceaf866a918fb4d8e3f8c4ade8f2",
+        "reused_braw": true,
+        "reused_decode": true,
+        "seconds_braw": 0.597734542,
+        "seconds_decode": 0.0693705
+      },
+      "imp": {
+        "run_id": "s8-imp",
+        "braw_sha256": "e095bf1bfc042b2594e376d21304463150d06c045f4a58945f2d44d197557851",
+        "reused_braw": true,
+        "reused_decode": true,
+        "seconds_braw": 0.8033758750000001,
+        "seconds_decode": 0.03755658299999998
+      },
+      "edges": {
+        "run_id": "s8-edges",
+        "braw_sha256": "e0a54bd2d40df3e1345b2a3a8e85263984a88b2b253ac750faa7eb37c2b283f2",
+        "reused_braw": true,
+        "reused_decode": true,
+        "seconds_braw": 0.5081780840000001,
+        "seconds_decode": 0.04012770900000007
+      },
+      "p3_c0": {
+        "run_id": "s8-p3-c0",
+        "braw_sha256": "11149d4a00efcc3831db7d378be3f56c163df9ae54892fc454fd840f61c74fad",
+        "reused_braw": true,
+        "reused_decode": true,
+        "seconds_braw": 0.5113171250000001,
+        "seconds_decode": 0.03615875000000024
+      },
+      "p3_o1": {
+        "run_id": "s8-p3-o1",
+        "braw_sha256": "8cdccb0646046ebc83b522db9ac62a83a35f43d683c3168b5f0f42245b5130ef",
+        "reused_braw": true,
+        "reused_decode": true,
+        "seconds_braw": 0.502152208,
+        "seconds_decode": 0.04020620800000074
+      }
+    },
+    "q18": "not_run_no_promising_production_candidate",
+    "wb_exposure_sweep": "not_run; no EXR equivalentes"
   },
   "robustness_f": {
-    "status": "not_run",
-    "limitation": "No hay CinemaDNG equivalentes a \u00b12 EV / WB 3200/6500 / tint en el banco; un BRAW \u00fanico decodificado con esos ajustes no tiene referencia DNG par. No se declara equivalencia."
+    "status": "not_run; no EXR equivalentes",
+    "limitation": "No hay CinemaDNG equivalentes a \u00b12 EV / WB 3200/6500 / tint en el banco; un BRAW \u00fanico decodificado con esos ajustes no tiene referencia DNG par. No se declara equivalencia. q18/WB/EV no se barri\u00f3 sin candidato prometedor."
   },
   "feasibility": {
-    "class": "E",
-    "reason": "Evidencia insuficiente sobre el SDK (S8). Hay caracterizaci\u00f3n S7 y un candidato lineal separable; no se midi\u00f3 la respuesta Blackmagic RAW SDK.",
-    "exploratory_threshold_on_approx_model": false
+    "class": "D",
+    "reason": "Sin mejora \u00fatil en los candidatos S8 evaluados (no imposibilidad global).",
+    "p99_reduction": -1.3288575209744886,
+    "integrated_reduction": -4.969416435142491
   },
   "next_if_ab": "Si A/B: experimento de implementaci\u00f3n eficiente (predicci\u00f3n local 4:2:0 condicionada a Y y a la curva, sin or\u00e1culo por ROI). No iniciado.",
   "remaining_if_cde": [

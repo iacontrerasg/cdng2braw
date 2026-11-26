@@ -27,45 +27,52 @@ DOC = os.path.join(ROOT, 'docs', 'experiment-pocket-og-decoder-aware-chroma.md')
 JSON_OUT = os.path.join(ROOT, 'benchmark', 'experiments', 'exp005b-results-summary.json')
 
 
-def classify(oracle, sdk_status):
-    """A–E. No declara imposibilidad matemática global."""
+def classify(oracle, sdk):
+    """A–E. No declara imposibilidad matemática global. Con S8, el umbral usa el oráculo SDK."""
+    sdk = sdk or {}
+    status = sdk.get('status') if isinstance(sdk, dict) else sdk
     red = oracle['reduction_vs_c0']
-    p99 = red['o3_p99']
-    integ = red['o3_integrated']
-    luma_ok = oracle['o3'].get('luma_corr', 1) >= 0.995
-    if sdk_status != 'measured':
-        # El umbral se evalúa sobre el modelo bilinear, no sobre S8.
-        if p99 >= 0.5 and integ >= 0.5 and luma_ok:
-            return {
-                'class': 'E',
-                'reason': (
-                    'El oráculo bilinear con solo Cb/Cr reduce ≥50 % p99 e integral en ROI '
-                    'sintéticos, pero no hay campaña encode/decode SDK que lo confirme. '
-                    'No se declara clase A.'
-                ),
-                'exploratory_threshold_on_approx_model': True,
-            }
+    if status != 'measured':
         return {
             'class': 'E',
             'reason': (
-                'Evidencia insuficiente sobre el SDK (S8). Hay caracterización S7 y un '
-                'candidato lineal separable; no se midió la respuesta Blackmagic RAW SDK.'
+                'Evidencia insuficiente sobre el SDK (S8). Campaña encode/decode no medida.'
             ),
-            'exploratory_threshold_on_approx_model': p99 >= 0.5 and integ >= 0.5,
+            'approx_o3_p99_reduction': red.get('o3_p99'),
         }
-    if p99 >= 0.5 and integ >= 0.5 and luma_ok:
-        return {
-            'class': 'A',
-            'reason': 'Reducción ≥50 % p99 e integral con Y fija, verificada encode/decode SDK.',
-        }
-    if oracle['joint_y'].get('ran') and p99 >= 0.5:
-        return {'class': 'B', 'reason': 'Hace falta Y conjunta y el SDK lo confirma.'}
-    if 0.15 <= p99 < 0.5:
-        return {'class': 'C', 'reason': 'Mejora parcial del modelo/SDK por debajo del umbral.'}
-    return {
-        'class': 'D',
-        'reason': 'Sin mejora útil en los candidatos y restricciones evaluados (no imposibilidad global).',
-    }
+    o = sdk.get('oracle_s8') or {}
+    p99 = float(o.get('o1_p99_reduction') or 0)
+    integ = float(o.get('o1_integrated_reduction') or 0)
+    if o.get('e2_p99_reduction'):
+        p99 = max(p99, float(o['e2_p99_reduction']))
+        integ = max(integ, float(o.get('e2_integrated_reduction') or 0))
+    j = sdk.get('joint_y') or {}
+    jp, ji = float(j.get('p99_reduction') or 0), float(j.get('integrated_reduction') or 0)
+    reject = o.get('redistribution_rejected') or o.get('excessive_chroma_loss')
+    if p99 >= 0.5 and integ >= 0.5 and not reject:
+        return {'class': 'A',
+                'reason': 'Reducción ≥50 % p99 e integral con Y fija, verificada S8.',
+                'p99_reduction': p99, 'integrated_reduction': integ}
+    if (jp >= 0.5 and ji >= 0.5) and not j.get('blur'):
+        return {'class': 'B',
+                'reason': 'Y conjunta acotada alcanza el umbral en S8 (no es desenfoque).',
+                'p99_reduction': jp, 'integrated_reduction': ji}
+    best_p, best_i = max(p99, jp), max(integ, ji)
+    if 0.15 <= best_p < 0.5 and not reject:
+        return {'class': 'C',
+                'reason': 'Mejora S8 parcial por debajo del umbral exploratorio.',
+                'p99_reduction': best_p, 'integrated_reduction': best_i}
+    if reject and best_p > 0:
+        return {'class': 'C',
+                'reason': 'El p99 baja pero hay redistribución espacial o pérdida cromática; no es eliminación.',
+                'p99_reduction': best_p, 'integrated_reduction': best_i}
+    if best_p < 0.15:
+        return {'class': 'D',
+                'reason': 'Sin mejora útil en los candidatos S8 evaluados (no imposibilidad global).',
+                'p99_reduction': best_p, 'integrated_reduction': best_i}
+    return {'class': 'E',
+            'reason': 'S8 medido pero el umbral p99+integral no es concluyente.',
+            'p99_reduction': best_p, 'integrated_reduction': best_i}
 
 
 def build_payload(sdk=None):
@@ -75,7 +82,7 @@ def build_payload(sdk=None):
     oracle = run_oracle_suite(sensor, size=32)
     nnerr = model_vs_nn_error()
     sdk = sdk or {'status': 'not_run', 'reason': 'campaña S8 no ejecutada en este informe'}
-    decision = classify(oracle, 'measured' if sdk.get('status') == 'measured' else 'not_run')
+    decision = classify(oracle, sdk)
     return {
         'experiment': 'EXP-005b',
         'title': 'Decoder-aware Chroma Reconstruction: Feasibility',
@@ -100,11 +107,11 @@ def build_payload(sdk=None):
         'oracle': oracle,
         'sdk_campaign': sdk,
         'robustness_f': {
-            'status': 'not_run' if sdk.get('status') != 'measured' else sdk.get('robustness', 'not_run'),
+            'status': sdk.get('wb_exposure_sweep', 'not_run') if sdk.get('status') == 'measured' else 'not_run',
             'limitation': (
                 'No hay CinemaDNG equivalentes a ±2 EV / WB 3200/6500 / tint en el banco; '
                 'un BRAW único decodificado con esos ajustes no tiene referencia DNG par. '
-                'No se declara equivalencia.'
+                'No se declara equivalencia. q18/WB/EV no se barrió sin candidato prometedor.'
             ),
         },
         'feasibility': decision,
@@ -186,9 +193,7 @@ def write_doc(p):
             c['cross_channel_max'], c['support_px']))
     lines += [
         '',
-        'S7 (`decodedPlanes`) **no** interpola croma: copia 2×2. No es la respuesta SDK. El bilinear es un **candidato** lineal separable; **[lim]** sin S8 no se elige el modelo del SDK.',
-        '',
-        'Dependencia de amplitud en ambos candidatos: error relativo ~0 (lineales). La no linealidad del revelado (curva + WB) aparece al pasar a P3, no en el upsample de códigos.',
+        'S7 (`decodedPlanes`) **no** interpola croma: copia 2×2. El bilinear es un candidato; **no** se asume que el SDK lo use.',
         '',
         '---',
         '',
@@ -226,7 +231,7 @@ def write_doc(p):
         '',
         '## E — Validación',
         '',
-        'q2 C0 AHD, NR/síntesis/RDOQ OFF previstos. Fixtures A + A04_f044 / A04_f049 / A01_f052 / ROI BUG-002.',
+        'q2 C0 AHD, NR/síntesis/RDOQ OFF. Fixture P3 + A04_f044 + ROI `white_strip` (BUG-002).',
         '',
         'Campaña SDK: **%s**. %s' % (
             p['sdk_campaign'].get('status'),
@@ -242,6 +247,58 @@ def write_doc(p):
         '',
         p['robustness_f']['limitation'],
         '',
+        '---',
+        '',
+        '## S8 (B2/A2/C2) — encode/decode real',
+        '',
+    ]
+    s = p.get('sdk_campaign') or {}
+    if s.get('status') == 'measured':
+        chs = s.get('characterization') or {}
+        uh = s.get('a2_user_hypothesis') or {}
+        os8 = s.get('oracle_s8') or {}
+        lines += [
+            'Impulsos empaquetados en un frame 1920×1080, restando control plano. q=2, clip A04 f44–45. **[exp]**',
+            '',
+            '| S8 | valor |',
+            '|----|-------|',
+            '| sitios croma | %s |' % chs.get('n_chroma_sites'),
+            '| soporte medio (px) | %.4g |' % float(chs.get('mean_support_px') or 0),
+            '| lóbulos negativos | %s |' % chs.get('negative_lobes'),
+            '| acoplamiento Y→croma | %.4g |' % float(chs.get('y_to_chroma_coupling') or 0),
+            '',
+            'No se asume bilinear. S7 sigue siendo NN 2×2.',
+            '',
+            '### A2 — bordes en S8',
+            '',
+            'Hipótesis del usuario (halo exclusivo blanco/negro): **%s**. Más fuerte: `%s`. cam_equal_hi p99=%s, p3_hi=%s, asn_hi=%s, isoluminante=%s. corr(contraste, p99)=%.3g; corr(dist ASN, p99)=%.3g.'
+            % (uh.get('confirmed_exclusive_wb'), uh.get('strongest'),
+               uh.get('cam_equal_hi_p99'), uh.get('p3_hi_p99'), uh.get('asn_hi_p99'),
+               uh.get('isoluminant_p99'), float(uh.get('corr_contrast_p99') or 0),
+               float(uh.get('corr_asn_dist_p99') or 0)),
+            '',
+            '### C2 — oráculo S8 (borde P3, Y fija, O1 bilinear en ROI)',
+            '',
+            'p99 red. = %.1f %%; integral = %.1f %%. Redistribución rechazada: %s. Pérdida cromática excesiva: %s.'
+            % (100 * float(os8.get('o1_p99_reduction') or 0),
+               100 * float(os8.get('o1_integrated_reduction') or 0),
+               os8.get('redistribution_rejected'), os8.get('excessive_chroma_loss')),
+            '',
+        ]
+        if s.get('e2'):
+            lines += ['E2 (máscara borde neutro de salida, sin C=0 global): p99 red. %.1f %%.'
+                      % (100 * float(s['e2'].get('p99_reduction') or 0)), '']
+        if s.get('joint_y'):
+            j = s['joint_y']
+            lines += ['D2 ΔY rms=%.4g max=%.4g, fracción tocada=%.3g, p99 red. %.1f %%.'
+                      % (float(j.get('delta_y_rms') or 0), float(j.get('delta_y_max') or 0),
+                         float(j.get('frac_touched') or 0), 100 * float(j.get('p99_reduction') or 0)), '']
+        if s.get('a04'):
+            lines += ['A04_f044 ROI white_strip p99 croma S8 C0 = %s. %s'
+                      % (s['a04'].get('white_strip_p99_chroma'), s['a04'].get('limitation')), '']
+    else:
+        lines += ['Campaña S8 no medida en este informe.', '']
+    lines += [
         '---',
         '',
         '## G — Viabilidad',

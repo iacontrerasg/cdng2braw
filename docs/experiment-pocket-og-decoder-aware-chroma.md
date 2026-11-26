@@ -13,7 +13,7 @@ Leyenda: **[código]** en el árbol; **[exp]** medido; **[lim]** limitación.
 
 ## Decisión
 
-**Clase E.** Evidencia insuficiente sobre el SDK (S8). Hay caracterización S7 y un candidato lineal separable; no se midió la respuesta Blackmagic RAW SDK.
+**Clase D.** Sin mejora útil en los candidatos S8 evaluados (no imposibilidad global).
 
 No se declara imposibilidad matemática global a partir de un oráculo local o un modelo aproximado.
 
@@ -49,9 +49,7 @@ C0 (media RGB 2×2 y luego el mapa) no cancela esa croma de código. Separación
 | s7_nn | True | False | 0 | soporte 4 px |
 | bilinear_420 | True | False | 0 | soporte 16 px |
 
-S7 (`decodedPlanes`) **no** interpola croma: copia 2×2. No es la respuesta SDK. El bilinear es un **candidato** lineal separable; **[lim]** sin S8 no se elige el modelo del SDK.
-
-Dependencia de amplitud en ambos candidatos: error relativo ~0 (lineales). La no linealidad del revelado (curva + WB) aparece al pasar a P3, no en el upsample de códigos.
+S7 (`decodedPlanes`) **no** interpola croma: copia 2×2. El bilinear es un candidato; **no** se asume que el SDK lo use.
 
 ---
 
@@ -80,9 +78,9 @@ O1–O3 ya operan con Y fija. Un ΔY acotado no se aplica: desenfocar luma para 
 
 ## E — Validación
 
-q2 C0 AHD, NR/síntesis/RDOQ OFF previstos. Fixtures A + A04_f044 / A04_f049 / A01_f052 / ROI BUG-002.
+q2 C0 AHD, NR/síntesis/RDOQ OFF. Fixture P3 + A04_f044 + ROI `white_strip` (BUG-002).
 
-Campaña SDK: **not_run**. campaña S8 no ejecutada en este informe
+Campaña SDK: **measured**. 
 
 Resolve puede usarse como oráculo offline; **no** es dependencia de un algoritmo futuro. Cualquier candidato de producción debe derivarse de S2 + metadata CinemaDNG.
 
@@ -92,13 +90,40 @@ Umbral exploratorio 50 % p99+integral: **no** cierra BUG-002 ni sustituye acepta
 
 ## F — Robustez del revelado
 
-No hay CinemaDNG equivalentes a ±2 EV / WB 3200/6500 / tint en el banco; un BRAW único decodificado con esos ajustes no tiene referencia DNG par. No se declara equivalencia.
+No hay CinemaDNG equivalentes a ±2 EV / WB 3200/6500 / tint en el banco; un BRAW único decodificado con esos ajustes no tiene referencia DNG par. No se declara equivalencia. q18/WB/EV no se barrió sin candidato prometedor.
+
+---
+
+## S8 (B2/A2/C2) — encode/decode real
+
+Impulsos empaquetados en un frame 1920×1080, restando control plano. q=2, clip A04 f44–45. **[exp]**
+
+| S8 | valor |
+|----|-------|
+| sitios croma | 16 |
+| soporte medio (px) | 52.5 |
+| lóbulos negativos | False |
+| acoplamiento Y→croma | 0.002538 |
+
+No se asume bilinear. S7 sigue siendo NN 2×2.
+
+### A2 — bordes en S8
+
+Hipótesis del usuario (halo exclusivo blanco/negro): **False**. Más fuerte: `isoluminant`. cam_equal_hi p99=0.15980953559709732, p3_hi=0.07020608752276034, asn_hi=0.07020608752276034, isoluminante=0.5520052058840473. corr(contraste, p99)=-0.0617; corr(dist ASN, p99)=0.0914.
+
+### C2 — oráculo S8 (borde P3, Y fija, O1 bilinear en ROI)
+
+p99 red. = -132.9 %; integral = -496.9 %. Redistribución rechazada: False. Pérdida cromática excesiva: False.
+
+D2 ΔY rms=2.587e-08 max=9.501e-07, fracción tocada=0.00104, p99 red. -132.9 %.
+
+A04_f044 ROI white_strip p99 croma S8 C0 = 0.4850063645645431. ROI BUG-002 medido sobre S8 C0; sin EXR de WB/EV variantes.
 
 ---
 
 ## G — Viabilidad
 
-Clase **E**. Evidencia insuficiente sobre el SDK (S8). Hay caracterización S7 y un candidato lineal separable; no se midió la respuesta Blackmagic RAW SDK.
+Clase **D**. Sin mejora útil en los candidatos S8 evaluados (no imposibilidad global).
 
 Opciones restantes (no implementadas): Revelado SDK no lineal / no separable no capturado por bilinear.; DCT/QMax residual a q>2.; Cambio de representación (no 4:2:0) — fuera de alcance; no implementado.; Oráculo por iteración encode/decode SDK acotada.
 

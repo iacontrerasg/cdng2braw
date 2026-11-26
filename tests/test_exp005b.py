@@ -7,6 +7,7 @@ import numpy as np
 
 from tools.exp005b_io import read_brwp, write_brwp
 from tools.exp005b_oracle import characterize_upsamplers, run_oracle_suite, solve_o1
+from tools.exp005b_sdk import W, H, build_impulse_planes, impulse_sites, stripe_layout
 from tools.exp005b_signal import NativeSensor, analyze_hypothesis_a, nn_chroma
 from tools.fidelity import pipeline as P
 from tools.fidelity import images
@@ -106,6 +107,37 @@ class OracleTests(unittest.TestCase):
                                   np.repeat(np.repeat(cr, 2, 0), 2, 1), nn_chroma)
         self.assertLess(np.max(np.abs(hat_cb - cb)), 1e-6)
         self.assertLess(np.max(np.abs(hat_cr)), 1e-6)
+
+
+class PackedFixturesTests(unittest.TestCase):
+    def test_impulse_sites_separated_and_interior(self):
+        sites, y_imp = impulse_sites()
+        self.assertGreaterEqual(len(sites), 8)
+        coords = [(s['cx'], s['cy']) for s in sites]
+        self.assertEqual(len(coords), len(set(coords)))
+        for s in sites:
+            self.assertGreaterEqual(s['cx'], 16)
+            self.assertLess(s['cx'], 960 - 16)
+            self.assertGreaterEqual(s['cy'], 16)
+            self.assertLess(s['cy'], 540 - 16)
+            if s['phase'] == 'even':
+                self.assertEqual(s['cx'] % 8, 0)
+                self.assertEqual(s['cy'] % 4, 0)
+            else:
+                self.assertEqual(s['cx'] % 8, 4)
+                self.assertEqual(s['cy'] % 4, 2)
+        for i, a in enumerate(sites):
+            for b in sites[i + 1:]:
+                d = abs(a['cx'] - b['cx']) + abs(a['cy'] - b['cy'])
+                self.assertGreaterEqual(d, 32, (a, b, d))
+        y, cb, cr, _, _ = build_impulse_planes()
+        self.assertEqual(y.shape, (H, W))
+        self.assertEqual(cb.shape, (H // 2, W // 2))
+        self.assertGreater(float(np.max(np.abs(cb)) + np.max(np.abs(cr))), 0)
+
+    def test_stripes_fill_1080p(self):
+        last = stripe_layout()[-1]
+        self.assertEqual(last[1] + last[2], W)
 
 
 if __name__ == '__main__':
