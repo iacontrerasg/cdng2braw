@@ -14,6 +14,7 @@ import subprocess
 import time
 
 from . import braw_inspect, identity
+from .deadzone_policy import PolicyError, validate_policy_doc
 from .images import read_f32
 
 
@@ -158,12 +159,9 @@ def encode_request(encode, environ=None):
         try:
             with open(path, encoding='utf-8') as f:
                 doc = json.load(f)
-        except (OSError, ValueError) as e:
-            raise PipelineError('CDNG_DEADZONE_POLICY ilegible: %s (%s)' % (path, e)) from e
-        if not isinstance(doc, dict) or doc.get('schema') != 1:
-            raise PipelineError('CDNG_DEADZONE_POLICY: schema debe ser 1')
-        if not doc.get('name') or not doc.get('mode'):
-            raise PipelineError('CDNG_DEADZONE_POLICY: name y mode requeridos')
+            validate_policy_doc(doc)
+        except (OSError, ValueError, PolicyError) as e:
+            raise PipelineError('CDNG_DEADZONE_POLICY inválida: %s (%s)' % (path, e)) from e
         sha = identity.sha256_file(path)
         policy_meta = {
             'path': path,

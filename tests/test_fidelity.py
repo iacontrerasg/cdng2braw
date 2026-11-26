@@ -987,6 +987,21 @@ class Exp003PolicyTests(unittest.TestCase):
             ac = [c for c in cells if not (c['u'] == 0 and c['v'] == 0)]
             self.assertTrue(all(c['band'] in ('low', 'mid', 'high') for c in ac))
 
+    def test_policy_validator_rejects_overlap_and_unknown_plane(self):
+        from tools.fidelity.deadzone_policy import PolicyError, validate_policy_doc
+        with self.assertRaises(PolicyError):
+            validate_policy_doc({
+                'schema': 1, 'name': 'x', 'mode': 'per_band',
+                'bands': {'low': {'f_min': 0, 'f_max': 0.4}, 'mid': {'f_min': 0.3, 'f_max': 0.6}},
+                'planes': {'Y': {'default': 0.1, 'bands': {'low': 0.1}},
+                           'Cb': {'default': 0.1}, 'Cr': {'default': 0.1}, 'X': {'default': 0}},
+            })
+        with self.assertRaises(PolicyError):
+            validate_policy_doc({
+                'schema': 1, 'name': 'u', 'mode': 'uniform', 'z': 0.25,
+                'planes': {'Y': {'default': 0.5}, 'Cb': {'default': 0.25}, 'Cr': {'default': 0.25}},
+            })
+
 
 @unittest.skipUnless(np is not None, 'numpy es necesario (make venv)')
 class ManifestTests(unittest.TestCase):

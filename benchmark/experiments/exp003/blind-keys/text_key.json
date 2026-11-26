@@ -1,0 +1,150 @@
+{
+  "seed": 304,
+  "png_key": "zoom_text_colorchecker_left",
+  "items": [
+    {
+      "id": "V001",
+      "run": "exp003-k-a1-u50",
+      "result": "A04_f049",
+      "sha256": "34f87444a2c58594d4a697503836ffea1412c3ff9da1d8d95447f3466c05a087"
+    },
+    {
+      "id": "V002",
+      "run": "exp003-k-d1",
+      "result": "A04_f049",
+      "sha256": "5072cb2ae8ac0e9ce71280b707e181d016cdd5b5ad51b5dcd0fd536c43115f35"
+    },
+    {
+      "id": "V003",
+      "run": "exp003-k-a0",
+      "result": "A05_f053",
+      "sha256": "bf410f65e56771955635c91a1117f39379a7a4ab2cc6e8a76d18dc458ce6d61c"
+    },
+    {
+      "id": "V004",
+      "run": "exp003-k-a1-u50",
+      "result": "A03_f046",
+      "sha256": "5ca81c38c84a25ffff4a48ce1caca100607419c46b979c895d439a7f5fa72a4c"
+    },
+    {
+      "id": "V005",
+      "run": "exp003-k-plane-y40-c50",
+      "result": "A04_f044",
+      "sha256": "fd4e8d9733f786afeb65de60ffa1051ac23d82e0cd974f408e5ece0fbb86f947"
+    },
+    {
+      "id": "V006",
+      "run": "exp003-k-plane-y40-c50",
+      "result": "A01_f052",
+      "sha256": "badf26b66d8c37baf3f8f40f690b6196b632f37deae7c612011da11eaa5ea56c"
+    },
+    {
+      "id": "V007",
+      "run": "exp003-k-a0",
+      "result": "A03_f046",
+      "sha256": "ac6e7a6c8cc609d7524881e99bdf2654f279cf16c7df70d6c7892fcbc52fcd40"
+    },
+    {
+      "id": "V008",
+      "run": "exp003-k-d1",
+      "result": "A01_f052",
+      "sha256": "59d5b9b06f2574ddf3c7198a9123d49e275f41411fd32f77b676e3a46ee3218c"
+    },
+    {
+      "id": "V009",
+      "run": "exp003-k-d1",
+      "result": "A02_f029",
+      "sha256": "bf5ba00b5ea63174877b2fa86f6262ab2c37ceac4c90bcea99058cf05e31d28c"
+    },
+    {
+      "id": "V010",
+      "run": "exp003-k-d1",
+      "result": "A05_f053",
+      "sha256": "a704958ee642af758ab32917cb6131554aaf38fd3853d61354d0d1de7a178e42"
+    },
+    {
+      "id": "V011",
+      "run": "exp003-k-d1",
+      "result": "A04_f044",
+      "sha256": "7eadcfb5b499e8f090866f0cf25b86419e898ea4e3b25c072a811a6b478a36e6"
+    },
+    {
+      "id": "V012",
+      "run": "exp003-k-a0",
+      "result": "A01_f052",
+      "sha256": "7588f1599a6e407af8a0571170c2298b2892f4a93c21b7d262cc53161f792def"
+    },
+    {
+      "id": "V013",
+      "run": "exp003-k-a0",
+      "result": "A04_f044",
+      "sha256": "e3c6a6014ece822260372dcd3b0155bf53a152ad8be0d7bbce484f96be9df6d5"
+    },
+    {
+      "id": "V014",
+      "run": "exp003-k-a1-u50",
+      "result": "A05_f053",
+      "sha256": "8d6cc3c5918a6ce43946685c1a3f89786e3f9dabf322de6e8cdb3b7eced66c18"
+    },
+    {
+      "id": "V015",
+      "run": "exp003-k-d1",
+      "result": "A03_f046",
+      "sha256": "7108d11c9d389a55aa196f7e617cee77ee3e10d5111997090c8542b6008e5370"
+    },
+    {
+      "id": "V016",
+      "run": "exp003-k-plane-y40-c50",
+      "result": "A05_f053",
+      "sha256": "e1c6f93eb78294cb2129d0c82640df01399540b8b51de9556d0a96472a8a0a6c"
+    },
+    {
+      "id": "V017",
+      "run": "exp003-k-a1-u50",
+      "result": "A04_f044",
+      "sha256": "f1823eb3932acd1f81108388e4fcd0b2c12bf97fb72beb74c36f70cfc529b107"
+    },
+    {
+      "id": "V018",
+      "run": "exp003-k-a1-u50",
+      "result": "A02_f029",
+      "sha256": "5f9678751b4bfa287dd7cc546505e2b3296445a5e6d9bb42e95132012a26e6b9"
+    },
+    {
+      "id": "V019",
+      "run": "exp003-k-a0",
+      "result": "A02_f029",
+      "sha256": "ff73a680b96a39d3f75861a0281e204fe4694f04a5d84d9f8be46030d55fb15c"
+    },
+    {
+      "id": "V020",
+      "run": "exp003-k-plane-y40-c50",
+      "result": "A03_f046",
+      "sha256": "6d3b9ea53337e54474662df07ed3236dbbfcdde410fff035fc7232e91c2fa82f"
+    },
+    {
+      "id": "V021",
+      "run": "exp003-k-plane-y40-c50",
+      "result": "A04_f049",
+      "sha256": "317d3c560f678df20d59b9e6eef53b880a798402ddbd9db46cbb67aeea199b6f"
+    },
+    {
+      "id": "V022",
+      "run": "exp003-k-plane-y40-c50",
+      "result": "A02_f029",
+      "sha256": "62e9cafe9179e45bf2540fdfa32c50908ba57ee14f1cd6e9afff378726458aaa"
+    },
+    {
+      "id": "V023",
+      "run": "exp003-k-a1-u50",
+      "result": "A01_f052",
+      "sha256": "b4d87881d166e09c95cce78ce162594e29aae1dba0bfba941f2ad3527784ccb8"
+    },
+    {
+      "id": "V024",
+      "run": "exp003-k-a0",
+      "result": "A04_f049",
+      "sha256": "d0c3a91a7e6dc7896f581da16643ed4472a9ca7573180e8e5942156ca11d6851"
+    }
+  ]
+}

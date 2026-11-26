@@ -74,10 +74,20 @@ def run_bench(args, run_id, manifest, *, test='A04', series=None):
     return os.path.join(args.out, 'runs', run_id)
 
 
+def policy_sha(path):
+    from tools.fidelity import identity
+    return identity.sha256_file(os.path.abspath(path))
+
+
 def maybe_skip(args, run_id, **kw):
     run_dir = os.path.join(args.out, 'runs', run_id)
     if not (args.skip_existing and os.path.isfile(os.path.join(run_dir, 'metrics.json'))):
         return None
+    # Traducir policy=path → policy_sha para identidad.
+    if 'policy' in kw:
+        path = kw.pop('policy')
+        if path:
+            kw['policy_sha'] = policy_sha(path)
     try:
         RD.verify_run_matches_request(run_dir, **kw)
     except RD.RdError as e:
@@ -139,7 +149,7 @@ def phase_b(args):
                            diagnostic=_stats(args, run_id))
             if args.dry_run:
                 print('dry', run_id); continue
-            skipped = maybe_skip(args, run_id, q=24, alpha=0.75)
+            skipped = maybe_skip(args, run_id, q=24, alpha=0.75, policy=pol)
             if skipped:
                 runs.append(skipped); continue
             runs.append(run_bench(args, run_id, man, test='A04'))
@@ -159,7 +169,7 @@ def phase_d(args):
                        diagnostic=_stats(args, run_id))
         if args.dry_run:
             print('dry', run_id); continue
-        skipped = maybe_skip(args, run_id, q=24, alpha=0.75)
+        skipped = maybe_skip(args, run_id, q=24, alpha=0.75, policy=pol)
         if skipped:
             runs.append(skipped); continue
         runs.append(run_bench(args, run_id, man, test='A04'))
@@ -178,10 +188,40 @@ def phase_j(args):
                        diagnostic=_stats(args, run_id))
         if args.dry_run:
             print('dry', run_id); continue
-        skipped = maybe_skip(args, run_id, ratio=float(ratio), alpha=0.75)
+        skipped = maybe_skip(args, run_id, ratio=float(ratio), alpha=0.75, policy=pol)
         if skipped:
             runs.append(skipped); continue
         runs.append(run_bench(args, run_id, man, test='A04'))
+    return runs
+
+
+def phase_k(args):
+    """Serie A: controles + mejores candidatos (validación ISO/exposición, no escenas independientes)."""
+    configs = [
+        ('k-a0', dict(q=24, alpha=1.0, deadzone=0.0)),
+        ('k-a1-u50', dict(q=24, alpha=0.75, deadzone=0.5)),
+        ('k-a2-nr50', dict(q=24, alpha=0.75, deadzone=0.25, nr_luma=50, nr_chroma=50)),
+        ('k-plane-y40-c50', dict(q=24, alpha=0.75,
+                                 policy=os.path.join(POLICIES, 'plane-y40-c50.json'))),
+        ('k-d1', dict(q=24, alpha=0.75,
+                      policy=os.path.join(POLICIES, 'd1-protect-low.json'))),
+    ]
+    runs = []
+    for tag, kw in configs:
+        run_id = 'exp003-%s' % tag
+        man = os.path.join(MAN_DIR, '%s.json' % tag)
+        write_manifest(man, diagnostic=_stats(args, run_id), notes='EXP-003 Fase K ' + tag, **kw)
+        if args.dry_run:
+            print('dry', run_id); continue
+        skip_kw = {'q': kw['q'], 'alpha': kw['alpha']}
+        if 'deadzone' in kw:
+            skip_kw['deadzone'] = kw['deadzone']
+        if 'policy' in kw:
+            skip_kw['policy'] = kw['policy']
+        skipped = maybe_skip(args, run_id, **skip_kw)
+        if skipped:
+            runs.append(skipped); continue
+        runs.append(run_bench(args, run_id, man, test=None, series='A'))
     return runs
 
 
@@ -192,7 +232,7 @@ def main():
     ap.add_argument('--out', default=os.path.join(ROOT, 'out', 'benchmark'))
     ap.add_argument('--converter', default=os.path.join(ROOT, 'build', 'worker', 'converter'))
     ap.add_argument('--brawdec', default=os.path.join(ROOT, 'tools', 'brawdec', 'brawdec'))
-    ap.add_argument('--phase', choices=['a', 'b', 'd', 'j', 'all'], default='a')
+    ap.add_argument('--phase', choices=['a', 'b', 'd', 'j', 'k', 'all'], default='a')
     ap.add_argument('--candidate-policy', default='d1-protect-low')
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--skip-existing', action='store_true')
@@ -204,9 +244,10 @@ def main():
         'b': phase_b,
         'd': phase_d,
         'j': phase_j,
+        'k': phase_k,
     }
     if args.phase == 'all':
-        for fn in (phase_a, phase_b, phase_d, phase_j):
+        for fn in (phase_a, phase_b, phase_d, phase_j, phase_k):
             fn(args)
     else:
         phases[args.phase](args)

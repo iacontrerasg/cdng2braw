@@ -428,6 +428,37 @@ EncodedFrame Codec::encode(const CanvasPlanes &planes, int q, const Geometry &g,
             f << "],\"energy_QC\":[";
             for (int i = 0; i < 64; ++i) { if (i) f << ','; f << hist.energyQC[std::size_t(i)]; }
             f << "]";
+            // Agregados por banda AC (EXP-003 Fase E): low/mid/high; DC excluido.
+            // Coste VLC por banda no se atribuye aquí (runs compartidos); solo energía/ceros/nz.
+            auto bandAgg = [&](DeadzonePlane pl, const std::array<double, 64> &e,
+                               const std::array<double, 64> &eq, const std::array<uint64_t, 64> &nz,
+                               uint64_t totalAc) {
+                double eB[3] = {}, eqB[3] = {};
+                uint64_t nzB[3] = {}, slots[3] = {};
+                const int umax = pl == DeadzonePlane::Y ? 7 : 3;
+                for (int u = 0; u <= umax; ++u)
+                    for (int v = 0; v <= 7; ++v) {
+                        if (u == 0 && v == 0) continue;
+                        const int b = deadzoneBand(pl, u, v);
+                        if (b < 0 || b > 2) continue;
+                        const auto idx = std::size_t(u * 8 + v);
+                        eB[b] += e[idx]; eqB[b] += eq[idx]; nzB[b] += nz[idx];
+                        // slots: número de posiciones de frecuencia en la banda (no coeficientes de imagen)
+                        ++slots[b];
+                    }
+                (void)totalAc;
+                f << ",\"bands_" << (pl == DeadzonePlane::Y ? "Y" : pl == DeadzonePlane::Cb ? "Cb" : "Cr")
+                  << "\":{\"low\":{\"energy\":" << eB[0] << ",\"energy_q\":" << eqB[0]
+                  << ",\"nz\":" << nzB[0] << ",\"freq_slots\":" << slots[0]
+                  << "},\"mid\":{\"energy\":" << eB[1] << ",\"energy_q\":" << eqB[1]
+                  << ",\"nz\":" << nzB[1] << ",\"freq_slots\":" << slots[1]
+                  << "},\"high\":{\"energy\":" << eB[2] << ",\"energy_q\":" << eqB[2]
+                  << ",\"nz\":" << nzB[2] << ",\"freq_slots\":" << slots[2] << "}}";
+            };
+            // Histograma C mezcla Cb+Cr; reportar energía C agregada como Cb proxy + nota.
+            bandAgg(DeadzonePlane::Y, hist.energyY, hist.energyQY, hist.nzY, hist.acY);
+            bandAgg(DeadzonePlane::Cb, hist.energyC, hist.energyQC, hist.nzC, hist.acC);
+            f << ",\"bands_note\":\"energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)\"";
             coeff = f.str();
         }
         encodeStatsCapture(frame, q, strict, st.qY, st.qC, coeff);

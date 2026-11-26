@@ -1,0 +1,27 @@
+{
+  "base": "../../manifest.json",
+  "encode": {
+    "compression": "quality",
+    "q": 24,
+    "ratio": null,
+    "rate_search": false,
+    "noise_synthesis": false,
+    "nr_luma": 50,
+    "nr_chroma": 50,
+    "workers": 1,
+    "experimental_env": {
+      "CDNG_OG_DEBLOCK_PRECOMP": "1",
+      "CDNG_OG_DEBLOCK_ALPHA": "0.75",
+      "CDNG_DEADZONE": "0.25"
+    },
+    "notes": [
+      "EXP-003 Fase K k-a2-nr50"
+    ],
+    "diagnostic_env": {
+      "CDNG_BIT_BUDGET": "1",
+      "CDNG_COEFF_STATS": "1",
+      "CDNG_STATS_DIR": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp003/stats/exp003-k-a2-nr50",
+      "CDNG_ALIGN_SOFT": "1"
+    }
+  }
+}

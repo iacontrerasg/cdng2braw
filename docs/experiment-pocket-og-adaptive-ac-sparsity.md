@@ -1,127 +1,109 @@
 # EXP-003 — Adaptive AC Sparsity
 
-**Rama:** `experiment/pocket-og-adaptive-ac-sparsity`  
-**Commit de partida:** `4fb9331bd9210712b77862879d869e1d68ce610c` (main con EXP-002a)  
-**Estado:** implementación + fases A/B/C/D/J en A04; E–I/K y G formal pendientes  
-**Resumen numérico:** `benchmark/experiments/exp003-results-summary.json`
+**Rama / PR:** `experiment/pocket-og-adaptive-ac-sparsity`  
+**Commit de partida:** `4fb9331bd9210712b77862879d869e1d68ce610c`  
+**Clasificación final:** **C — Equivalencia práctica con deadzone uniforme** (ligeras mejoras locales de detalle en A01 a costa de tasa; no mejora la frontera RD).  
+**Resumen:** `benchmark/experiments/exp003-results-summary.json`
 
-## 1. Objetivo
+## 1. Resolución de discrepancia de ratios (P1)
 
-Política experimental de deadzone AC selectiva por plano y frecuencia espacial, compatible con el bitstream y el decoder existentes, para mejorar la frontera rate–distortion hacia 6:1–8:1 sin forzar ratio a costa de textura/bordes/croma.
+| Métrica | Valor (A04_f044, α=0.75, DZ=0.5) |
+|---------|----------------------------------|
+| `sample_bytes` (braw_inspect) | **615256** |
+| `payload_bytes` | **609624** |
+| `sdk_frame_bytes` | **638976** (múltiplo de 4096) |
+| Ratio sample (3110400/sample) | **5.055:1** |
+| Ratio SDK | **≈4.87:1** |
 
-## 2. Correcciones de infraestructura (EXP-002a)
+La cifra 5.055:1 de EXP-002a y la 4.87:1 reportada inicialmente en EXP-003 miden cosas distintas. No hay regresión: `candidate_sha256`, `sample_bytes`, `payload_bytes`, `q_eff` y PSNR coinciden con `exp002a-f-a04-a75-dz50-q24`.
+
+Los informes oficiales usan **sample_bytes** vía `tools/fidelity/rd.py` + `braw_inspect`.
+
+## 2. Correcciones de infraestructura
 
 | Tema | Cambio |
 |------|--------|
-| `attempt_index` | Se fija en el intento que produce el `EncodedFrame`; no se sobrescribe al seleccionar/descartar. `stats.attempts` sigue siendo el acumulado del rate search. |
-| Sample escrito | `encodeStatsPublish(..., "sample_written")` **después** de `frameChunk`, con `chunk_sha256` + `payload_sha256`. Los informes usan `stage=sample_written`. |
-| Gate alineación | `geometric_aligned`, `detail_gate_pass`, `quality_rejected` en `check_alignment`. Umbral histórico 0.74 intacto. Variante alineada con detalle degradado ≠ desalineación geométrica. |
+| Medición | `exp003_report.py` reutiliza `RD.frame_row` / `bitstream_frame` |
+| Identidad / skip-existing | `verify_run_matches_request(..., deadzone=, policy_sha=)` |
+| Política SHA | Worker emite `deadzone_policy_sha256` en `started`; caché `path#sha` |
+| Pareto | Tolerancias absolutas (bytes %, dB, grad, lap, detail, Δu′v′); clases `valid` / `aligned_detail_rejected` / error |
+| Mutex hot path | `std::atomic` + `shared_ptr` inmutable; `deadzonePolicyEnsureLoaded()` antes de workers |
+| Stages | `chunk_built` → `sample_written` (tras `mux.addFrame`) → `conversion_completed`; informes = `sample_written` |
+| JSON | Validación estricta C++ y Python (`tools/fidelity/deadzone_policy.py`) |
 
-## 3. Auditoría del cuantizador
+## 3. Geometría de frecuencias
 
-- **Fórmula:** `level = sign(c) · floor(|c|/step + 0.5 − z)`; `z=0` → `nearbyint` (empates históricos).
-- **Deadzone:** solo AC vía `quantizeAc(coef, step, plane, dctIndex)`. DC no pasa por esta ruta (cadena DC aparte).
-- **Planos:** Y (`ScanY`, bloques 8×8), Cb/Cr (`ScanC`, 4×8). Índice DCT = `u*8+v`.
-- **Scan ≠ zigzag JPEG:** ver `codec_tables.cpp`.
-- **Clamping/dropping/VLC/noise synthesis:** sin cambios; la política solo elige `z` antes del VLC.
-- **Decoder:** pasos de reconstrucción intactos; solo cambian los niveles enteros codificados.
+Normalización **relativa al bloque del plano**: `‖(u/umax,v/vmax)‖/√2`.  
+Y: 8×8 (`umax=7`); Cb/Cr: 4×8 (`umax=3`, 4:2:2). El mismo `(u,v)` **no** es equivalente perceptual entre planos.  
+Bandas AC: low `[0,0.25)`, mid `[0.25,0.5)`, high `[0.5,1]`; DC fuera. Mapas: `benchmark/experiments/exp003/band-maps.json`.
 
-## 4. Arquitectura de política
+## 4. Fase E — Presupuesto por frecuencia
 
-`z = deadzone(plane, u, v)` con tablas precalculadas 64 entradas/plano.
+`benchmark/experiments/exp003-band-budget.json` + campos `bands_Y` / `bands_Cb` en coeff-stats (energía, energy_q, nz).  
+Bits VLC siguen siendo **por plano**; runs/EOB son costes compartidos — no se atribuyen a una sola banda. Reconciliación `attributed_bits == payload_bytes×8` en bit-budget.
 
-| Modo | Descripción |
-|------|-------------|
-| legacy | Sin `CDNG_DEADZONE_POLICY`; `CDNG_DEADZONE` uniforme o 0 |
-| uniform | JSON `mode=uniform` |
-| per_plane | `z` por Y/Cb/Cr |
-| per_band | bandas por frecuencia normalizada |
-| per_coefficient | opcional por `(u,v)` |
+## 5. Fase G — Igual tasa (puntos medidos)
 
-- DC forzado a `z=0`.
-- Solo Pocket OG (`CDNG_DEADZONE_POLICY` rechazado en VA/Pocket 4K).
-- Conflicto `CDNG_DEADZONE` ∩ `CDNG_DEADZONE_POLICY` → Error (sin fallback silencioso).
-- Caché: `effective[CDNG_DEADZONE_POLICY] = path#sha256`; worker recibe path.
+A q fijo 24, α=0.75, sobre sample_bytes:
 
-Frecuencia normalizada: `‖(u/umax, v/vmax)‖ / √2`, `umax=7` (Y) / `3` (croma). Bandas: low `[0,0.25)`, mid `[0.25,0.5)`, high `[0.5,1]`. Mapas: `benchmark/experiments/exp003/band-maps.json`.
+- Uniforme z=0.5: ~615 kB, ratio sample **5.055**, PSNR ~43.23.
+- Plano y40/c50 y D1: ~642 kB, ratio ~**4.84–4.85**, PSNR similar o ligeramente inferior; más detail_corr.
+- Ninguna política selectiva domina uniforme en (menor sample ∧ PSNR/grad/detail no peores) con las tolerancias definidas.
+- Rate search 8:1/12:1 → saturación QMax (~4.63–4.85 sample), sin alcanzar el presupuesto.
 
-## 5. Equivalencia (pruebas nativas)
+## 6. Fase K — Serie A (6 fotogramas)
 
-En `engine_codec_test` (sin golden):
+| Config | Ratio sample medio | PSNR medio | Notas |
+|--------|-------------------|------------|-------|
+| k-a0 (α1 DZ0) | 3.49 | 42.48 | Control |
+| k-a1-u50 | **5.09** | **43.27** | Mejor tasa; A01 `quality_rejected` (detail 0.738) |
+| k-a2-nr50 | 5.15 | 43.09 | NR+DZ; A01 rechazado por detalle |
+| k-plane-y40-c50 | 4.87 | 43.25 | Pasa gate en toda la serie A |
+| k-d1 | 4.88 | 43.20 | Pasa gate en toda la serie A |
 
-- Política off ≡ encoder original.
-- Uniforme JSON ≡ `CDNG_DEADZONE` para `z ∈ {0,0.1,0.25,0.5}` (payload idéntico).
-- DC fuera de política; bandas/frecuencias coherentes.
-- Conflicto de configuración rechazado.
+Consistencia ISO/exposición dentro de A; **no** generalización a escenas independientes.
 
-Banco Python: esquema/política/caché SHA, separación geometría/detalle.
+## 7. Visual / rendimiento
 
-## 6. Resultados experimentales (A04, worker experimental)
+- Hojas a ciegas: `out/benchmark/experiments/exp003/blind-sheets/` (claves en `benchmark/experiments/exp003/blind-keys/`).
+- Encode fresco serie A (~6 conversiones): uniforme ~3.85 s, D1 ~3.91 s, plano ~3.54 s — overhead de política despreciable frente a I/O/decode.
 
-Controles (media f044+f049):
+## 8. Clasificación y cierre
 
-| Control | α | q | DZ/NR | Ratio frame | Sample B | PSNR | Detail | Grad |
-|---------|---|---|-------|-------------|----------|------|--------|------|
-| A0 | 1 | 24 | 0 / 0 | 3.39 | 917504 | 42.43 | 0.790 | 1.007 |
-| A1 | 0.75 | 24 | 0.5 / 0 | 4.87 | 638976 | 43.23 | 0.744 | 0.931 |
-| A2 | 0.75 | 24 | 0.25 / NR50 | 4.87 | 638976 | 43.05 | 0.745 | 0.949 |
-| A3 | 0.75 | 18 | 0 / 0 | 3.01 | 1032192 | 42.68 | 0.809 | 0.983 |
+**C — Equivalencia práctica con deadzone uniforme.**  
+La frontera RD medida sigue dominada por α=0.75 + DZ uniforme 0.5 (~5.05:1 sample). Las políticas adaptativas no mejoran Pareto a igual tasa; pueden conservar mejor el gate de detalle en A01 a costa de ~4 % más bytes. **No se amplía la búsqueda ni se implementa RDOQ en esta PR.**
 
-- `b-u50` (política uniforme z=0.5) ≡ A1 byte a byte en métricas agregadas → equivalencia operativa confirmada en A04.
-- Matriz B (zY×zC) y políticas D1–D5: a **q fijo 24**, ninguna mejora PSNR a tamaño ≤ A1. Configuraciones con más detalle/gradiente suelen **aumentar** bytes (p. ej. `d5`, `b-y00-c50`).
-- Mejor ratio frame medido en esta tanda ≈ **4.87:1** (uniforme z=0.5). No 6:1 ni 8:1.
+## 9. Propuesta EXP-003b — RDOQ (solo diseño)
 
-### Fase J (rate search, política D1)
+1. Oráculo de coste: presupuesto de bits existente + coste incremental de cambiar un nivel AC (prefijo/final/mag + efecto en run del siguiente).
+2. Distorsión: error DCT ponderado por plano/banda; opcional ROI.
+3. Candidatos: niveles enteros en rango VLC verificado; DC fijo; sin cambiar Scan/VLC/tablas SDK.
+4. Algoritmo acotado: trellis por bloque o coordinate descent en AC no nulos con λ de igual tasa vs uniforme z=0.5.
+5. Complejidad: precomputar tablas VLC; prohibido re-parsear política en el loop.
+6. Criterio de éxito: mejora sample_bytes a PSNR/detail/grad tolerados, o mejora detail a sample_bytes ±2 %.
 
-| Pedido | Ratio frame | q | Notas |
-|--------|-------------|---|-------|
-| 3:1 | 2.92 | 10 | Cabe; buena detail_corr ≈0.81 |
-| 5:1 | 4.63 | 24 (QMax) | No cumple presupuesto 5:1 |
-| 8:1 | 4.63 | 24 | Saturación QMax |
-| 12:1 | 4.63 | 24 | Saturación QMax |
+## 10. Respuestas 1–12 (actualizadas)
 
-A1 uniforme sigue comprimiendo más (~4.87) que D1 en QMax (~4.63).
+1. Plano vs uniforme: **no** mejora frontera RD (C/D local).  
+2. Por frecuencia: igual.  
+3. Bits: Y domina; bandas mid/high concentran nz residual (ver band-budget).  
+4. Proteger: evidencia débil a favor de low/mid si se prioriza gate; no para tasa.  
+5. Croma tolera sparsidad en bits absolutos; no justifica degradar Y agresivamente (D4).  
+6. Igual tasa: **no** demostrada a favor de adaptativo.  
+7. Mejor ratio sample: ~**5.09–5.15** (uniforme / NR+DZ).  
+8–9. 6:1 / 8:1: **no**.  
+10. Coste: detail ~0.74 en uniforme; A01 falla gate.  
+11. Serie A: uniforme mejor tasa; plano/D1 más estables en gate.  
+12. RDOQ: §9.
 
-## 7. Respuestas (1–12)
-
-1. **¿DZ por plano > uniforme?** **Parcialmente descartada** a q fijo en A04: no mejora PSNR a igual o menor tamaño. Pendiente comparación a igual tasa (fase G).
-2. **¿DZ por frecuencia?** **Parcialmente descartada** en D1–D5 a q fijo; D1/D5 no superan A1 en frontera PSNR–bytes. Pendiente refinamiento F/G.
-3. **¿Bandas que más bits?** Pendiente instrumentación por banda (fase E). A nivel plano: Y ~76 % (EXP-002a).
-4. **¿Qué proteger?** Tentativo: bajas (estructura) y mid de Y para detalle; evidencia formal pendiente E/F.
-5. **¿Qué plano tolera sparsidad?** Tentativo: croma tolera más sparsidad en bits absolutos, pero `d4` (Y agresivo) empeora PSNR vs A1; `d5` (croma agresivo) gasta más bits. Pendiente G.
-6. **¿Mejora a igual tasa?** **Pendiente** (fase G). A igual q: no demostrada.
-7. **Mejor ratio:** ≈ **4.87:1** (A1 / uniforme z0.5). D1 en rate search satura ~4.63:1.
-8. **¿6:1?** No.
-9. **¿8:1?** No (pedido 8/12 → QMax ≈4.63).
-10. **Coste visual:** A1 ya degrada detail_corr (~0.74, en el umbral) y gradiente (~0.93). Políticas más suaves recuperan detalle a costa de ratio.
-11. **¿Serie A?** **Pendiente** (fase K).
-12. **RDOQ:** hace falta atribución incremental de coste VLC por coeficiente/banda (fase E), λ calibrada a igual tasa, y no alterar tablas/scan/VLC del SDK.
-
-Clasificación: **confirmadas** (infra, política, equivalencia uniforme, A0–A3, J saturación, no-6/8); **parcialmente confirmadas** (plano/banda no ganan a q fijo); **pendientes** (E–I, G formal, K, temporal).
-
-## 8. Reproducción
+## 11. Reproducción
 
 ```bash
-git checkout experiment/pocket-og-adaptive-ac-sparsity
 make worker
-PYTHON=out/.venv-exr/bin/python tools/exp003_sweep.py --phase a \
+CDNG_RESOURCES=$PWD ./build/native/lib/engine_codec_test
+PYTHON=out/.venv-exr/bin/python tools/exp003_report.py
+PYTHON=out/.venv-exr/bin/python tools/exp003_band_budget.py
+PYTHON=out/.venv-exr/bin/python tools/exp003_sweep.py --phase k \
   --dataset ~/Desktop/BMD --references ~/Desktop/EXR \
   --converter build/worker/converter --brawdec tools/brawdec/brawdec
-# fases: a | b | d | j | all
-PYTHON=out/.venv-exr/bin/python tools/exp003_report.py
-CDNG_RESOURCES=$PWD ./build/native/lib/engine_codec_test
 ```
-
-## 9. Propuesta EXP-003b — RDOQ
-
-No implementar aún. Base mínima:
-
-1. Coste VLC incremental (run length compartido; no atribuir el run entero a un coef).
-2. Distorsión DCT → RGB/ROI acotada.
-3. Búsqueda por coeficiente solo en AC no-DC, con `z` o level ∈ permitidos por el formato.
-4. Comparación obligatoria a igual tasa frente a uniforme z=0.5 y mejor política EXP-003.
-5. Desactivada por defecto; solo Pocket OG.
-
-## 10. Restricciones respetadas
-
-Sin cambios a tablas SDK, DCT, Scan, VLC, QMax, rate search, DC, debayer, NR algorithms, noise synthesis, precompensación, defaults de producción. Sin push/merge.

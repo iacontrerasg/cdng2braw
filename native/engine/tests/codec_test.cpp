@@ -189,7 +189,7 @@ void autonomous(const Codec &codec, const CodecTables &t) {
         encodeStatsSetContext(ctx);
         auto easy = codec.encodeFixed(p, g, 8);
         CHECK(easy.q == 8 && easy.diag.present);
-        encodeStatsPublish(easy, true, "selected");
+        encodeStatsPublish(easy, true, "sample_written", "sample_written");
         encodeStatsClearContext();
         CHECK(countLines(dir / "bit-budget.jsonl") == 1);
         CHECK(countLines(dir / "encode-attempts.jsonl") == 0);
@@ -200,7 +200,7 @@ void autonomous(const Codec &codec, const CodecTables &t) {
         ctx.frame_index = 1; ctx.q_requested = 0;
         encodeStatsSetContext(ctx);
         auto bumped = codec.encodeFixed(p, g, 0);
-        encodeStatsPublish(bumped, true, "selected");
+        encodeStatsPublish(bumped, true, "sample_written", "sample_written");
         encodeStatsClearContext();
         CHECK(bumped.q > 0);
         CHECK(countLines(dir / "bit-budget.jsonl") == 1);
@@ -211,17 +211,18 @@ void autonomous(const Codec &codec, const CodecTables &t) {
         ctx.frame_index = 2; ctx.q_requested = -1; ctx.ratio_requested = 12; ctx.mode = "ratio";
         encodeStatsSetContext(ctx);
         auto sat = codec.encodeRateControlled(p, g, 1, 4);
-        encodeStatsPublish(sat, true, "selected");
+        encodeStatsPublish(sat, true, "sample_written", "sample_written");
         encodeStatsClearContext();
         CHECK(sat.q == QMax);
         CHECK(countLines(dir / "bit-budget.jsonl") == 1);
         CHECK(countLines(dir / "encode-attempts.jsonl") >= 1);
-        // Payload del selected coincide con slices del frame.
+        // Payload del sample_written coincide con slices del frame.
         {
             std::ifstream in(dir / "bit-budget.jsonl");
             std::string line;
             std::getline(in, line);
             CHECK(line.find("\"selected\":true") != std::string::npos);
+            CHECK(line.find("\"stage\":\"sample_written\"") != std::string::npos);
             CHECK(line.find("\"payload_sha256\"") != std::string::npos);
             const auto want = sat.size >= FirstSlice ? sat.size - FirstSlice : 0;
             CHECK(line.find("\"slices_payload_bytes\":" + std::to_string(want)) != std::string::npos);

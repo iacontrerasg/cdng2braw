@@ -17,7 +17,8 @@ struct DeadzonePolicy {
     bool active = false;
     std::string name;
     int schema = 0;
-    std::string sha256;
+    std::string sha256;   // SHA del JSON leído (vacío si legacy)
+    std::string path;     // ruta efectiva, si aplica
     // Tablas precalculadas: Y 8×8 (índice u*8+v), croma 4×8 (mismo layout, u∈[0,3]).
     std::array<double, 64> zY{};
     std::array<double, 64> zCb{};
@@ -26,9 +27,11 @@ struct DeadzonePolicy {
     double at(DeadzonePlane plane, int dctIndex) const;
 };
 
-// Carga desde CDNG_DEADZONE_POLICY (ruta JSON). Conflicto con CDNG_DEADZONE → Error.
-// Memoizada por proceso; invalidar solo en tests vía deadzonePolicyResetForTests().
+// Carga una sola vez (antes de workers). Tras ensure, lecturas sin mutex por coeficiente.
+// Conflicto CDNG_DEADZONE ∩ CDNG_DEADZONE_POLICY → Error.
+void deadzonePolicyEnsureLoaded();
 const DeadzonePolicy &deadzonePolicy();
+// Solo tests: invalida el puntero atómico y vuelve a permitir carga.
 void deadzonePolicyResetForTests();
 
 // Clasificación de banda AC (DC excluido): 0=low, 1=mid, 2=high.
@@ -36,6 +39,7 @@ int deadzoneBand(DeadzonePlane plane, int u, int v);
 double deadzoneNormalizedFreq(DeadzonePlane plane, int u, int v);
 
 // Cuantización AC con z por coeficiente. z=0 → nearbyint (paridad histórica).
+// Usa el puntero atómico de la política ya cargada (sin adquirir mutex).
 int64_t quantizeAc(double coef, double step, DeadzonePlane plane, int dctIndex);
 
 }  // namespace cdng

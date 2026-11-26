@@ -1,0 +1,2279 @@
+{
+  "schema": 1,
+  "runs": {
+    "exp003-a0-orig": {
+      "coeff_frames": [
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000044.dng",
+          "payload_sha256": "e5331f7752accf107751f1f9e0d694468b0e3afb730e863f648afc254f8067dc",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1108127,
+            "C": 787041
+          },
+          "ac_nonzero": {
+            "Y": 997837,
+            "C": 249227
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000045.dng",
+          "payload_sha256": "f70ff7374d197fe9e63feaab0e1331c40ead86cf46fa6a69f0400c93ca6af29e",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1106392,
+            "C": 786179
+          },
+          "ac_nonzero": {
+            "Y": 999572,
+            "C": 250089
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000049.dng",
+          "payload_sha256": "aa9c213a83849521f4ed5302679ceea97b616f8b0bb01184cefe8743f17a9092",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1107376,
+            "C": 786590
+          },
+          "ac_nonzero": {
+            "Y": 998588,
+            "C": 249678
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000050.dng",
+          "payload_sha256": "98097715acb6206308ded0e1da9c33ee9d4e8c5939b332e946a131813bb5e346",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1106570,
+            "C": 786992
+          },
+          "ac_nonzero": {
+            "Y": 999394,
+            "C": 249276
+          }
+        }
+      ],
+      "budget_frames": [
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000044.dng",
+          "payload_bytes": 890112,
+          "attributed_bits": 7120896,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 5412827,
+            "Cb": 734500,
+            "Cr": 837884
+          },
+          "padding_bits": 1973,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000045.dng",
+          "payload_bytes": 890272,
+          "attributed_bits": 7122176,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 5412374,
+            "Cb": 735785,
+            "Cr": 838595
+          },
+          "padding_bits": 1710,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000049.dng",
+          "payload_bytes": 890192,
+          "attributed_bits": 7121536,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 5412574,
+            "Cb": 735022,
+            "Cr": 838073
+          },
+          "padding_bits": 2155,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000050.dng",
+          "payload_bytes": 890400,
+          "attributed_bits": 7123200,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 5416053,
+            "Cb": 734157,
+            "Cr": 837473
+          },
+          "padding_bits": 1805,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        }
+      ]
+    },
+    "exp003-a1-dz50": {
+      "coeff_frames": [
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000044.dng",
+          "payload_sha256": "53fdcd2fe4505ada157b6d52430d2542b066b6652c6ba3f922932dc1f6dc5aec",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1534922,
+            "C": 927658
+          },
+          "ac_nonzero": {
+            "Y": 571042,
+            "C": 108610
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000045.dng",
+          "payload_sha256": "48e7dd159cbdf267c142367dea28483d07f08cd5aaf8a7e4ff0563cee6772d7e",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1533451,
+            "C": 927834
+          },
+          "ac_nonzero": {
+            "Y": 572513,
+            "C": 108434
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000049.dng",
+          "payload_sha256": "81cd3594c59ac61ee528d47df4f192aea4f77d254439053f596b5d8c3b91a23b",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1534723,
+            "C": 928138
+          },
+          "ac_nonzero": {
+            "Y": 571241,
+            "C": 108130
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000050.dng",
+          "payload_sha256": "db2de270a16b2f64c4ba46b24af71495555e3b1a6d3ceb107b0c7ed62afd11eb",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1533858,
+            "C": 928094
+          },
+          "ac_nonzero": {
+            "Y": 572106,
+            "C": 108174
+          }
+        }
+      ],
+      "budget_frames": [
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000044.dng",
+          "payload_bytes": 609624,
+          "attributed_bits": 4876992,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3797813,
+            "Cb": 425943,
+            "Cr": 517638
+          },
+          "padding_bits": 1886,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000045.dng",
+          "payload_bytes": 609648,
+          "attributed_bits": 4877184,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3799346,
+            "Cb": 424353,
+            "Cr": 517773
+          },
+          "padding_bits": 2000,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000049.dng",
+          "payload_bytes": 609624,
+          "attributed_bits": 4876992,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3800015,
+            "Cb": 425806,
+            "Cr": 515365
+          },
+          "padding_bits": 2094,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000050.dng",
+          "payload_bytes": 609736,
+          "attributed_bits": 4877888,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3801237,
+            "Cb": 424445,
+            "Cr": 516649
+          },
+          "padding_bits": 1845,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        }
+      ]
+    },
+    "exp003-b-y40-c50": {
+      "coeff_frames": [
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000044.dng",
+          "payload_sha256": "568b5a7d2623b9be1dd2e0c71a0ea39197ff676b46c81dddda57be0936f16a53",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1481968,
+            "C": 927658
+          },
+          "ac_nonzero": {
+            "Y": 623996,
+            "C": 108610
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000045.dng",
+          "payload_sha256": "25195451f6269fe222ee020a99add85a2ff7165f01a7f3f6da119fd621d0677e",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1480651,
+            "C": 927834
+          },
+          "ac_nonzero": {
+            "Y": 625313,
+            "C": 108434
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000049.dng",
+          "payload_sha256": "60e4d42e16f1983bf30753da52f22487caffdd8ab33015bfa5f23afb0cb516ea",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1481892,
+            "C": 928138
+          },
+          "ac_nonzero": {
+            "Y": 624072,
+            "C": 108130
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000050.dng",
+          "payload_sha256": "394df8889aacb916bafc84e84adeed06c15ca7f9218da79dba029c7e0a700f99",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1481140,
+            "C": 928094
+          },
+          "ac_nonzero": {
+            "Y": 624824,
+            "C": 108174
+          }
+        }
+      ],
+      "budget_frames": [
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000044.dng",
+          "payload_bytes": 637240,
+          "attributed_bits": 5097920,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 4018474,
+            "Cb": 425943,
+            "Cr": 517638
+          },
+          "padding_bits": 2153,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000045.dng",
+          "payload_bytes": 637416,
+          "attributed_bits": 5099328,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 4021532,
+            "Cb": 424353,
+            "Cr": 517773
+          },
+          "padding_bits": 1958,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000049.dng",
+          "payload_bytes": 637104,
+          "attributed_bits": 5096832,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 4019938,
+            "Cb": 425806,
+            "Cr": 515365
+          },
+          "padding_bits": 2011,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000050.dng",
+          "payload_bytes": 637176,
+          "attributed_bits": 5097408,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 4020606,
+            "Cb": 424445,
+            "Cr": 516649
+          },
+          "padding_bits": 1996,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        }
+      ]
+    },
+    "exp003-d1-protect-low": {
+      "coeff_frames": [
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000044.dng",
+          "payload_sha256": "90cab33269b4a0a4dbc0b7e1072dcc9e596bc5a88573cb7600807bc26e76e2ad",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1495298,
+            "C": 905690
+          },
+          "ac_nonzero": {
+            "Y": 610666,
+            "C": 130578
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000045.dng",
+          "payload_sha256": "d1da84fe3784f1d577739f20ae029696893fdbf91dca9f6be82c5bd60928adc3",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1494166,
+            "C": 905797
+          },
+          "ac_nonzero": {
+            "Y": 611798,
+            "C": 130471
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000049.dng",
+          "payload_sha256": "d40fca502307a094c1fd120b54eaa0c3fb6f231bdcd5584987b046ef936ed687",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1495360,
+            "C": 906072
+          },
+          "ac_nonzero": {
+            "Y": 610604,
+            "C": 130196
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000050.dng",
+          "payload_sha256": "9b7729873c4506982de42a886c21abdf816c5ba9858582091add29c21353d3b0",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1494287,
+            "C": 906159
+          },
+          "ac_nonzero": {
+            "Y": 611677,
+            "C": 130109
+          }
+        }
+      ],
+      "budget_frames": [
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000044.dng",
+          "payload_bytes": 635696,
+          "attributed_bits": 5085568,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3923579,
+            "Cb": 467690,
+            "Cr": 558608
+          },
+          "padding_bits": 1979,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000045.dng",
+          "payload_bytes": 635576,
+          "attributed_bits": 5084608,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3923192,
+            "Cb": 467083,
+            "Cr": 558480
+          },
+          "padding_bits": 2141,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000049.dng",
+          "payload_bytes": 635408,
+          "attributed_bits": 5083264,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3923637,
+            "Cb": 467142,
+            "Cr": 556711
+          },
+          "padding_bits": 2062,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000050.dng",
+          "payload_bytes": 635712,
+          "attributed_bits": 5085696,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3925560,
+            "Cb": 467032,
+            "Cr": 557297
+          },
+          "padding_bits": 2095,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        }
+      ]
+    },
+    "exp003-d5-compress-chroma": {
+      "coeff_frames": [
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000044.dng",
+          "payload_sha256": "417c905cb863faa8d500124598107e5ca04fb9117746cd919efb425012cfbb39",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1256214,
+            "C": 927658
+          },
+          "ac_nonzero": {
+            "Y": 849750,
+            "C": 108610
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000045.dng",
+          "payload_sha256": "02082c455c4a749683300b97c43a245711c244cb33958c8c89c6665158d2edf2",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1254765,
+            "C": 927834
+          },
+          "ac_nonzero": {
+            "Y": 851199,
+            "C": 108434
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000049.dng",
+          "payload_sha256": "5f2fc92d69978aceb0ab1a420108a640f82f28e558b7fd245a12182ed20054cc",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1255907,
+            "C": 928138
+          },
+          "ac_nonzero": {
+            "Y": 850057,
+            "C": 108130
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000050.dng",
+          "payload_sha256": "a8bed446315c27b4bc77444df32383e3c2dbb9b81a8a7f52aac3546c76e01579",
+          "q": 24,
+          "bands_Y": null,
+          "bands_Cb": null,
+          "bands_note": null,
+          "ac_zero": {
+            "Y": 1255334,
+            "C": 928094
+          },
+          "ac_nonzero": {
+            "Y": 850630,
+            "C": 108174
+          }
+        }
+      ],
+      "budget_frames": [
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000044.dng",
+          "payload_bytes": 744144,
+          "attributed_bits": 5953152,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 4873860,
+            "Cb": 425943,
+            "Cr": 517638
+          },
+          "padding_bits": 1999,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000045.dng",
+          "payload_bytes": 743896,
+          "attributed_bits": 5951168,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 4873436,
+            "Cb": 424353,
+            "Cr": 517773
+          },
+          "padding_bits": 1894,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000049.dng",
+          "payload_bytes": 743888,
+          "attributed_bits": 5951104,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 4874020,
+            "Cb": 425806,
+            "Cr": 515365
+          },
+          "padding_bits": 2201,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000050.dng",
+          "payload_bytes": 744008,
+          "attributed_bits": 5952064,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 4875236,
+            "Cb": 424445,
+            "Cr": 516649
+          },
+          "padding_bits": 2022,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        }
+      ]
+    },
+    "exp003-k-a1-u50": {
+      "coeff_frames": [
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0036_000052.dng",
+          "payload_sha256": "9fc7a6524a47c90bd0e22dd87eee5686926c81f8356723fe28ac2daa2d398876",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 28935800000.0,
+              "energy_q": 27996200000.0,
+              "nz": 145036,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 4758000000.0,
+              "energy_q": 4192110000.0,
+              "nz": 198745,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1424020000.0,
+              "energy_q": 986784000.0,
+              "nz": 201842,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 205871000.0,
+              "energy_q": 179373000.0,
+              "nz": 35897,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 58749900.0,
+              "energy_q": 37123300.0,
+              "nz": 41713,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 29143400.0,
+              "energy_q": 12337900.0,
+              "nz": 24089,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1560341,
+            "C": 934569
+          },
+          "ac_nonzero": {
+            "Y": 545623,
+            "C": 101699
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0036_000053.dng",
+          "payload_sha256": "572df77e8e08c6e69fa495d2ed6188dcd1e4652b84600307378ed39fb6525ba7",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 28755600000.0,
+              "energy_q": 27822900000.0,
+              "nz": 144726,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 4659500000.0,
+              "energy_q": 4100560000.0,
+              "nz": 196227,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1353280000.0,
+              "energy_q": 930124000.0,
+              "nz": 194235,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 206109000.0,
+              "energy_q": 179407000.0,
+              "nz": 35934,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 57864900.0,
+              "energy_q": 36506900.0,
+              "nz": 41021,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 28068700.0,
+              "energy_q": 11731400.0,
+              "nz": 22955,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1570776,
+            "C": 936358
+          },
+          "ac_nonzero": {
+            "Y": 535188,
+            "C": 99910
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0037_000029.dng",
+          "payload_sha256": "48c8377c2cecf01387195334f300891daa276cb99d545d454176afd610b51e48",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 28862100000.0,
+              "energy_q": 27919900000.0,
+              "nz": 145781,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5069760000.0,
+              "energy_q": 4480420000.0,
+              "nz": 203138,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1661410000.0,
+              "energy_q": 1184090000.0,
+              "nz": 220427,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 207483000.0,
+              "energy_q": 180536000.0,
+              "nz": 36433,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 62486600.0,
+              "energy_q": 39899400.0,
+              "nz": 43866,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 32953200.0,
+              "energy_q": 14529500.0,
+              "nz": 27070,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1536618,
+            "C": 928899
+          },
+          "ac_nonzero": {
+            "Y": 569346,
+            "C": 107369
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0037_000030.dng",
+          "payload_sha256": "2259ee68162bbff3d740014382c7b7669b6bbc464abad4c45587b639ec0c19b7",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 28849600000.0,
+              "energy_q": 27912100000.0,
+              "nz": 145506,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5082910000.0,
+              "energy_q": 4495840000.0,
+              "nz": 203082,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1656870000.0,
+              "energy_q": 1181250000.0,
+              "nz": 219539,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 206393000.0,
+              "energy_q": 179495000.0,
+              "nz": 36499,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 62539700.0,
+              "energy_q": 40027400.0,
+              "nz": 43770,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 32681200.0,
+              "energy_q": 14307000.0,
+              "nz": 27083,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1537837,
+            "C": 928916
+          },
+          "ac_nonzero": {
+            "Y": 568127,
+            "C": 107352
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0038_000046.dng",
+          "payload_sha256": "c189471c14a7d5ef0904869f4bb00bfd31b428ce275596fc42f82cd13ce1f29f",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 29051700000.0,
+              "energy_q": 28105000000.0,
+              "nz": 146118,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5159280000.0,
+              "energy_q": 4568730000.0,
+              "nz": 203770,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1673280000.0,
+              "energy_q": 1194710000.0,
+              "nz": 221415,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 207864000.0,
+              "energy_q": 180923000.0,
+              "nz": 36584,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 63394400.0,
+              "energy_q": 40811800.0,
+              "nz": 43900,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 33191800.0,
+              "energy_q": 14717700.0,
+              "nz": 27485,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1534661,
+            "C": 928299
+          },
+          "ac_nonzero": {
+            "Y": 571303,
+            "C": 107969
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0038_000047.dng",
+          "payload_sha256": "e1c033f1dcae777b6c68d96af90dc8208846b35d1c05b1cb32aaab9e27635f6c",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 29058500000.0,
+              "energy_q": 28112000000.0,
+              "nz": 145708,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5157140000.0,
+              "energy_q": 4563760000.0,
+              "nz": 203705,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1670060000.0,
+              "energy_q": 1192130000.0,
+              "nz": 221661,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 207748000.0,
+              "energy_q": 180389000.0,
+              "nz": 36584,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 63366700.0,
+              "energy_q": 40652200.0,
+              "nz": 43974,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 33313200.0,
+              "energy_q": 14777100.0,
+              "nz": 27469,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1534890,
+            "C": 928241
+          },
+          "ac_nonzero": {
+            "Y": 571074,
+            "C": 108027
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000044.dng",
+          "payload_sha256": "53fdcd2fe4505ada157b6d52430d2542b066b6652c6ba3f922932dc1f6dc5aec",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 29390200000.0,
+              "energy_q": 28442500000.0,
+              "nz": 145669,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5149590000.0,
+              "energy_q": 4555780000.0,
+              "nz": 203856,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1676580000.0,
+              "energy_q": 1197650000.0,
+              "nz": 221517,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 206244000.0,
+              "energy_q": 179184000.0,
+              "nz": 36587,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 63051600.0,
+              "energy_q": 40487900.0,
+              "nz": 44213,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 33073700.0,
+              "energy_q": 14519900.0,
+              "nz": 27810,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1534922,
+            "C": 927658
+          },
+          "ac_nonzero": {
+            "Y": 571042,
+            "C": 108610
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000045.dng",
+          "payload_sha256": "48e7dd159cbdf267c142367dea28483d07f08cd5aaf8a7e4ff0563cee6772d7e",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 29374600000.0,
+              "energy_q": 28426900000.0,
+              "nz": 145958,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5159760000.0,
+              "energy_q": 4567110000.0,
+              "nz": 204314,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1684240000.0,
+              "energy_q": 1203240000.0,
+              "nz": 222241,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 206611000.0,
+              "energy_q": 179562000.0,
+              "nz": 36552,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 63256000.0,
+              "energy_q": 40614100.0,
+              "nz": 44132,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 33069200.0,
+              "energy_q": 14443900.0,
+              "nz": 27750,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1533451,
+            "C": 927834
+          },
+          "ac_nonzero": {
+            "Y": 572513,
+            "C": 108434
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000049.dng",
+          "payload_sha256": "81cd3594c59ac61ee528d47df4f192aea4f77d254439053f596b5d8c3b91a23b",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 29404800000.0,
+              "energy_q": 28457300000.0,
+              "nz": 145844,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5160250000.0,
+              "energy_q": 4566960000.0,
+              "nz": 203739,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1681120000.0,
+              "energy_q": 1200800000.0,
+              "nz": 221658,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 206804000.0,
+              "energy_q": 179833000.0,
+              "nz": 36699,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 62962400.0,
+              "energy_q": 40383200.0,
+              "nz": 43786,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 33016500.0,
+              "energy_q": 14452400.0,
+              "nz": 27645,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1534723,
+            "C": 928138
+          },
+          "ac_nonzero": {
+            "Y": 571241,
+            "C": 108130
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000050.dng",
+          "payload_sha256": "db2de270a16b2f64c4ba46b24af71495555e3b1a6d3ceb107b0c7ed62afd11eb",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 29378400000.0,
+              "energy_q": 28431000000.0,
+              "nz": 145617,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5162470000.0,
+              "energy_q": 4568340000.0,
+              "nz": 204164,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1686470000.0,
+              "energy_q": 1205690000.0,
+              "nz": 222325,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 206302000.0,
+              "energy_q": 179277000.0,
+              "nz": 36519,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 63199900.0,
+              "energy_q": 40581000.0,
+              "nz": 43948,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 32992000.0,
+              "energy_q": 14426600.0,
+              "nz": 27707,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1533858,
+            "C": 928094
+          },
+          "ac_nonzero": {
+            "Y": 572106,
+            "C": 108174
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0757_C0040_000053.dng",
+          "payload_sha256": "e81a471f6a92abe22f24f39d5b8619ad6b3caaa78105a8977cf74ac7c119e9e9",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 29495400000.0,
+              "energy_q": 28547200000.0,
+              "nz": 146183,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5218440000.0,
+              "energy_q": 4624000000.0,
+              "nz": 204400,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1689260000.0,
+              "energy_q": 1207230000.0,
+              "nz": 222196,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 208406000.0,
+              "energy_q": 181482000.0,
+              "nz": 36524,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 63247500.0,
+              "energy_q": 40460800.0,
+              "nz": 44170,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 33295900.0,
+              "energy_q": 14702500.0,
+              "nz": 27689,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1533185,
+            "C": 927885
+          },
+          "ac_nonzero": {
+            "Y": 572779,
+            "C": 108383
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0757_C0040_000054.dng",
+          "payload_sha256": "04b725d590630ba16bc041b7224b4dbd56a56511877e1719f41a9eb1b695ffaa",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 29451600000.0,
+              "energy_q": 28502700000.0,
+              "nz": 146288,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5214920000.0,
+              "energy_q": 4620120000.0,
+              "nz": 204706,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1684620000.0,
+              "energy_q": 1203400000.0,
+              "nz": 221858,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 208460000.0,
+              "energy_q": 181479000.0,
+              "nz": 36554,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 63411600.0,
+              "energy_q": 40684700.0,
+              "nz": 44167,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 33390200.0,
+              "energy_q": 14746300.0,
+              "nz": 27525,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1533112,
+            "C": 928022
+          },
+          "ac_nonzero": {
+            "Y": 572852,
+            "C": 108246
+          }
+        }
+      ],
+      "budget_frames": [
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0036_000052.dng",
+          "payload_bytes": 587960,
+          "attributed_bits": 4703680,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3660836,
+            "Cb": 411510,
+            "Cr": 495630
+          },
+          "padding_bits": 1992,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0036_000053.dng",
+          "payload_bytes": 579080,
+          "attributed_bits": 4632640,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3601874,
+            "Cb": 406712,
+            "Cr": 488358
+          },
+          "padding_bits": 1984,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0037_000029.dng",
+          "payload_bytes": 606816,
+          "attributed_bits": 4854528,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3782359,
+            "Cb": 424359,
+            "Cr": 511991
+          },
+          "padding_bits": 2107,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0037_000030.dng",
+          "payload_bytes": 606144,
+          "attributed_bits": 4849152,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3776171,
+            "Cb": 423688,
+            "Cr": 513469
+          },
+          "padding_bits": 2112,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0038_000046.dng",
+          "payload_bytes": 609168,
+          "attributed_bits": 4873344,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3797427,
+            "Cb": 425621,
+            "Cr": 514501
+          },
+          "padding_bits": 2083,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0038_000047.dng",
+          "payload_bytes": 609088,
+          "attributed_bits": 4872704,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3796567,
+            "Cb": 425549,
+            "Cr": 514943
+          },
+          "padding_bits": 1933,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000044.dng",
+          "payload_bytes": 609624,
+          "attributed_bits": 4876992,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3797813,
+            "Cb": 425943,
+            "Cr": 517638
+          },
+          "padding_bits": 1886,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000045.dng",
+          "payload_bytes": 609648,
+          "attributed_bits": 4877184,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3799346,
+            "Cb": 424353,
+            "Cr": 517773
+          },
+          "padding_bits": 2000,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000049.dng",
+          "payload_bytes": 609624,
+          "attributed_bits": 4876992,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3800015,
+            "Cb": 425806,
+            "Cr": 515365
+          },
+          "padding_bits": 2094,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000050.dng",
+          "payload_bytes": 609736,
+          "attributed_bits": 4877888,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3801237,
+            "Cb": 424445,
+            "Cr": 516649
+          },
+          "padding_bits": 1845,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0757_C0040_000053.dng",
+          "payload_bytes": 611000,
+          "attributed_bits": 4888000,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3809374,
+            "Cb": 425122,
+            "Cr": 517993
+          },
+          "padding_bits": 1799,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0757_C0040_000054.dng",
+          "payload_bytes": 610688,
+          "attributed_bits": 4885504,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3807252,
+            "Cb": 425155,
+            "Cr": 517438
+          },
+          "padding_bits": 1947,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        }
+      ]
+    },
+    "exp003-k-d1": {
+      "coeff_frames": [
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0036_000052.dng",
+          "payload_sha256": "834d37f7a26aedc1698000a1b74047669252cac4dc4b729cf1174b910a0750ad",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 28935800000.0,
+              "energy_q": 28750000000.0,
+              "nz": 169776,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 4758000000.0,
+              "energy_q": 4298630000.0,
+              "nz": 213689,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1424020000.0,
+              "energy_q": 986784000.0,
+              "nz": 201842,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 205871000.0,
+              "energy_q": 200936000.0,
+              "nz": 51274,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 58749900.0,
+              "energy_q": 40577500.0,
+              "nz": 48297,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 29143400.0,
+              "energy_q": 12337900.0,
+              "nz": 24089,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1520657,
+            "C": 912608
+          },
+          "ac_nonzero": {
+            "Y": 585307,
+            "C": 123660
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0036_000053.dng",
+          "payload_sha256": "aba40b434145d62fbbab0504137419639a03945767537adf013e397395b3bbf7",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 28755600000.0,
+              "energy_q": 28572000000.0,
+              "nz": 169517,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 4659500000.0,
+              "energy_q": 4206600000.0,
+              "nz": 211245,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1353280000.0,
+              "energy_q": 930124000.0,
+              "nz": 194235,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 206109000.0,
+              "energy_q": 201322000.0,
+              "nz": 51107,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 57864900.0,
+              "energy_q": 39942000.0,
+              "nz": 47407,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 28068700.0,
+              "energy_q": 11731400.0,
+              "nz": 22955,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1530967,
+            "C": 914799
+          },
+          "ac_nonzero": {
+            "Y": 574997,
+            "C": 121469
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0037_000029.dng",
+          "payload_sha256": "b2abcd2585d1c47c8c509ec06d39f689bcac45163b51c4817b4cdd55af183ffd",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 28862100000.0,
+              "energy_q": 28680300000.0,
+              "nz": 170232,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5069760000.0,
+              "energy_q": 4592640000.0,
+              "nz": 217977,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1661410000.0,
+              "energy_q": 1184090000.0,
+              "nz": 220427,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 207483000.0,
+              "energy_q": 202513000.0,
+              "nz": 51747,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 62486600.0,
+              "energy_q": 43585300.0,
+              "nz": 50745,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 32953200.0,
+              "energy_q": 14529500.0,
+              "nz": 27070,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1497328,
+            "C": 906706
+          },
+          "ac_nonzero": {
+            "Y": 608636,
+            "C": 129562
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0037_000030.dng",
+          "payload_sha256": "aa28c4ac4fa7a67f985f13a4dea13d2cd8572fce70323c1a503f0cd56b1d224e",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 28849600000.0,
+              "energy_q": 28665800000.0,
+              "nz": 169941,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5082910000.0,
+              "energy_q": 4606960000.0,
+              "nz": 217797,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1656870000.0,
+              "energy_q": 1181250000.0,
+              "nz": 219539,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 206393000.0,
+              "energy_q": 201572000.0,
+              "nz": 51755,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 62539700.0,
+              "energy_q": 43717300.0,
+              "nz": 50325,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 32681200.0,
+              "energy_q": 14307000.0,
+              "nz": 27083,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1498687,
+            "C": 907105
+          },
+          "ac_nonzero": {
+            "Y": 607277,
+            "C": 129163
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0038_000046.dng",
+          "payload_sha256": "2af8dc1f4a3a406215fd04652594fd208f3e652aae5c60a493dafe5e5d753832",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 29051700000.0,
+              "energy_q": 28865700000.0,
+              "nz": 170609,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5159280000.0,
+              "energy_q": 4679850000.0,
+              "nz": 218606,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1673280000.0,
+              "energy_q": 1194710000.0,
+              "nz": 221415,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 207864000.0,
+              "energy_q": 202844000.0,
+              "nz": 51985,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 63394400.0,
+              "energy_q": 44411100.0,
+              "nz": 50705,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 33191800.0,
+              "energy_q": 14717700.0,
+              "nz": 27485,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1495334,
+            "C": 906093
+          },
+          "ac_nonzero": {
+            "Y": 610630,
+            "C": 130175
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0038_000047.dng",
+          "payload_sha256": "9c6569bdc36d65b62bb8d13bfcfd4264fae728ef2d6f30ecc3eafec3c94d1a36",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 29058500000.0,
+              "energy_q": 28874400000.0,
+              "nz": 170327,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5157140000.0,
+              "energy_q": 4677030000.0,
+              "nz": 218310,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1670060000.0,
+              "energy_q": 1192130000.0,
+              "nz": 221661,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 207748000.0,
+              "energy_q": 202827000.0,
+              "nz": 51922,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 63366700.0,
+              "energy_q": 44423000.0,
+              "nz": 50576,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 33313200.0,
+              "energy_q": 14777100.0,
+              "nz": 27469,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1495666,
+            "C": 906301
+          },
+          "ac_nonzero": {
+            "Y": 610298,
+            "C": 129967
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000044.dng",
+          "payload_sha256": "90cab33269b4a0a4dbc0b7e1072dcc9e596bc5a88573cb7600807bc26e76e2ad",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 29390200000.0,
+              "energy_q": 29207100000.0,
+              "nz": 170565,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5149590000.0,
+              "energy_q": 4669560000.0,
+              "nz": 218584,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1676580000.0,
+              "energy_q": 1197650000.0,
+              "nz": 221517,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 206244000.0,
+              "energy_q": 201491000.0,
+              "nz": 51997,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 63051600.0,
+              "energy_q": 44162400.0,
+              "nz": 50771,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 33073700.0,
+              "energy_q": 14519900.0,
+              "nz": 27810,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1495298,
+            "C": 905690
+          },
+          "ac_nonzero": {
+            "Y": 610666,
+            "C": 130578
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000045.dng",
+          "payload_sha256": "d1da84fe3784f1d577739f20ae029696893fdbf91dca9f6be82c5bd60928adc3",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 29374600000.0,
+              "energy_q": 29186200000.0,
+              "nz": 170666,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5159760000.0,
+              "energy_q": 4678240000.0,
+              "nz": 218891,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1684240000.0,
+              "energy_q": 1203240000.0,
+              "nz": 222241,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 206611000.0,
+              "energy_q": 201705000.0,
+              "nz": 51926,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 63256000.0,
+              "energy_q": 44224700.0,
+              "nz": 50795,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 33069200.0,
+              "energy_q": 14443900.0,
+              "nz": 27750,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1494166,
+            "C": 905797
+          },
+          "ac_nonzero": {
+            "Y": 611798,
+            "C": 130471
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000049.dng",
+          "payload_sha256": "d40fca502307a094c1fd120b54eaa0c3fb6f231bdcd5584987b046ef936ed687",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 29404800000.0,
+              "energy_q": 29219200000.0,
+              "nz": 170324,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5160250000.0,
+              "energy_q": 4679100000.0,
+              "nz": 218622,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1681120000.0,
+              "energy_q": 1200800000.0,
+              "nz": 221658,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 206804000.0,
+              "energy_q": 202022000.0,
+              "nz": 51928,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 62962400.0,
+              "energy_q": 44064900.0,
+              "nz": 50623,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 33016500.0,
+              "energy_q": 14452400.0,
+              "nz": 27645,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1495360,
+            "C": 906072
+          },
+          "ac_nonzero": {
+            "Y": 610604,
+            "C": 130196
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000050.dng",
+          "payload_sha256": "9b7729873c4506982de42a886c21abdf816c5ba9858582091add29c21353d3b0",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 29378400000.0,
+              "energy_q": 29195800000.0,
+              "nz": 170289,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5162470000.0,
+              "energy_q": 4680890000.0,
+              "nz": 219063,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1686470000.0,
+              "energy_q": 1205690000.0,
+              "nz": 222325,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 206302000.0,
+              "energy_q": 201233000.0,
+              "nz": 51886,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 63199900.0,
+              "energy_q": 44263200.0,
+              "nz": 50516,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 32992000.0,
+              "energy_q": 14426600.0,
+              "nz": 27707,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1494287,
+            "C": 906159
+          },
+          "ac_nonzero": {
+            "Y": 611677,
+            "C": 130109
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0757_C0040_000053.dng",
+          "payload_sha256": "eb0524b29f71efc38f7452c36c8d15949a3994ca82311323520060e1d82da09d",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 29495400000.0,
+              "energy_q": 29307500000.0,
+              "nz": 170859,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5218440000.0,
+              "energy_q": 4736570000.0,
+              "nz": 219186,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1689260000.0,
+              "energy_q": 1207230000.0,
+              "nz": 222196,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 208406000.0,
+              "energy_q": 203261000.0,
+              "nz": 51939,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 63247500.0,
+              "energy_q": 44238000.0,
+              "nz": 50821,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 33295900.0,
+              "energy_q": 14702500.0,
+              "nz": 27689,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1493723,
+            "C": 905819
+          },
+          "ac_nonzero": {
+            "Y": 612241,
+            "C": 130449
+          }
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0757_C0040_000054.dng",
+          "payload_sha256": "09830dd830d30c877da846175e6da1470c32740e281209f82e8c63c037c0c6ce",
+          "q": 24,
+          "bands_Y": {
+            "low": {
+              "energy": 29451600000.0,
+              "energy_q": 29268000000.0,
+              "nz": 170670,
+              "freq_slots": 7
+            },
+            "mid": {
+              "energy": 5214920000.0,
+              "energy_q": 4732600000.0,
+              "nz": 219446,
+              "freq_slots": 14
+            },
+            "high": {
+              "energy": 1684620000.0,
+              "energy_q": 1203400000.0,
+              "nz": 221858,
+              "freq_slots": 42
+            }
+          },
+          "bands_Cb": {
+            "low": {
+              "energy": 208460000.0,
+              "energy_q": 203387000.0,
+              "nz": 51945,
+              "freq_slots": 3
+            },
+            "mid": {
+              "energy": 63411600.0,
+              "energy_q": 44368800.0,
+              "nz": 50982,
+              "freq_slots": 8
+            },
+            "high": {
+              "energy": 33390200.0,
+              "energy_q": 14746300.0,
+              "nz": 27525,
+              "freq_slots": 20
+            }
+          },
+          "bands_note": "energy_C/nz_C mezclan Cb+Cr; VLC por banda no atribuido (runs compartidos)",
+          "ac_zero": {
+            "Y": 1493990,
+            "C": 905816
+          },
+          "ac_nonzero": {
+            "Y": 611974,
+            "C": 130452
+          }
+        }
+      ],
+      "budget_frames": [
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0036_000052.dng",
+          "payload_bytes": 614248,
+          "attributed_bits": 4913984,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3787646,
+            "Cb": 453791,
+            "Cr": 536601
+          },
+          "padding_bits": 2234,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0036_000053.dng",
+          "payload_bytes": 605336,
+          "attributed_bits": 4842688,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3728745,
+            "Cb": 448270,
+            "Cr": 529752
+          },
+          "padding_bits": 2209,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0037_000029.dng",
+          "payload_bytes": 632848,
+          "attributed_bits": 5062784,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3906833,
+            "Cb": 466758,
+            "Cr": 553558
+          },
+          "padding_bits": 1923,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0037_000030.dng",
+          "payload_bytes": 632080,
+          "attributed_bits": 5056640,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3901393,
+            "Cb": 465673,
+            "Cr": 553778
+          },
+          "padding_bits": 2084,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0038_000046.dng",
+          "payload_bytes": 635128,
+          "attributed_bits": 5081024,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3921631,
+            "Cb": 467750,
+            "Cr": 556256
+          },
+          "padding_bits": 1675,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0038_000047.dng",
+          "payload_bytes": 635008,
+          "attributed_bits": 5080064,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3921074,
+            "Cb": 467713,
+            "Cr": 555630
+          },
+          "padding_bits": 1935,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000044.dng",
+          "payload_bytes": 635696,
+          "attributed_bits": 5085568,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3923579,
+            "Cb": 467690,
+            "Cr": 558608
+          },
+          "padding_bits": 1979,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000045.dng",
+          "payload_bytes": 635576,
+          "attributed_bits": 5084608,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3923192,
+            "Cb": 467083,
+            "Cr": 558480
+          },
+          "padding_bits": 2141,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000049.dng",
+          "payload_bytes": 635408,
+          "attributed_bits": 5083264,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3923637,
+            "Cb": 467142,
+            "Cr": 556711
+          },
+          "padding_bits": 2062,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0756_C0039_000050.dng",
+          "payload_bytes": 635712,
+          "attributed_bits": 5085696,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3925560,
+            "Cb": 467032,
+            "Cr": 557297
+          },
+          "padding_bits": 2095,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0757_C0040_000053.dng",
+          "payload_bytes": 637064,
+          "attributed_bits": 5096512,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3934044,
+            "Cb": 467743,
+            "Cr": 558936
+          },
+          "padding_bits": 2077,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        },
+        {
+          "source_name": "BMPCC_1_2000-03-02_0757_C0040_000054.dng",
+          "payload_bytes": 636592,
+          "attributed_bits": 5092736,
+          "reconcile_ok": true,
+          "planes_bits": {
+            "Y": 3931566,
+            "Cb": 467346,
+            "Cr": 558318
+          },
+          "padding_bits": 1794,
+          "marker_bits": 133712,
+          "note": "VLC por banda no atribuido; bits por plano s\u00ed. Runs/EOB son costes compartidos."
+        }
+      ]
+    }
+  }
+}
