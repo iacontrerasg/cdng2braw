@@ -42,10 +42,13 @@ def read_buffer(sidecar_path):
 
 
 def load_frame_dir(directory):
-    """Todos los sidecars *.json de un frame_*."""
+    """Todos los sidecars de buffer *.json de un frame_* (ignora stages_index.json)."""
     out = {}
     for name in sorted(os.listdir(directory)):
-        if not name.endswith('.json'):
+        if not name.endswith('.json') or name == 'stages_index.json':
+            continue
+        meta = _load_json(os.path.join(directory, name))
+        if 'path' not in meta or 'stage' not in meta:
             continue
         arr, meta = read_buffer(os.path.join(directory, name))
         key = '%s_%s' % (meta['stage'], meta['plane'])

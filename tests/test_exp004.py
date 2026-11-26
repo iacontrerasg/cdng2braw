@@ -75,12 +75,26 @@ class InjectEnvTests(unittest.TestCase):
             P.encode_request(self._encode(experimental_env={'CDNG_INJECT_AT': 'nope'}), environ={})
         with self.assertRaises(P.PipelineError):
             P.encode_request(self._encode(experimental_env={'CDNG_INJECT_AT': 'pre_map'}), environ={})
-        _, _, env, diag = P.encode_request(self._encode(
-            experimental_env={'CDNG_INJECT_RGB': '/tmp/a.f32', 'CDNG_INJECT_AT': 'pre_map'},
-            diagnostic_env={'CDNG_DUMP_STAGES': '/tmp/st'}), environ={})
-        self.assertEqual(env['CDNG_INJECT_AT'], 'pre_map')
-        self.assertEqual(diag['CDNG_DUMP_STAGES'], '/tmp/st')
-        self.assertNotIn('CDNG_DUMP_STAGES', env)
+        with tempfile.TemporaryDirectory() as d:
+            rgb = np.zeros((2, 2, 3), np.float32)
+            inj = os.path.join(d, 'a.f32')
+            images.write_f32(inj, rgb)
+            _, effective, env, diag = P.encode_request(self._encode(
+                experimental_env={'CDNG_INJECT_RGB': inj, 'CDNG_INJECT_AT': 'pre_map'},
+                diagnostic_env={'CDNG_DUMP_STAGES': '/tmp/st'}), environ={})
+            self.assertEqual(env['CDNG_INJECT_AT'], 'pre_map')
+            self.assertEqual(env['CDNG_INJECT_RGB'], os.path.abspath(inj))
+            self.assertIn('#', effective['CDNG_INJECT_RGB'])
+            from tools.fidelity import identity as I
+            self.assertEqual(effective['CDNG_INJECT_RGB'].split('#')[-1], I.sha256_file(inj))
+            self.assertEqual(diag['CDNG_DUMP_STAGES'], '/tmp/st')
+            self.assertNotIn('CDNG_DUMP_STAGES', env)
+        with self.assertRaises(P.PipelineError):
+            P.encode_request(self._encode(experimental_env={'CDNG_OG_CHROMA_MODE': 'c2'}), environ={})
+        _, _, env2, _ = P.encode_request(self._encode(
+            experimental_env={'CDNG_OG_CHROMA_MODE': 'c1'}), environ={})
+        self.assertEqual(env2['CDNG_OG_CHROMA_MODE'], 'c1')
+        self.assertIn('CDNG_OG_CHROMA_MODE', P.OUTPUT_ENV)
 
 
 if __name__ == '__main__':

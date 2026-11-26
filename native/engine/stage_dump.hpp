@@ -25,5 +25,7 @@ void stageDumpYccFull(const char *stage, int w, int h, const float *y, const flo
                       const char *note);
 void stageDumpPlanes(const char *stage, const Planes &planes, const char *note);
 void stageDumpCanvas(const char *stage, const CanvasPlanes &canvas, const Geometry &g, const char *note);
+void stageDumpWriteIndex(int q, int width, int height, const char *chroma_mode,
+                         const char *kernel, const char *phase);
 
 }  // namespace cdng

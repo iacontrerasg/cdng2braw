@@ -2,6 +2,7 @@
 // función. La aritmética sigue el orden de las operaciones de NumPy (sin contracción FMA, ver native/CMakeLists.txt)
 // para que image_planes y canvas_planes den los mismos valores.
 #include "signal_internal.hpp"
+#include "og_chroma.hpp"
 #include "stage_dump.hpp"
 
 #include <simdjson.h>
@@ -581,16 +582,18 @@ void finishPlanes(Planes &planes, const SignalMap &map, Route route, double luma
 Planes imagePlanes(const RgbImage &rgb, const SignalMap &map) {
     const int w = rgb.width, h = rgb.height;
     if (w % 2 || h % 2 || w <= 0 || h <= 0) throw Error("image_planes needs an even image size");
+    const OgChromaConfig chromaCfg = ogChromaConfigFromEnv();
     Planes planes(w, h);
     const auto *impl = dynamic_cast<const MapImpl *>(&map);
     std::vector<float> yccRow(std::size_t(w) * 3);
     const bool dumpFull = stageDumpThisFrame();
+    const bool needFull = dumpFull || chromaCfg.mode != OgChromaMode::C0;
     std::vector<float> cbFull, crFull, rgbCode;
-    if (dumpFull) {
+    if (needFull) {
         cbFull.resize(std::size_t(w) * h);
         crFull.resize(std::size_t(w) * h);
-        rgbCode.resize(std::size_t(w) * h * 3);
     }
+    if (dumpFull) rgbCode.resize(std::size_t(w) * h * 3);
     for (int y = 0; y < h; ++y) {
         map.map(rgb.px(0, y), yccRow.data(), std::size_t(w));
         for (int x = 0; x < w; ++x) {
@@ -598,42 +601,48 @@ Planes imagePlanes(const RgbImage &rgb, const SignalMap &map) {
             const float Cb = yccRow[3 * std::size_t(x) + 1];
             const float Cr = yccRow[3 * std::size_t(x) + 2];
             planes.y[std::size_t(y) * w + x] = Yv;
-            if (dumpFull) {
+            if (needFull) {
                 const std::size_t i = std::size_t(y) * w + x;
                 cbFull[i] = Cb;
                 crFull[i] = Cr;
-                // code_from_ycc (model/pocket_og_cinemadng_signal.json): copia, no entra al encode.
-                rgbCode[3 * i + 0] = Yv - 0.5f * Cb + 1.5f * Cr;
-                rgbCode[3 * i + 1] = Yv - 0.5f * Cb - 0.5f * Cr;
-                rgbCode[3 * i + 2] = Yv + 1.5f * Cb - 0.5f * Cr;
+                if (dumpFull) {
+                    // code_from_ycc (model/pocket_og_cinemadng_signal.json): copia, no entra al encode.
+                    rgbCode[3 * i + 0] = Yv - 0.5f * Cb + 1.5f * Cr;
+                    rgbCode[3 * i + 1] = Yv - 0.5f * Cb - 0.5f * Cr;
+                    rgbCode[3 * i + 2] = Yv + 1.5f * Cb - 0.5f * Cr;
+                }
             }
         }
     }
-    const int hw = w / 2, hh = h / 2;
-    std::vector<double> mean(std::size_t(hw) * 3), ycc(std::size_t(hw) * 3);
-    std::vector<float> meanF(mean.size()), yccF(ycc.size());
-    for (int y = 0; y < hh; ++y) {
-        const float *r0 = rgb.px(0, 2 * y), *r1 = rgb.px(0, 2 * y + 1);
-        for (int x = 0; x < hw; ++x)
-            for (int c = 0; c < 3; ++c) {
-                // NumPy: mean(axis=(1, 3)) suma cada fila por parejas y luego las filas: (a + b) + (c + d)
-                const double a = r0[6 * x + c], b = r0[6 * x + 3 + c], cc = r1[6 * x + c], d = r1[6 * x + 3 + c];
-                mean[3 * std::size_t(x) + c] = ((a + b) + (cc + d)) / 4;
-            }
-        if (impl) {
-            impl->mapDouble(mean.data(), ycc.data(), std::size_t(hw));
-            for (int x = 0; x < hw; ++x) {
-                planes.cb[std::size_t(y) * hw + x] = float(ycc[3 * std::size_t(x) + 1]);
-                planes.cr[std::size_t(y) * hw + x] = float(ycc[3 * std::size_t(x) + 2]);
-            }
-        } else {
-            for (std::size_t i = 0; i < mean.size(); ++i) meanF[i] = float(mean[i]);
-            map.map(meanF.data(), yccF.data(), std::size_t(hw));
-            for (int x = 0; x < hw; ++x) {
-                planes.cb[std::size_t(y) * hw + x] = yccF[3 * std::size_t(x) + 1];
-                planes.cr[std::size_t(y) * hw + x] = yccF[3 * std::size_t(x) + 2];
+    if (chromaCfg.mode == OgChromaMode::C0) {
+        const int hw = w / 2, hh = h / 2;
+        std::vector<double> mean(std::size_t(hw) * 3), ycc(std::size_t(hw) * 3);
+        std::vector<float> meanF(mean.size()), yccF(ycc.size());
+        for (int y = 0; y < hh; ++y) {
+            const float *r0 = rgb.px(0, 2 * y), *r1 = rgb.px(0, 2 * y + 1);
+            for (int x = 0; x < hw; ++x)
+                for (int c = 0; c < 3; ++c) {
+                    // NumPy: mean(axis=(1, 3)) suma cada fila por parejas y luego las filas: (a + b) + (c + d)
+                    const double a = r0[6 * x + c], b = r0[6 * x + 3 + c], cc = r1[6 * x + c], d = r1[6 * x + 3 + c];
+                    mean[3 * std::size_t(x) + c] = ((a + b) + (cc + d)) / 4;
+                }
+            if (impl) {
+                impl->mapDouble(mean.data(), ycc.data(), std::size_t(hw));
+                for (int x = 0; x < hw; ++x) {
+                    planes.cb[std::size_t(y) * hw + x] = float(ycc[3 * std::size_t(x) + 1]);
+                    planes.cr[std::size_t(y) * hw + x] = float(ycc[3 * std::size_t(x) + 2]);
+                }
+            } else {
+                for (std::size_t i = 0; i < mean.size(); ++i) meanF[i] = float(mean[i]);
+                map.map(meanF.data(), yccF.data(), std::size_t(hw));
+                for (int x = 0; x < hw; ++x) {
+                    planes.cb[std::size_t(y) * hw + x] = yccF[3 * std::size_t(x) + 1];
+                    planes.cr[std::size_t(y) * hw + x] = yccF[3 * std::size_t(x) + 2];
+                }
             }
         }
+    } else {
+        ogChromaDownsample(cbFull.data(), crFull.data(), w, h, planes, chromaCfg);
     }
     if (dumpFull) {
         RgbImage codes(w, h);
@@ -642,7 +651,10 @@ Planes imagePlanes(const RgbImage &rgb, const SignalMap &map) {
                      "derived via code_from_ycc of per-pixel map(); not a second encode kernel");
         stageDumpYccFull("S4", w, h, planes.y.data(), cbFull.data(), crFull.data(),
                          "per-pixel YCbCr before chroma box 2x2; Cb/Cr full-res discarded in production Planes");
-        stageDumpPlanes("S5", planes, "Y full; Cb/Cr mean 2x2 of linear RGB then map (centered 4:2:0)");
+        const char *s5 = chromaCfg.mode == OgChromaMode::C0
+            ? "Y full; Cb/Cr C0 map(mean 2x2 linear RGB) centered 4:2:0"
+            : "Y full (unchanged); Cb/Cr EXP-004 experimental downsample";
+        stageDumpPlanes("S5", planes, s5);
     }
     return planes;
 }

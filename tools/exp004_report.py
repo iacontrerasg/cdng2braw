@@ -17,7 +17,9 @@ if ROOT not in sys.path:
 
 from tools.exp004_halo import (chroma_error_vs_ref, extract_profile, profile_metrics,
                                residual_spectrum, uv_local)
-from tools.fidelity import images, metrics as M, rd as RD, stage_io
+
+CROP = (640, 520, 120, 80)  # x,y,w,h around white-strip edge
+from tools.fidelity import braw_inspect, images, metrics as M, rd as RD, stage_io
 
 CHART_EDGES = [
     ('edge_white_strip_left', [664, 550, 704, 550], 9),
@@ -175,6 +177,17 @@ def main():
                 # Mapa de residuo vs gris local (sin EXR): desviación RGB del candidato.
                 grey = np.mean(cand, axis=-1, keepdims=True)
                 vis_residual(np.repeat(grey, 3, -1), cand, os.path.join(vis_root, rid + '_' + key + '_chroma_dev.png'), 0.05)
+                if rid.startswith('exp004-cand-') and key.endswith('f044'):
+                    x, y, cw, ch = CROP
+                    crop = cand[y:y + ch, x:x + cw]
+                    nn = np.repeat(np.repeat(crop, 4, 0), 4, 1)
+                    lo, hi = np.percentile(cand, 0.5), np.percentile(cand, 99.5)
+                    def disp(im):
+                        t = np.clip((im - lo) / max(hi - lo, 1e-8), 0, 1)
+                        return (t * 255).astype(np.uint8)
+                    images.write_png(os.path.join(vis_root, rid + '_' + key + '_full.png'), disp(cand))
+                    images.write_png(os.path.join(vis_root, rid + '_' + key + '_crop.png'), disp(crop))
+                    images.write_png(os.path.join(vis_root, rid + '_' + key + '_crop_nn4.png'), disp(nn))
             try:
                 row = RD.frame_row(run, key, res, require_bitstream=True)
             except Exception:
@@ -184,7 +197,9 @@ def main():
                 'sample_bytes': row.get('sample_bytes') if isinstance(row, dict) else None,
                 'q_eff': row.get('q_eff') if isinstance(row, dict) else None,
                 'ratio_sample': row.get('ratio_sample') if isinstance(row, dict) else None,
-                'duv_edges_mean': (lc.get('edges') or {}).get('duv_mean'),
+                'psnr': row.get('psnr') if isinstance(row, dict) else None,
+                'duv_edges_mean': (lc.get('edges') or {}).get('duv_mean') or row.get('duv_edges'),
+                'grad': row.get('grad') if isinstance(row, dict) else None,
                 'detail_corr': (rf.get('alignment') or {}).get('detail_correlation'),
                 'dump': dump_stats[rid],
             })
@@ -193,18 +208,47 @@ def main():
     a = os.path.join(args.out, 'runs', 'exp004-ident-g0')
     b = os.path.join(args.out, 'runs', 'exp004-ident-g0-nodump')
     if os.path.isdir(a) and os.path.isdir(b):
-        def sample_sha(run_dir):
+        def ident_one(run_dir):
             run = RD.load_run(run_dir)
             out = {}
             for k, res in (run['metrics'].get('results') or {}).items():
                 try:
                     row = RD.frame_row(run, k, res, require_bitstream=True)
-                    out[k] = {'sample_bytes': row.get('sample_bytes'), 'q_eff': row.get('q_eff')}
+                    fp = None
+                    rgb_sha = None
+                    try:
+                        spec = RD.resolve_braw_binding(run, res, k)
+                        fp = braw_inspect.media_fingerprint(spec['braw_path'])
+                    except Exception as e:
+                        fp = {'error': str(e)}
+                    f32 = os.path.join(run_dir, 'frames', k + '.f32')
+                    if os.path.isfile(f32):
+                        rgb_sha = _sha(f32)
+                    out[k] = {
+                        'sample_bytes': row.get('sample_bytes'), 'q_eff': row.get('q_eff'),
+                        'payload_sha256': (fp or {}).get('payloads_sha256') if isinstance(fp, dict) else None,
+                        'rgb_sha256': rgb_sha,
+                        'fingerprint': fp if isinstance(fp, dict) and 'error' in fp else {
+                            'payloads_sha256': (fp or {}).get('payloads_sha256'),
+                            'mdat_sha256': (fp or {}).get('mdat_sha256'),
+                        },
+                    }
                 except Exception as e:
                     out[k] = {'error': str(e)}
             return out
-        ident = {'dump_on': sample_sha(a), 'dump_off': sample_sha(b),
-                 'payload_match': sample_sha(a) == sample_sha(b)}
+        on, off = ident_one(a), ident_one(b)
+        ident = {
+            'dump_on': on, 'dump_off': off,
+            'independent_conversions': True,
+            'payload_match': all(
+                on.get(k, {}).get('payload_sha256') == off.get(k, {}).get('payload_sha256')
+                and on.get(k, {}).get('payload_sha256')
+                for k in set(on) | set(off)),
+            'rgb_match': all(
+                on.get(k, {}).get('rgb_sha256') == off.get(k, {}).get('rgb_sha256')
+                and on.get(k, {}).get('rgb_sha256')
+                for k in set(on) | set(off)),
+        }
 
     synth_neutral = None
     syn = os.path.join(args.out, 'experiments', 'exp004', 'stages', 'exp004-syn-edge-neutral-v-q2', 'frame_0')
@@ -228,26 +272,97 @@ def main():
         'dct_quant': 'S7',
         'sdk_upsample_csc': 'S8 (not substituted by S7)',
     }
+    cand_cmp = []
+    by_run = {r['run']: r for r in run_rows}
+    for q in (2, 18, 24):
+        base_id = 'exp004-cand-c0-a04-q%d' % q
+        base_row = by_run.get(base_id)
+        if not base_row:
+            continue
+        for tag in ('c1', 'c2-b3', 'c2-b5', 'c2-b7'):
+            rid = 'exp004-cand-%s-a04-q%d' % (tag, q)
+            row = by_run.get(rid)
+            if not row:
+                continue
+            duv0, duv1 = base_row.get('duv_edges_mean'), row.get('duv_edges_mean')
+            p0, p1 = base_row.get('psnr'), row.get('psnr')
+            g0, g1 = base_row.get('grad'), row.get('grad')
+            cand_cmp.append({
+                'q': q, 'candidate': tag, 'vs': 'c0',
+                'duv_edges_base': duv0, 'duv_edges': duv1,
+                'delta_duv_edges': (duv1 - duv0) if None not in (duv0, duv1) else None,
+                'psnr_base': p0, 'psnr': p1,
+                'delta_psnr': (p1 - p0) if None not in (p0, p1) else None,
+                'grad_base': g0, 'grad': g1,
+                'sample_bytes_base': base_row.get('sample_bytes'),
+                'sample_bytes': row.get('sample_bytes'),
+            })
+    verdicts = []
+    for tag in ('c1', 'c2-b3', 'c2-b5', 'c2-b7'):
+        rows = [c for c in cand_cmp if c['candidate'] == tag and c.get('delta_duv_edges') is not None]
+        if not rows:
+            continue
+        mean_duv = float(np.mean([c['delta_duv_edges'] for c in rows]))
+        mean_psnr = float(np.mean([c['delta_psnr'] for c in rows if c.get('delta_psnr') is not None] or [0]))
+        mean_grad = float(np.mean([(c['grad'] or 0) - (c['grad_base'] or 0) for c in rows]))
+        # Halo win only if Δu'v' down without collapsing gradient (chroma/luma edge energy).
+        halo_down = mean_duv < -1e-4
+        detail_ok = mean_grad > -0.02
+        verdicts.append({
+            'candidate': tag, 'mean_delta_duv_edges': mean_duv, 'mean_delta_psnr': mean_psnr,
+            'mean_delta_grad': mean_grad,
+            'class': 'promising' if halo_down and detail_ok else (
+                'resolution_loss_suspect' if halo_down and not detail_ok else (
+                    'regression' if mean_duv > 1e-4 or mean_psnr < -0.15 else 'neutral')),
+        })
+    d4_path = os.path.join(args.out, 'experiments', 'exp004', 'd4.json')
+    d4 = json.load(open(d4_path, encoding='utf-8')) if os.path.isfile(d4_path) else None
+    c3_ok = bool(d4 and d4.get('siting', {}).get('c3_warranted'))
+    if d4 and d4.get('siting'):
+        delta = (d4['siting'].get('even_odd_centroid_delta_px') or [None, None])
+        for h in hypo:
+            if h['id'] == 'H4':
+                h['status'] = 'not_supported' if not c3_ok else 'plausible'
+                h['evidence'] = 'SDK impulse even/odd centroid Δpx=%s; C3 %s' % (
+                    delta, 'warranted' if c3_ok else 'not warranted')
+    # Residuos C0 vs C2-b3 con escala común (q24).
+    p0 = os.path.join(args.out, 'runs', 'exp004-cand-c0-a04-q24', 'frames')
+    p2 = os.path.join(args.out, 'runs', 'exp004-cand-c2-b3-a04-q24', 'frames')
+    f0 = glob.glob(os.path.join(p0, '*044*.f32'))
+    f2 = glob.glob(os.path.join(p2, '*044*.f32'))
+    if f0 and f2:
+        a, b = images.read_f32(f0[0]), images.read_f32(f2[0])
+        vis_residual(a, b, os.path.join(vis_root, 'c0_vs_c2b3_q24_residual.png'), 0.02)
+        x, y, cw, ch = CROP
+        vis_residual(a[y:y + ch, x:x + cw], b[y:y + ch, x:x + cw],
+                     os.path.join(vis_root, 'c0_vs_c2b3_q24_crop_residual.png'), 0.02)
     candidates = [
-        {'rank': 1, 'proposal': 'Average chroma in YCbCr-after-curve or apply AA before 4:2:0 box',
-         'targets': ['H2', 'H3'], 'risk': 'changes OG chroma kernel — production later'},
-        {'rank': 2, 'proposal': 'Document/match SDK chroma siting and upsample phase',
-         'targets': ['H4', 'H5'], 'risk': 'SDK opaque; needs S7 vs S8 profiles'},
-        {'rank': 3, 'proposal': 'Optional chroma prefilter (binomial) on OG RGB path, currently VA-only',
-         'targets': ['H3'], 'risk': 'must not clone VA kernel blindly'},
-        {'rank': 4, 'proposal': 'Debayer alternative only if H1 dominates on S1 vs S9',
-         'targets': ['H1'], 'risk': 'out of scope this PR'},
-        {'rank': 5, 'proposal': 'Do not expect luma deblock α to fix chroma halos (H6)',
-         'targets': ['H6'], 'risk': 'none'},
+        {'id': 'C0', 'implemented': True, 'flag': 'CDNG_OG_CHROMA_MODE=c0 or absent',
+         'status': 'baseline bit-identical when flags absent'},
+        {'id': 'C1', 'implemented': True, 'flag': 'CDNG_OG_CHROMA_MODE=c1',
+         'status': 'per-pixel curve+matrix then 2×2 mean Cb/Cr; Y unchanged'},
+        {'id': 'C2', 'implemented': True, 'flag': 'MODE=c2 KERNEL=b3|b5|b7',
+         'status': 'separable binomial AA (DC gain 1) on coded chroma then 2×2',
+         'kernels': {
+             'b3': {'taps': [0.25, 0.5, 0.25], 'H_w': 'cos^2(w/2)'},
+             'b5': {'taps': [1, 4, 6, 4, 1], 'norm': 16, 'H_w': 'cos^4(w/2)'},
+             'b7': {'taps': [1, 6, 15, 20, 15, 6, 1], 'norm': 64, 'H_w': 'cos^6(w/2)'},
+         }},
+        {'id': 'C3', 'implemented': True, 'flag': 'MODE=c3 PHASE=even|odd|center',
+         'status': 'code present; F campaign skipped unless D4 c3_warranted',
+         'c3_warranted': c3_ok},
+        {'id': 'C4', 'implemented': True, 'flag': 'MODE=c4 KERNEL+PHASE',
+         'status': 'combination path; enable only if C2 and C3 independently help'},
     ]
     doc = {
-        'schema': 1,
+        'schema': 2,
         'experiment': 'EXP-004',
         'base_commit': base,
         'branch': 'experiment/pocket-og-chromatic-fidelity',
         'rdoq': 'experimental OFF default; not used here',
         'instrumentation': {
-            'env': ['CDNG_DUMP_STAGES', 'CDNG_DUMP_FRAME', 'CDNG_INJECT_RGB', 'CDNG_INJECT_AT'],
+            'env': ['CDNG_DUMP_STAGES', 'CDNG_DUMP_FRAME', 'CDNG_INJECT_RGB', 'CDNG_INJECT_AT',
+                    'CDNG_OG_CHROMA_MODE', 'CDNG_OG_CHROMA_KERNEL', 'CDNG_OG_CHROMA_PHASE'],
             'stages': ['S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6_pre', 'S6_post', 'S7', 'S8', 'S9'],
             'payload_identity': ident,
         },
@@ -256,11 +371,27 @@ def main():
         'hypothesis_matrix': hypo,
         'first_stage_by_component': first_stage,
         'corrective_candidates': candidates,
+        'candidate_comparison': cand_cmp,
+        'candidate_verdicts': verdicts,
+        'gh_recommendation': {
+            'next': 'G–H: C2-b3 first (promising Δu′v′ without gradient collapse); C1 optional; C2-b7 not',
+            'do_not': ['EXP-005', 'EXP-007', 'EXP-008', 'production default change', 'merge C3 without stronger siting'],
+            'c3': 'code present, F skipped; weak ~0.65 px vertical SDK bias vs 2×2 center',
+        },
+        'compute_cost': {
+            'C0': 'baseline imagePlanes (Y per-pixel + map of 2×2 RGB mean)',
+            'C1': 'no extra map of means; reuse per-pixel Cb/Cr + 2×2 (cheaper than C0 chroma)',
+            'C2': 'two separable convolutions on 1920×1080 Cb and Cr then 2×2; b7 widest',
+            'C3': 'point sample, negligible',
+        },
+        'd4': d4,
         'synthetic_neutral': synth_neutral,
         'notes': [
             'S7 is local encoder reconstruct, not SDK.',
             'Do not compare buffers across incompatible domains.',
             'Global fidelity gates unchanged.',
+            'Halo reduction that destroys useful chroma resolution is not a win.',
+            'EXP-007/008 deferred; EXP-005 not started.',
         ],
     }
     os.makedirs(os.path.dirname(args.summary) or '.', exist_ok=True)

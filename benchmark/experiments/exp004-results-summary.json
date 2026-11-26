@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "experiment": "EXP-004",
   "base_commit": "048af3ad6ea147e2e64adbb6bd95620c68ae4127",
   "branch": "experiment/pocket-og-chromatic-fidelity",
@@ -9,7 +9,10 @@
       "CDNG_DUMP_STAGES",
       "CDNG_DUMP_FRAME",
       "CDNG_INJECT_RGB",
-      "CDNG_INJECT_AT"
+      "CDNG_INJECT_AT",
+      "CDNG_OG_CHROMA_MODE",
+      "CDNG_OG_CHROMA_KERNEL",
+      "CDNG_OG_CHROMA_PHASE"
     ],
     "stages": [
       "S0",
@@ -28,19 +31,33 @@
       "dump_on": {
         "A04_f044": {
           "sample_bytes": 895744,
-          "q_eff": 24
+          "q_eff": 24,
+          "payload_sha256": "e5fdc9c865ac43e69829e2ec330ebe11316f45ab16df31f692e52d13b9cdf2c2",
+          "rgb_sha256": "08f020253a1d187ca425acc9cdf495db147793932eb4150a8ef3f3a61b2a794c",
+          "fingerprint": {
+            "payloads_sha256": "e5fdc9c865ac43e69829e2ec330ebe11316f45ab16df31f692e52d13b9cdf2c2",
+            "mdat_sha256": "7671c0ba6291b0307ae681cc46538150b0e9e9940573a48c6e5d215fc9357951"
+          }
         }
       },
       "dump_off": {
         "A04_f044": {
           "sample_bytes": 895744,
-          "q_eff": 24
+          "q_eff": 24,
+          "payload_sha256": "e5fdc9c865ac43e69829e2ec330ebe11316f45ab16df31f692e52d13b9cdf2c2",
+          "rgb_sha256": "08f020253a1d187ca425acc9cdf495db147793932eb4150a8ef3f3a61b2a794c",
+          "fingerprint": {
+            "payloads_sha256": "e5fdc9c865ac43e69829e2ec330ebe11316f45ab16df31f692e52d13b9cdf2c2",
+            "mdat_sha256": "7671c0ba6291b0307ae681cc46538150b0e9e9940573a48c6e5d215fc9357951"
+          }
         }
       },
-      "payload_match": true
+      "independent_conversions": true,
+      "payload_match": true,
+      "rgb_match": true
     }
   },
-  "n_runs": 18,
+  "n_runs": 44,
   "runs": [
     {
       "run": "exp004-a01-g0",
@@ -48,7 +65,9 @@
       "sample_bytes": 872544,
       "q_eff": 24,
       "ratio_sample": null,
+      "psnr": 42.789093750133034,
       "duv_edges_mean": 0.014568076141448828,
+      "grad": 1.009279532550385,
       "detail_corr": 0.7853504530936714,
       "dump": {
         "stages_present": [
@@ -98,7 +117,9 @@
       "sample_bytes": 816864,
       "q_eff": 24,
       "ratio_sample": null,
+      "psnr": 42.42315755623728,
       "duv_edges_mean": 0.014478849725515637,
+      "grad": 0.9176259367127814,
       "detail_corr": 0.7524256300658759,
       "dump": {
         "stages_present": [
@@ -148,7 +169,9 @@
       "sample_bytes": 874000,
       "q_eff": 24,
       "ratio_sample": null,
+      "psnr": 42.578957769513146,
       "duv_edges_mean": 0.014994769163013249,
+      "grad": 0.9836565852536255,
       "detail_corr": 0.7872155308362843,
       "dump": {
         "stages_present": [
@@ -198,7 +221,9 @@
       "sample_bytes": 895752,
       "q_eff": 24,
       "ratio_sample": null,
+      "psnr": 42.42980421574718,
       "duv_edges_mean": 0.015197660185672764,
+      "grad": 1.008221421404018,
       "detail_corr": 0.7905027663049128,
       "dump": {
         "stages_present": [
@@ -248,7 +273,9 @@
       "sample_bytes": 895824,
       "q_eff": 24,
       "ratio_sample": null,
+      "psnr": 42.437675360697426,
       "duv_edges_mean": 0.015156599608399128,
+      "grad": 1.0061395214184075,
       "detail_corr": 0.7899816036417864,
       "dump": {
         "stages_present": [
@@ -298,7 +325,9 @@
       "sample_bytes": 895744,
       "q_eff": 24,
       "ratio_sample": null,
+      "psnr": 42.4254312815577,
       "duv_edges_mean": 0.015197682563598738,
+      "grad": 1.0073592160718052,
       "detail_corr": 0.7904974978053981,
       "dump": {
         "stages_present": [
@@ -348,7 +377,9 @@
       "sample_bytes": 665016,
       "q_eff": 24,
       "ratio_sample": null,
+      "psnr": 43.08304142613462,
       "duv_edges_mean": 0.014239176036248906,
+      "grad": 0.9648812008974087,
       "detail_corr": 0.7585386136994471,
       "dump": {
         "stages_present": [
@@ -398,7 +429,9 @@
       "sample_bytes": 1783016,
       "q_eff": 2,
       "ratio_sample": null,
+      "psnr": 42.696452510430014,
       "duv_edges_mean": 0.014533381784568328,
+      "grad": 1.006697990808197,
       "detail_corr": 0.8700507912500351,
       "dump": {
         "stages_present": [
@@ -448,7 +481,9 @@
       "sample_bytes": 816864,
       "q_eff": 24,
       "ratio_sample": null,
+      "psnr": 42.42315755623728,
       "duv_edges_mean": 0.014478849725515637,
+      "grad": 0.9176259367127814,
       "detail_corr": 0.7524256300658759,
       "dump": {
         "stages_present": [
@@ -498,7 +533,9 @@
       "sample_bytes": 1028168,
       "q_eff": 18,
       "ratio_sample": null,
+      "psnr": 42.51355804291461,
       "duv_edges_mean": 0.015021708819530735,
+      "grad": 1.007111316130743,
       "detail_corr": 0.8124293684321648,
       "dump": {
         "stages_present": [
@@ -543,12 +580,1262 @@
       }
     },
     {
+      "run": "exp004-cand-c0-a04-q18",
+      "key": "A04_f044",
+      "sample_bytes": 1028168,
+      "q_eff": 18,
+      "ratio_sample": null,
+      "psnr": 42.51355804291461,
+      "duv_edges_mean": 0.015021708819530735,
+      "grad": 1.007111316130743,
+      "detail_corr": 0.8124293684321648,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.1412983387708664,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 4.978259711170276,
+        "h7_quant_cb_mae": 2.2613097552949624
+      }
+    },
+    {
+      "run": "exp004-cand-c0-a04-q2",
+      "key": "A04_f044",
+      "sample_bytes": 1783016,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "psnr": 42.696452510430014,
+      "duv_edges_mean": 0.014533381784568328,
+      "grad": 1.006697990808197,
+      "detail_corr": 0.8700507912500351,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.1412983387708664,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 1.385895618942204,
+        "h7_quant_cb_mae": 0.8978289158789039
+      }
+    },
+    {
+      "run": "exp004-cand-c0-a04-q24",
+      "key": "A04_f044",
+      "sample_bytes": 895744,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "psnr": 42.4254312815577,
+      "duv_edges_mean": 0.015197682563598738,
+      "grad": 1.0073592160718052,
+      "detail_corr": 0.7904974978053981,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.1412983387708664,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 6.210804752004308,
+        "h7_quant_cb_mae": 2.6922060099317937
+      }
+    },
+    {
+      "run": "exp004-cand-c1-a01-q24",
+      "key": "A01_f052",
+      "sample_bytes": 873152,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "psnr": 42.80373458149289,
+      "duv_edges_mean": 0.014533566470389416,
+      "grad": 1.0109618473855955,
+      "detail_corr": 0.7854354732330545,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.21400451660156,
+          "cr_abs_mean": 112.58565521240234,
+          "cb_peak": 557.9865112304688,
+          "cr_peak": 560.6325073242188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 1.4675323427582043e-06,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 6.194487499252124,
+        "h7_quant_cb_mae": 2.6605521568744765
+      }
+    },
+    {
+      "run": "exp004-cand-c1-a04-f049-q24",
+      "key": "A04_f049",
+      "sample_bytes": 896520,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "psnr": 42.451236408854015,
+      "duv_edges_mean": 0.015138028793288568,
+      "grad": 1.007688100295835,
+      "detail_corr": 0.7900212727337472,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.4625015258789,
+          "cr_abs_mean": 113.11119079589844,
+          "cb_peak": 610.7884521484375,
+          "cr_peak": 600.9947509765625
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 1.4698689483338967e-06,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 6.2117335205516335,
+        "h7_quant_cb_mae": 2.699383750149575
+      }
+    },
+    {
+      "run": "exp004-cand-c1-a04-q18",
+      "key": "A04_f044",
+      "sample_bytes": 1028800,
+      "q_eff": 18,
+      "ratio_sample": null,
+      "psnr": 42.53276155236837,
+      "duv_edges_mean": 0.015000109084586034,
+      "grad": 1.008717046961895,
+      "detail_corr": 0.8124867769593009,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 1.4642589576396858e-06,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 4.978259711170276,
+        "h7_quant_cb_mae": 2.2619230136412587
+      }
+    },
+    {
+      "run": "exp004-cand-c1-a04-q2",
+      "key": "A04_f044",
+      "sample_bytes": 1783936,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "psnr": 42.71377254177426,
+      "duv_edges_mean": 0.014508257694666883,
+      "grad": 1.008207901329429,
+      "detail_corr": 0.8701781758225733,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 1.4642589576396858e-06,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 1.385895618942204,
+        "h7_quant_cb_mae": 0.8976494256312074
+      }
+    },
+    {
+      "run": "exp004-cand-c1-a04-q24",
+      "key": "A04_f044",
+      "sample_bytes": 896408,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "psnr": 42.44212256891793,
+      "duv_edges_mean": 0.015180256747187853,
+      "grad": 1.0089661550511555,
+      "detail_corr": 0.7905588026937863,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 1.4642589576396858e-06,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 6.210804752004308,
+        "h7_quant_cb_mae": 2.6935802321407203
+      }
+    },
+    {
+      "run": "exp004-cand-c2-b3-a04-q18",
+      "key": "A04_f044",
+      "sample_bytes": 978528,
+      "q_eff": 18,
+      "ratio_sample": null,
+      "psnr": 43.05634125455245,
+      "duv_edges_mean": 0.014777055695195407,
+      "grad": 1.009329589096262,
+      "detail_corr": 0.813065216967305,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 1.5863476991653442,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 4.978259711170276,
+        "h7_quant_cb_mae": 2.00488363048941
+      }
+    },
+    {
+      "run": "exp004-cand-c2-b3-a04-q2",
+      "key": "A04_f044",
+      "sample_bytes": 1711808,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "psnr": 43.251643757231626,
+      "duv_edges_mean": 0.01432503888121037,
+      "grad": 1.0087988361058209,
+      "detail_corr": 0.870605103746933,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 1.5863476991653442,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 1.385895618942204,
+        "h7_quant_cb_mae": 0.8627180058633481
+      }
+    },
+    {
+      "run": "exp004-cand-c2-b3-a04-q24",
+      "key": "A04_f044",
+      "sample_bytes": 855328,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "psnr": 42.95715441496418,
+      "duv_edges_mean": 0.014966160635164576,
+      "grad": 1.0095060964028522,
+      "detail_corr": 0.7911605048777459,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 1.5863476991653442,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 6.210804752004308,
+        "h7_quant_cb_mae": 2.353451821826014
+      }
+    },
+    {
+      "run": "exp004-cand-c2-b5-a04-q18",
+      "key": "A04_f044",
+      "sample_bytes": 952744,
+      "q_eff": 18,
+      "ratio_sample": null,
+      "psnr": 43.209294999288446,
+      "duv_edges_mean": 0.015084117209089287,
+      "grad": 1.0079904464158103,
+      "detail_corr": 0.8132905629828783,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 2.413106679916382,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 4.978259711170276,
+        "h7_quant_cb_mae": 1.821147316620797
+      }
+    },
+    {
+      "run": "exp004-cand-c2-b5-a04-q2",
+      "key": "A04_f044",
+      "sample_bytes": 1662880,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "psnr": 43.40446496809036,
+      "duv_edges_mean": 0.014635089571558794,
+      "grad": 1.0075590460115773,
+      "detail_corr": 0.8707201130702372,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 2.413106679916382,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 1.385895618942204,
+        "h7_quant_cb_mae": 0.8137396045231542
+      }
+    },
+    {
+      "run": "exp004-cand-c2-b5-a04-q24",
+      "key": "A04_f044",
+      "sample_bytes": 835104,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "psnr": 43.09812949211548,
+      "duv_edges_mean": 0.015297027357633096,
+      "grad": 1.0080691087113451,
+      "detail_corr": 0.7913978979212873,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 2.413106679916382,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 6.210804752004308,
+        "h7_quant_cb_mae": 2.1307922998683737
+      }
+    },
+    {
+      "run": "exp004-cand-c2-b7-a04-q18",
+      "key": "A04_f044",
+      "sample_bytes": 936568,
+      "q_eff": 18,
+      "ratio_sample": null,
+      "psnr": 43.233780248329964,
+      "duv_edges_mean": 0.015473273943003775,
+      "grad": 1.0061783712650325,
+      "detail_corr": 0.813378841606927,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 2.975099563598633,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 4.978259711170276,
+        "h7_quant_cb_mae": 1.6922920156754817
+      }
+    },
+    {
+      "run": "exp004-cand-c2-b7-a04-q2",
+      "key": "A04_f044",
+      "sample_bytes": 1629472,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "psnr": 43.432219889285506,
+      "duv_edges_mean": 0.015052584194962132,
+      "grad": 1.0057602585747445,
+      "detail_corr": 0.870782567935306,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 2.975099563598633,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 1.385895618942204,
+        "h7_quant_cb_mae": 0.7663242640899844
+      }
+    },
+    {
+      "run": "exp004-cand-c2-b7-a04-q24",
+      "key": "A04_f044",
+      "sample_bytes": 822248,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "psnr": 43.122260590294,
+      "duv_edges_mean": 0.01568440544038408,
+      "grad": 1.006253083007773,
+      "detail_corr": 0.7915118797362763,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 2.975099563598633,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 6.210804752004308,
+        "h7_quant_cb_mae": 1.9756641139164772
+      }
+    },
+    {
+      "run": "exp004-d4-chroma-iso-ramp-q2",
+      "key": "A04_f044",
+      "sample_bytes": 129368,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "psnr": null,
+      "duv_edges_mean": null,
+      "grad": null,
+      "detail_corr": null,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 0.0,
+          "cr_abs_mean": 700.8673706054688,
+          "cb_peak": 0.0,
+          "cr_peak": 1052.4625244140625
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.0,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 0.2730532786885246,
+        "h7_quant_cb_mae": 0.0
+      }
+    },
+    {
+      "run": "exp004-d4-edge-rg-h-q2",
+      "key": "A04_f044",
+      "sample_bytes": 77600,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "psnr": null,
+      "duv_edges_mean": null,
+      "grad": null,
+      "detail_corr": null,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 478.09869384765625,
+          "cr_abs_mean": 956.199951171875,
+          "cb_peak": 956.19873046875,
+          "cr_peak": 956.19873046875
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.0,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": false
+        },
+        "h7_quant_luma_mae": 0.002737226277372263,
+        "h7_quant_cb_mae": 0.0018248175182481751
+      }
+    },
+    {
+      "run": "exp004-d4-edge-rg-v-phase1-q2",
+      "key": "A04_f044",
+      "sample_bytes": 83224,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "psnr": null,
+      "duv_edges_mean": null,
+      "grad": null,
+      "detail_corr": null,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 477.60150146484375,
+          "cr_abs_mean": 956.199951171875,
+          "cb_peak": 956.19873046875,
+          "cr_peak": 956.19873046875
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.11534303426742554,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 0.0030737704918032786,
+        "h7_quant_cb_mae": 0.004098360655737705
+      }
+    },
+    {
+      "run": "exp004-d4-edge-rg-v-q2",
+      "key": "A04_f044",
+      "sample_bytes": 79200,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "psnr": null,
+      "duv_edges_mean": null,
+      "grad": null,
+      "detail_corr": null,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 478.1000061035156,
+          "cr_abs_mean": 956.199951171875,
+          "cb_peak": 956.19873046875,
+          "cr_peak": 956.19873046875
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.0,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 0.0020491803278688526,
+        "h7_quant_cb_mae": 0.0
+      }
+    },
+    {
+      "run": "exp004-d4-impulse-dct-q2",
+      "key": "A04_f044",
+      "sample_bytes": 72952,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "psnr": null,
+      "duv_edges_mean": null,
+      "grad": null,
+      "detail_corr": null,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 0.000587370537687093,
+          "cr_abs_mean": 0.0,
+          "cb_peak": 1217.9715576171875,
+          "cr_peak": 0.0
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 7.627587183378637e-05,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": false
+        },
+        "h7_quant_luma_mae": 4.487256192413546e-05,
+        "h7_quant_cb_mae": 4.8611942084480074e-05
+      }
+    },
+    {
+      "run": "exp004-d4-impulse-even-q2",
+      "key": "A04_f044",
+      "sample_bytes": 72992,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "psnr": null,
+      "duv_edges_mean": null,
+      "grad": null,
+      "detail_corr": null,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 0.0,
+          "cr_abs_mean": 0.000587370537687093,
+          "cb_peak": 0.0,
+          "cr_peak": 1217.9715576171875
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.0,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 9.114739140840014e-05,
+        "h7_quant_cb_mae": 0.0
+      }
+    },
+    {
+      "run": "exp004-d4-impulse-odd-q2",
+      "key": "A04_f044",
+      "sample_bytes": 72992,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "psnr": null,
+      "duv_edges_mean": null,
+      "grad": null,
+      "detail_corr": null,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 0.0,
+          "cr_abs_mean": 0.000587370537687093,
+          "cb_peak": 0.0,
+          "cr_peak": 1217.9715576171875
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.0,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 9.114739140840014e-05,
+        "h7_quant_cb_mae": 0.0
+      }
+    },
+    {
       "run": "exp004-ident-g0",
       "key": "A04_f044",
       "sample_bytes": 895744,
       "q_eff": 24,
       "ratio_sample": null,
+      "psnr": 42.4254312815577,
       "duv_edges_mean": 0.015197682563598738,
+      "grad": 1.0073592160718052,
       "detail_corr": 0.7904974978053981,
       "dump": {
         "stages_present": [
@@ -598,7 +1885,37 @@
       "sample_bytes": 895744,
       "q_eff": 24,
       "ratio_sample": null,
+      "psnr": 42.4254312815577,
       "duv_edges_mean": 0.015197682563598738,
+      "grad": 1.0073592160718052,
+      "detail_corr": 0.7904974978053981,
+      "dump": {
+        "stages_present": []
+      }
+    },
+    {
+      "run": "exp004-ident-g0-nodump-pre-d3",
+      "key": "A04_f044",
+      "sample_bytes": 895744,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "psnr": 42.4254312815577,
+      "duv_edges_mean": 0.015197682563598738,
+      "grad": 1.0073592160718052,
+      "detail_corr": 0.7904974978053981,
+      "dump": {
+        "stages_present": []
+      }
+    },
+    {
+      "run": "exp004-ident-g0-pre-d3",
+      "key": "A04_f044",
+      "sample_bytes": 895744,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "psnr": 42.4254312815577,
+      "duv_edges_mean": 0.015197682563598738,
+      "grad": 1.0073592160718052,
       "detail_corr": 0.7904974978053981,
       "dump": {
         "stages_present": []
@@ -610,7 +1927,9 @@
       "sample_bytes": 1721072,
       "q_eff": 2,
       "ratio_sample": null,
+      "psnr": null,
       "duv_edges_mean": null,
+      "grad": null,
       "detail_corr": null,
       "dump": {
         "stages_present": [
@@ -660,7 +1979,9 @@
       "sample_bytes": 443072,
       "q_eff": 2,
       "ratio_sample": null,
+      "psnr": null,
       "duv_edges_mean": null,
+      "grad": null,
       "detail_corr": null,
       "dump": {
         "stages_present": [
@@ -710,7 +2031,9 @@
       "sample_bytes": 78720,
       "q_eff": 2,
       "ratio_sample": null,
+      "psnr": null,
       "duv_edges_mean": null,
+      "grad": null,
       "detail_corr": null,
       "dump": {
         "stages_present": [
@@ -760,7 +2083,9 @@
       "sample_bytes": 78600,
       "q_eff": 2,
       "ratio_sample": null,
+      "psnr": null,
       "duv_edges_mean": null,
+      "grad": null,
       "detail_corr": null,
       "dump": {
         "stages_present": [
@@ -810,7 +2135,9 @@
       "sample_bytes": 77384,
       "q_eff": 24,
       "ratio_sample": null,
+      "psnr": null,
       "duv_edges_mean": null,
+      "grad": null,
       "detail_corr": null,
       "dump": {
         "stages_present": [
@@ -860,7 +2187,9 @@
       "sample_bytes": 79200,
       "q_eff": 2,
       "ratio_sample": null,
+      "psnr": null,
       "duv_edges_mean": null,
+      "grad": null,
       "detail_corr": null,
       "dump": {
         "stages_present": [
@@ -933,8 +2262,8 @@
     },
     {
       "id": "H4",
-      "status": "inconclusive",
-      "evidence": "OG siting is centered 2\u00d72; SDK upsample kernel is opaque \u2014 compare S7 vs S8"
+      "status": "not_supported",
+      "evidence": "SDK impulse even/odd centroid \u0394px=[None, None]; C3 not warranted"
     },
     {
       "id": "H5",
@@ -971,48 +2300,3352 @@
   },
   "corrective_candidates": [
     {
-      "rank": 1,
-      "proposal": "Average chroma in YCbCr-after-curve or apply AA before 4:2:0 box",
-      "targets": [
-        "H2",
-        "H3"
-      ],
-      "risk": "changes OG chroma kernel \u2014 production later"
+      "id": "C0",
+      "implemented": true,
+      "flag": "CDNG_OG_CHROMA_MODE=c0 or absent",
+      "status": "baseline bit-identical when flags absent"
     },
     {
-      "rank": 2,
-      "proposal": "Document/match SDK chroma siting and upsample phase",
-      "targets": [
-        "H4",
-        "H5"
-      ],
-      "risk": "SDK opaque; needs S7 vs S8 profiles"
+      "id": "C1",
+      "implemented": true,
+      "flag": "CDNG_OG_CHROMA_MODE=c1",
+      "status": "per-pixel curve+matrix then 2\u00d72 mean Cb/Cr; Y unchanged"
     },
     {
-      "rank": 3,
-      "proposal": "Optional chroma prefilter (binomial) on OG RGB path, currently VA-only",
-      "targets": [
-        "H3"
-      ],
-      "risk": "must not clone VA kernel blindly"
+      "id": "C2",
+      "implemented": true,
+      "flag": "MODE=c2 KERNEL=b3|b5|b7",
+      "status": "separable binomial AA (DC gain 1) on coded chroma then 2\u00d72",
+      "kernels": {
+        "b3": {
+          "taps": [
+            0.25,
+            0.5,
+            0.25
+          ],
+          "H_w": "cos^2(w/2)"
+        },
+        "b5": {
+          "taps": [
+            1,
+            4,
+            6,
+            4,
+            1
+          ],
+          "norm": 16,
+          "H_w": "cos^4(w/2)"
+        },
+        "b7": {
+          "taps": [
+            1,
+            6,
+            15,
+            20,
+            15,
+            6,
+            1
+          ],
+          "norm": 64,
+          "H_w": "cos^6(w/2)"
+        }
+      }
     },
     {
-      "rank": 4,
-      "proposal": "Debayer alternative only if H1 dominates on S1 vs S9",
-      "targets": [
-        "H1"
-      ],
-      "risk": "out of scope this PR"
+      "id": "C3",
+      "implemented": true,
+      "flag": "MODE=c3 PHASE=even|odd|center",
+      "status": "code present; F campaign skipped unless D4 c3_warranted",
+      "c3_warranted": false
     },
     {
-      "rank": 5,
-      "proposal": "Do not expect luma deblock \u03b1 to fix chroma halos (H6)",
-      "targets": [
-        "H6"
-      ],
-      "risk": "none"
+      "id": "C4",
+      "implemented": true,
+      "flag": "MODE=c4 KERNEL+PHASE",
+      "status": "combination path; enable only if C2 and C3 independently help"
     }
   ],
+  "candidate_comparison": [
+    {
+      "q": 2,
+      "candidate": "c1",
+      "vs": "c0",
+      "duv_edges_base": 0.014533381784568328,
+      "duv_edges": 0.014508257694666883,
+      "delta_duv_edges": -2.5124089901445296e-05,
+      "psnr_base": 42.696452510430014,
+      "psnr": 42.71377254177426,
+      "delta_psnr": 0.017320031344247866,
+      "grad_base": 1.006697990808197,
+      "grad": 1.008207901329429,
+      "sample_bytes_base": 1783016,
+      "sample_bytes": 1783936
+    },
+    {
+      "q": 2,
+      "candidate": "c2-b3",
+      "vs": "c0",
+      "duv_edges_base": 0.014533381784568328,
+      "duv_edges": 0.01432503888121037,
+      "delta_duv_edges": -0.00020834290335795813,
+      "psnr_base": 42.696452510430014,
+      "psnr": 43.251643757231626,
+      "delta_psnr": 0.5551912468016127,
+      "grad_base": 1.006697990808197,
+      "grad": 1.0087988361058209,
+      "sample_bytes_base": 1783016,
+      "sample_bytes": 1711808
+    },
+    {
+      "q": 2,
+      "candidate": "c2-b5",
+      "vs": "c0",
+      "duv_edges_base": 0.014533381784568328,
+      "duv_edges": 0.014635089571558794,
+      "delta_duv_edges": 0.00010170778699046534,
+      "psnr_base": 42.696452510430014,
+      "psnr": 43.40446496809036,
+      "delta_psnr": 0.7080124576603453,
+      "grad_base": 1.006697990808197,
+      "grad": 1.0075590460115773,
+      "sample_bytes_base": 1783016,
+      "sample_bytes": 1662880
+    },
+    {
+      "q": 2,
+      "candidate": "c2-b7",
+      "vs": "c0",
+      "duv_edges_base": 0.014533381784568328,
+      "duv_edges": 0.015052584194962132,
+      "delta_duv_edges": 0.0005192024103938039,
+      "psnr_base": 42.696452510430014,
+      "psnr": 43.432219889285506,
+      "delta_psnr": 0.7357673788554919,
+      "grad_base": 1.006697990808197,
+      "grad": 1.0057602585747445,
+      "sample_bytes_base": 1783016,
+      "sample_bytes": 1629472
+    },
+    {
+      "q": 18,
+      "candidate": "c1",
+      "vs": "c0",
+      "duv_edges_base": 0.015021708819530735,
+      "duv_edges": 0.015000109084586034,
+      "delta_duv_edges": -2.15997349447012e-05,
+      "psnr_base": 42.51355804291461,
+      "psnr": 42.53276155236837,
+      "delta_psnr": 0.019203509453760148,
+      "grad_base": 1.007111316130743,
+      "grad": 1.008717046961895,
+      "sample_bytes_base": 1028168,
+      "sample_bytes": 1028800
+    },
+    {
+      "q": 18,
+      "candidate": "c2-b3",
+      "vs": "c0",
+      "duv_edges_base": 0.015021708819530735,
+      "duv_edges": 0.014777055695195407,
+      "delta_duv_edges": -0.0002446531243353277,
+      "psnr_base": 42.51355804291461,
+      "psnr": 43.05634125455245,
+      "delta_psnr": 0.5427832116378397,
+      "grad_base": 1.007111316130743,
+      "grad": 1.009329589096262,
+      "sample_bytes_base": 1028168,
+      "sample_bytes": 978528
+    },
+    {
+      "q": 18,
+      "candidate": "c2-b5",
+      "vs": "c0",
+      "duv_edges_base": 0.015021708819530735,
+      "duv_edges": 0.015084117209089287,
+      "delta_duv_edges": 6.240838955855199e-05,
+      "psnr_base": 42.51355804291461,
+      "psnr": 43.209294999288446,
+      "delta_psnr": 0.6957369563738354,
+      "grad_base": 1.007111316130743,
+      "grad": 1.0079904464158103,
+      "sample_bytes_base": 1028168,
+      "sample_bytes": 952744
+    },
+    {
+      "q": 18,
+      "candidate": "c2-b7",
+      "vs": "c0",
+      "duv_edges_base": 0.015021708819530735,
+      "duv_edges": 0.015473273943003775,
+      "delta_duv_edges": 0.0004515651234730401,
+      "psnr_base": 42.51355804291461,
+      "psnr": 43.233780248329964,
+      "delta_psnr": 0.7202222054153538,
+      "grad_base": 1.007111316130743,
+      "grad": 1.0061783712650325,
+      "sample_bytes_base": 1028168,
+      "sample_bytes": 936568
+    },
+    {
+      "q": 24,
+      "candidate": "c1",
+      "vs": "c0",
+      "duv_edges_base": 0.015197682563598738,
+      "duv_edges": 0.015180256747187853,
+      "delta_duv_edges": -1.742581641088481e-05,
+      "psnr_base": 42.4254312815577,
+      "psnr": 42.44212256891793,
+      "delta_psnr": 0.0166912873602314,
+      "grad_base": 1.0073592160718052,
+      "grad": 1.0089661550511555,
+      "sample_bytes_base": 895744,
+      "sample_bytes": 896408
+    },
+    {
+      "q": 24,
+      "candidate": "c2-b3",
+      "vs": "c0",
+      "duv_edges_base": 0.015197682563598738,
+      "duv_edges": 0.014966160635164576,
+      "delta_duv_edges": -0.0002315219284341613,
+      "psnr_base": 42.4254312815577,
+      "psnr": 42.95715441496418,
+      "delta_psnr": 0.53172313340648,
+      "grad_base": 1.0073592160718052,
+      "grad": 1.0095060964028522,
+      "sample_bytes_base": 895744,
+      "sample_bytes": 855328
+    },
+    {
+      "q": 24,
+      "candidate": "c2-b5",
+      "vs": "c0",
+      "duv_edges_base": 0.015197682563598738,
+      "duv_edges": 0.015297027357633096,
+      "delta_duv_edges": 9.934479403435857e-05,
+      "psnr_base": 42.4254312815577,
+      "psnr": 43.09812949211548,
+      "delta_psnr": 0.6726982105577832,
+      "grad_base": 1.0073592160718052,
+      "grad": 1.0080691087113451,
+      "sample_bytes_base": 895744,
+      "sample_bytes": 835104
+    },
+    {
+      "q": 24,
+      "candidate": "c2-b7",
+      "vs": "c0",
+      "duv_edges_base": 0.015197682563598738,
+      "duv_edges": 0.01568440544038408,
+      "delta_duv_edges": 0.0004867228767853407,
+      "psnr_base": 42.4254312815577,
+      "psnr": 43.122260590294,
+      "delta_psnr": 0.696829308736298,
+      "grad_base": 1.0073592160718052,
+      "grad": 1.006253083007773,
+      "sample_bytes_base": 895744,
+      "sample_bytes": 822248
+    }
+  ],
+  "candidate_verdicts": [
+    {
+      "candidate": "c1",
+      "mean_delta_duv_edges": -2.138321375234377e-05,
+      "mean_delta_psnr": 0.01773827605274647,
+      "mean_delta_grad": 0.001574193443911372,
+      "class": "neutral"
+    },
+    {
+      "candidate": "c2-b3",
+      "mean_delta_duv_edges": -0.00022817265204248238,
+      "mean_delta_psnr": 0.5432325306153108,
+      "mean_delta_grad": 0.0021553328647299086,
+      "class": "promising"
+    },
+    {
+      "candidate": "c2-b5",
+      "mean_delta_duv_edges": 8.782032352779197e-05,
+      "mean_delta_psnr": 0.6921492081973213,
+      "mean_delta_grad": 0.0008166927093291587,
+      "class": "neutral"
+    },
+    {
+      "candidate": "c2-b7",
+      "mean_delta_duv_edges": 0.00048583013688406157,
+      "mean_delta_psnr": 0.7176062976690479,
+      "mean_delta_grad": -0.000992270054398429,
+      "class": "regression"
+    }
+  ],
+  "gh_recommendation": {
+    "next": "G\u2013H: C2-b3 first (promising \u0394u\u2032v\u2032 without gradient collapse); C1 optional; C2-b7 not",
+    "do_not": [
+      "EXP-005",
+      "EXP-007",
+      "EXP-008",
+      "production default change",
+      "merge C3 without stronger siting"
+    ],
+    "c3": "code present, F skipped; weak ~0.65 px vertical SDK bias vs 2\u00d72 center"
+  },
+  "compute_cost": {
+    "C0": "baseline imagePlanes (Y per-pixel + map of 2\u00d72 RGB mean)",
+    "C1": "no extra map of means; reuse per-pixel Cb/Cr + 2\u00d72 (cheaper than C0 chroma)",
+    "C2": "two separable convolutions on 1920\u00d71080 Cb and Cr then 2\u00d72; b7 widest",
+    "C3": "point sample, negligible"
+  },
+  "d4": {
+    "schema": 1,
+    "dumps": {
+      "exp004-a01-g0": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-a01-g0/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.18001414835453033,
+          "bg_abs_mean": 0.1305161565542221,
+          "rg_peak": 2.284600019454956,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.1281006783246994,
+          "mean_map_minus_map_mean_cr_mae": 0.165877103805542,
+          "mean_map_minus_map_mean_cb_peak": 87.60055541992188,
+          "mean_map_minus_map_mean_cr_peak": 59.231597900390625,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0005776682390350048,
+          "rgb_chroma_peak": 1.1947748688455817,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-a04-a0-q24": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-a04-a0-q24/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.1412983387708664,
+          "mean_map_minus_map_mean_cr_mae": 0.186701700091362,
+          "mean_map_minus_map_mean_cb_peak": 73.00723266601562,
+          "mean_map_minus_map_mean_cr_peak": 55.8414306640625,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0,
+          "rgb_chroma_peak": 0.0,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-a04-a075-q24": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-a04-a075-q24/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.1412983387708664,
+          "mean_map_minus_map_mean_cr_mae": 0.186701700091362,
+          "mean_map_minus_map_mean_cb_peak": 73.00723266601562,
+          "mean_map_minus_map_mean_cr_peak": 55.8414306640625,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0004573140970021788,
+          "rgb_chroma_peak": 0.7455923301259277,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-a04-bounded-q24": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-a04-bounded-q24/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.1412983387708664,
+          "mean_map_minus_map_mean_cr_mae": 0.186701700091362,
+          "mean_map_minus_map_mean_cb_peak": 73.00723266601562,
+          "mean_map_minus_map_mean_cr_peak": 55.8414306640625,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.000619617383136337,
+          "rgb_chroma_peak": 1.2614947544975423,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-a04-f049-g0": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-a04-f049-g0/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.18045790493488312,
+          "bg_abs_mean": 0.13059529662132263,
+          "rg_peak": 2.3145666122436523,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.14226505160331726,
+          "mean_map_minus_map_mean_cr_mae": 0.1858714371919632,
+          "mean_map_minus_map_mean_cb_peak": 73.1668701171875,
+          "mean_map_minus_map_mean_cr_peak": 60.65899658203125,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.000619590434554635,
+          "rgb_chroma_peak": 1.2543302499978337,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-a04-g0-q24": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-a04-g0-q24/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.1412983387708664,
+          "mean_map_minus_map_mean_cr_mae": 0.186701700091362,
+          "mean_map_minus_map_mean_cb_peak": 73.00723266601562,
+          "mean_map_minus_map_mean_cr_peak": 55.8414306640625,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006197779470204707,
+          "rgb_chroma_peak": 1.2614947544975423,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-a04-g2-q24": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-a04-g2-q24/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.1412983387708664,
+          "mean_map_minus_map_mean_cr_mae": 0.186701700091362,
+          "mean_map_minus_map_mean_cb_peak": 73.00723266601562,
+          "mean_map_minus_map_mean_cr_peak": 55.8414306640625,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006197779470204707,
+          "rgb_chroma_peak": 1.2614947544975423,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-a04-g3-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-a04-g3-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.1412983387708664,
+          "mean_map_minus_map_mean_cr_mae": 0.186701700091362,
+          "mean_map_minus_map_mean_cb_peak": 73.00723266601562,
+          "mean_map_minus_map_mean_cr_peak": 55.8414306640625,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006197779470204707,
+          "rgb_chroma_peak": 1.2614947544975423,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-a04-precomp-off-q24": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-a04-precomp-off-q24/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.1412983387708664,
+          "mean_map_minus_map_mean_cr_mae": 0.186701700091362,
+          "mean_map_minus_map_mean_cb_peak": 73.00723266601562,
+          "mean_map_minus_map_mean_cr_peak": 55.8414306640625,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0,
+          "rgb_chroma_peak": 0.0,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-a04-q18": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-a04-q18/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.1412983387708664,
+          "mean_map_minus_map_mean_cr_mae": 0.186701700091362,
+          "mean_map_minus_map_mean_cb_peak": 73.00723266601562,
+          "mean_map_minus_map_mean_cr_peak": 55.8414306640625,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006197779470204707,
+          "rgb_chroma_peak": 1.2614947544975423,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c0-a04-q18": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c0-a04-q18/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 18,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c0",
+          "og_chroma_kernel": "",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c0-a04-q18",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.1412983387708664,
+          "mean_map_minus_map_mean_cr_mae": 0.186701700091362,
+          "mean_map_minus_map_mean_cb_peak": 73.00723266601562,
+          "mean_map_minus_map_mean_cr_peak": 55.8414306640625,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006197779470204707,
+          "rgb_chroma_peak": 1.2614947544975423,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c0-a04-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c0-a04-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 2,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c0",
+          "og_chroma_kernel": "",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c0-a04-q2",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.1412983387708664,
+          "mean_map_minus_map_mean_cr_mae": 0.186701700091362,
+          "mean_map_minus_map_mean_cb_peak": 73.00723266601562,
+          "mean_map_minus_map_mean_cr_peak": 55.8414306640625,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006197779470204707,
+          "rgb_chroma_peak": 1.2614947544975423,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c0-a04-q24": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c0-a04-q24/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 24,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c0",
+          "og_chroma_kernel": "",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c0-a04-q24",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.1412983387708664,
+          "mean_map_minus_map_mean_cr_mae": 0.186701700091362,
+          "mean_map_minus_map_mean_cb_peak": 73.00723266601562,
+          "mean_map_minus_map_mean_cr_peak": 55.8414306640625,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006197779470204707,
+          "rgb_chroma_peak": 1.2614947544975423,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c1-a01-q24": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c1-a01-q24/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 24,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c1",
+          "og_chroma_kernel": "",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c1-a01-q24",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.18001414835453033,
+          "bg_abs_mean": 0.1305161565542221,
+          "rg_peak": 2.284600019454956,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 1.4675323427582043e-06,
+          "mean_map_minus_map_mean_cr_mae": 1.7255696320717107e-06,
+          "mean_map_minus_map_mean_cb_peak": 3.0517578125e-05,
+          "mean_map_minus_map_mean_cr_peak": 3.0517578125e-05,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.000579298149159085,
+          "rgb_chroma_peak": 1.1202330075441647,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c1-a04-f049-q24": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c1-a04-f049-q24/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 24,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c1",
+          "og_chroma_kernel": "",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c1-a04-f049-q24",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.18045790493488312,
+          "bg_abs_mean": 0.13059529662132263,
+          "rg_peak": 2.3145666122436523,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 1.4698689483338967e-06,
+          "mean_map_minus_map_mean_cr_mae": 1.7266853546971106e-06,
+          "mean_map_minus_map_mean_cb_peak": 3.0517578125e-05,
+          "mean_map_minus_map_mean_cr_peak": 3.0517578125e-05,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.000622845844434664,
+          "rgb_chroma_peak": 1.2346692880031087,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c1-a04-q18": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c1-a04-q18/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 18,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c1",
+          "og_chroma_kernel": "",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c1-a04-q18",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 1.4642589576396858e-06,
+          "mean_map_minus_map_mean_cr_mae": 1.7356762782583246e-06,
+          "mean_map_minus_map_mean_cb_peak": 3.0517578125e-05,
+          "mean_map_minus_map_mean_cr_peak": 3.0517578125e-05,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006230477924383535,
+          "rgb_chroma_peak": 1.2450561663312585,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c1-a04-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c1-a04-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 2,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c1",
+          "og_chroma_kernel": "",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c1-a04-q2",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 1.4642589576396858e-06,
+          "mean_map_minus_map_mean_cr_mae": 1.7356762782583246e-06,
+          "mean_map_minus_map_mean_cb_peak": 3.0517578125e-05,
+          "mean_map_minus_map_mean_cr_peak": 3.0517578125e-05,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006230477924383535,
+          "rgb_chroma_peak": 1.2450561663312585,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c1-a04-q24": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c1-a04-q24/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 24,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c1",
+          "og_chroma_kernel": "",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c1-a04-q24",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 1.4642589576396858e-06,
+          "mean_map_minus_map_mean_cr_mae": 1.7356762782583246e-06,
+          "mean_map_minus_map_mean_cb_peak": 3.0517578125e-05,
+          "mean_map_minus_map_mean_cr_peak": 3.0517578125e-05,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006230477924383535,
+          "rgb_chroma_peak": 1.2450561663312585,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c2-b3-a04-q18": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c2-b3-a04-q18/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 18,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c2",
+          "og_chroma_kernel": "b3",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c2-b3-a04-q18",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 1.5863476991653442,
+          "mean_map_minus_map_mean_cr_mae": 1.810618281364441,
+          "mean_map_minus_map_mean_cb_peak": 72.48036193847656,
+          "mean_map_minus_map_mean_cr_peak": 81.77649688720703,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006195983655019349,
+          "rgb_chroma_peak": 1.2623446497237787,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c2-b3-a04-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c2-b3-a04-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 2,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c2",
+          "og_chroma_kernel": "b3",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c2-b3-a04-q2",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 1.5863476991653442,
+          "mean_map_minus_map_mean_cr_mae": 1.810618281364441,
+          "mean_map_minus_map_mean_cb_peak": 72.48036193847656,
+          "mean_map_minus_map_mean_cr_peak": 81.77649688720703,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006195983655019349,
+          "rgb_chroma_peak": 1.2623446497237787,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c2-b3-a04-q24": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c2-b3-a04-q24/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 24,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c2",
+          "og_chroma_kernel": "b3",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c2-b3-a04-q24",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 1.5863476991653442,
+          "mean_map_minus_map_mean_cr_mae": 1.810618281364441,
+          "mean_map_minus_map_mean_cb_peak": 72.48036193847656,
+          "mean_map_minus_map_mean_cr_peak": 81.77649688720703,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006195983655019349,
+          "rgb_chroma_peak": 1.2623446497237787,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c2-b5-a04-q18": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c2-b5-a04-q18/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 18,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c2",
+          "og_chroma_kernel": "b5",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c2-b5-a04-q18",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 2.413106679916382,
+          "mean_map_minus_map_mean_cr_mae": 2.7564876079559326,
+          "mean_map_minus_map_mean_cb_peak": 104.15380859375,
+          "mean_map_minus_map_mean_cr_peak": 130.0577850341797,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006186464512434276,
+          "rgb_chroma_peak": 1.2713649879124755,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c2-b5-a04-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c2-b5-a04-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 2,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c2",
+          "og_chroma_kernel": "b5",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c2-b5-a04-q2",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 2.413106679916382,
+          "mean_map_minus_map_mean_cr_mae": 2.7564876079559326,
+          "mean_map_minus_map_mean_cb_peak": 104.15380859375,
+          "mean_map_minus_map_mean_cr_peak": 130.0577850341797,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006186464512434276,
+          "rgb_chroma_peak": 1.2713649879124755,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c2-b5-a04-q24": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c2-b5-a04-q24/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 24,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c2",
+          "og_chroma_kernel": "b5",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c2-b5-a04-q24",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 2.413106679916382,
+          "mean_map_minus_map_mean_cr_mae": 2.7564876079559326,
+          "mean_map_minus_map_mean_cb_peak": 104.15380859375,
+          "mean_map_minus_map_mean_cr_peak": 130.0577850341797,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006186464512434276,
+          "rgb_chroma_peak": 1.2713649879124755,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c2-b7-a04-q18": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c2-b7-a04-q18/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 18,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c2",
+          "og_chroma_kernel": "b7",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c2-b7-a04-q18",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 2.975099563598633,
+          "mean_map_minus_map_mean_cr_mae": 3.405802011489868,
+          "mean_map_minus_map_mean_cb_peak": 128.39317321777344,
+          "mean_map_minus_map_mean_cr_peak": 160.88729858398438,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006183160959058787,
+          "rgb_chroma_peak": 1.2767439144798316,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c2-b7-a04-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c2-b7-a04-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 2,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c2",
+          "og_chroma_kernel": "b7",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c2-b7-a04-q2",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 2.975099563598633,
+          "mean_map_minus_map_mean_cr_mae": 3.405802011489868,
+          "mean_map_minus_map_mean_cb_peak": 128.39317321777344,
+          "mean_map_minus_map_mean_cr_peak": 160.88729858398438,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006183160959058787,
+          "rgb_chroma_peak": 1.2767439144798316,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-cand-c2-b7-a04-q24": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-cand-c2-b7-a04-q24/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 24,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c2",
+          "og_chroma_kernel": "b7",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-cand-c2-b7-a04-q24",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 2.975099563598633,
+          "mean_map_minus_map_mean_cr_mae": 3.405802011489868,
+          "mean_map_minus_map_mean_cb_peak": 128.39317321777344,
+          "mean_map_minus_map_mean_cr_peak": 160.88729858398438,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006183160959058787,
+          "rgb_chroma_peak": 1.2767439144798316,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-d4-chroma-iso-ramp-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-d4-chroma-iso-ramp-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 2,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c0",
+          "og_chroma_kernel": "",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-d4-chroma-iso-ramp-q2",
+          "inject_rgb": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/fixtures/chroma_iso_ramp.f32",
+          "inject_at": "pre_map",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.75,
+          "bg_abs_mean": 0.0,
+          "rg_peak": 0.7500000596046448,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.0,
+          "mean_map_minus_map_mean_cr_mae": 8.274714491562918e-05,
+          "mean_map_minus_map_mean_cb_peak": 0.0,
+          "mean_map_minus_map_mean_cr_peak": 0.001068115234375,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 1.611183730537328e-07,
+          "rgb_chroma_peak": 0.0003093472762631666,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-d4-edge-rg-h-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-d4-edge-rg-h-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 2,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c0",
+          "og_chroma_kernel": "",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-d4-edge-rg-h-q2",
+          "inject_rgb": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/fixtures/edge_rg_h.f32",
+          "inject_at": "pre_map",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.7499999403953552,
+          "bg_abs_mean": 0.3749999701976776,
+          "rg_peak": 0.7499999403953552,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.0,
+          "mean_map_minus_map_mean_cr_mae": 0.0,
+          "mean_map_minus_map_mean_cb_peak": 0.0,
+          "mean_map_minus_map_mean_cr_peak": 0.0,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0,
+          "rgb_chroma_peak": 0.0,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-d4-edge-rg-v-phase1-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-d4-edge-rg-v-phase1-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 2,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c0",
+          "og_chroma_kernel": "",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-d4-edge-rg-v-phase1-q2",
+          "inject_rgb": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/fixtures/edge_rg_v_phase1.f32",
+          "inject_at": "pre_map",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.7499999403953552,
+          "bg_abs_mean": 0.3746093511581421,
+          "rg_peak": 0.7499999403953552,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.11534303426742554,
+          "mean_map_minus_map_mean_cr_mae": 0.0,
+          "mean_map_minus_map_mean_cb_peak": 110.72930908203125,
+          "mean_map_minus_map_mean_cr_peak": 0.0,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 2.4912924686191896e-05,
+          "rgb_chroma_peak": 0.036706402253346204,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-d4-edge-rg-v-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-d4-edge-rg-v-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 2,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c0",
+          "og_chroma_kernel": "",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-d4-edge-rg-v-q2",
+          "inject_rgb": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/fixtures/edge_rg_v.f32",
+          "inject_at": "pre_map",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.7499999403953552,
+          "bg_abs_mean": 0.3749999701976776,
+          "rg_peak": 0.7499999403953552,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.0,
+          "mean_map_minus_map_mean_cr_mae": 0.0,
+          "mean_map_minus_map_mean_cb_peak": 0.0,
+          "mean_map_minus_map_mean_cr_peak": 0.0,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 6.0805801928492386e-05,
+          "rgb_chroma_peak": 0.061128687048645866,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-d4-impulse-dct-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-d4-impulse-dct-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 2,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c0",
+          "og_chroma_kernel": "",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-d4-impulse-dct-q2",
+          "inject_rgb": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/fixtures/impulse_dct.f32",
+          "inject_at": "pre_map",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.0,
+          "bg_abs_mean": 3.918306106243108e-07,
+          "rg_peak": 0.0,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 7.627587183378637e-05,
+          "mean_map_minus_map_mean_cr_mae": 0.0,
+          "mean_map_minus_map_mean_cb_peak": 39.541412353515625,
+          "mean_map_minus_map_mean_cr_peak": 0.0,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0,
+          "rgb_chroma_peak": 0.0,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-d4-impulse-even-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-d4-impulse-even-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 2,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c0",
+          "og_chroma_kernel": "",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-d4-impulse-even-q2",
+          "inject_rgb": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/fixtures/impulse_even.f32",
+          "inject_at": "pre_map",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 3.918306106243108e-07,
+          "bg_abs_mean": 0.0,
+          "rg_peak": 0.8124999403953552,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.0,
+          "mean_map_minus_map_mean_cr_mae": 7.627587183378637e-05,
+          "mean_map_minus_map_mean_cb_peak": 0.0,
+          "mean_map_minus_map_mean_cr_peak": 39.541412353515625,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 5.543323181639324e-09,
+          "rgb_chroma_peak": 0.011494634949447302,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-d4-impulse-odd-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-d4-impulse-odd-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 2,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c0",
+          "og_chroma_kernel": "",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-d4-impulse-odd-q2",
+          "inject_rgb": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/fixtures/impulse_odd.f32",
+          "inject_at": "pre_map",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 3.918306106243108e-07,
+          "bg_abs_mean": 0.0,
+          "rg_peak": 0.8124999403953552,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.0,
+          "mean_map_minus_map_mean_cr_mae": 7.627587183378637e-05,
+          "mean_map_minus_map_mean_cb_peak": 0.0,
+          "mean_map_minus_map_mean_cr_peak": 39.541412353515625,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 5.543323181639324e-09,
+          "rgb_chroma_peak": 0.011494634949447302,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-ident-g0": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-ident-g0/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "index": {
+          "frame_index": 0,
+          "q": 24,
+          "width": 1920,
+          "height": 1080,
+          "og_chroma_mode": "c0",
+          "og_chroma_kernel": "",
+          "og_chroma_phase": "center",
+          "stats_label": "exp004-ident-g0",
+          "inject_rgb": "",
+          "inject_at": "",
+          "stages_written": [
+            "S0_samples",
+            "S0_cfa",
+            "S1_rgb",
+            "S2_rgb",
+            "S3_rgb",
+            "S4_Y",
+            "S4_Cb",
+            "S4_Cr",
+            "S5_Y",
+            "S5_Cb",
+            "S5_Cr",
+            "S6_pre_Y",
+            "S6_pre_Cb",
+            "S6_pre_Cr",
+            "S6_post_Y",
+            "S6_post_Cb",
+            "S6_post_Cr",
+            "S7_Y",
+            "S7_Cb",
+            "S7_Cr"
+          ],
+          "stages_absent_encoder": [],
+          "stages_absent_external": [
+            "S8_sdk_rgb",
+            "S9_reference_exr"
+          ],
+          "note": "S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump"
+        },
+        "absent_encoder": [],
+        "absent_external": [
+          "S8_sdk_rgb",
+          "S9_reference_exr"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.1804485023021698,
+          "bg_abs_mean": 0.1306930035352707,
+          "rg_peak": 11.698230743408203,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.1412983387708664,
+          "mean_map_minus_map_mean_cr_mae": 0.186701700091362,
+          "mean_map_minus_map_mean_cb_peak": 73.00723266601562,
+          "mean_map_minus_map_mean_cr_peak": 55.8414306640625,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0006197779470204707,
+          "rgb_chroma_peak": 1.2614947544975423,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-syn-checker-chroma-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-syn-checker-chroma-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.7499999403953552,
+          "bg_abs_mean": 0.3749999701976776,
+          "rg_peak": 0.7499999403953552,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.0,
+          "mean_map_minus_map_mean_cr_mae": 0.0,
+          "mean_map_minus_map_mean_cb_peak": 0.0,
+          "mean_map_minus_map_mean_cr_peak": 0.0,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.033006478212224154,
+          "rgb_chroma_peak": 0.21740443122627257,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-syn-chirp-chroma-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-syn-chirp-chroma-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.14560849964618683,
+          "bg_abs_mean": 0.14472095668315887,
+          "rg_peak": 0.3600892424583435,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.011676899157464504,
+          "mean_map_minus_map_mean_cr_mae": 0.046369247138500214,
+          "mean_map_minus_map_mean_cb_peak": 0.0686492919921875,
+          "mean_map_minus_map_mean_cr_peak": 0.2736663818359375,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 3.2071473434452717e-06,
+          "rgb_chroma_peak": 0.00014835987353783414,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-syn-edge-neutral-v-phase1-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-syn-edge-neutral-v-phase1-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.0,
+          "bg_abs_mean": 0.0,
+          "rg_peak": 0.0,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.0,
+          "mean_map_minus_map_mean_cr_mae": 0.0,
+          "mean_map_minus_map_mean_cb_peak": 0.0,
+          "mean_map_minus_map_mean_cr_peak": 0.0,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0,
+          "rgb_chroma_peak": 0.0,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-syn-edge-neutral-v-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-syn-edge-neutral-v-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.0,
+          "bg_abs_mean": 0.0,
+          "rg_peak": 0.0,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.0,
+          "mean_map_minus_map_mean_cr_mae": 0.0,
+          "mean_map_minus_map_mean_cb_peak": 0.0,
+          "mean_map_minus_map_mean_cr_peak": 0.0,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0,
+          "rgb_chroma_peak": 0.0,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-syn-edge-neutral-v-q24": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-syn-edge-neutral-v-q24/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.0,
+          "bg_abs_mean": 0.0,
+          "rg_peak": 0.0,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.0,
+          "mean_map_minus_map_mean_cr_mae": 0.0,
+          "mean_map_minus_map_mean_cb_peak": 0.0,
+          "mean_map_minus_map_mean_cr_peak": 0.0,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 0.0,
+          "rgb_chroma_peak": 0.0,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      },
+      "exp004-syn-edge-rg-v-q2": {
+        "dir": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-syn-edge-rg-v-q2/frame_0",
+        "keys": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s2_pre_planes": {
+          "rg_abs_mean": 0.7499999403953552,
+          "bg_abs_mean": 0.3749999701976776,
+          "rg_peak": 0.7499999403953552,
+          "note": "camera-linear RGB chromaticity before curve/YCbCr; not P3/S9"
+        },
+        "nonlinearity": {
+          "mean_map_minus_map_mean_cb_mae": 0.0,
+          "mean_map_minus_map_mean_cr_mae": 0.0,
+          "mean_map_minus_map_mean_cb_peak": 0.0,
+          "mean_map_minus_map_mean_cr_peak": 0.0,
+          "note": "mean(map(RGB)) is 2\u00d72 of S4; map(mean(RGB)) is C0 S5"
+        },
+        "deblock_y_to_chromaticity": {
+          "cb_invariant": true,
+          "rgb_chroma_mae": 6.0805801928492386e-05,
+          "rgb_chroma_peak": 0.061128687048645866,
+          "note": "Cb/Cr canvas invariant; reconstructed camera-code chromaticity can still move with Y"
+        }
+      }
+    },
+    "impulses": {
+      "exp004-d4-chroma-iso-ramp-q2": {
+        "cy": 16.0,
+        "cx": 1451.3725554006844,
+        "peak": 0.925619635769704,
+        "shape": [
+          1080,
+          1920,
+          3
+        ]
+      },
+      "exp004-d4-edge-rg-h-q2": {
+        "cy": 538.131058406442,
+        "cx": 16.0,
+        "peak": 0.925506689634192,
+        "shape": [
+          1080,
+          1920,
+          3
+        ]
+      },
+      "exp004-d4-edge-rg-v-phase1-q2": {
+        "cy": 0.0,
+        "cx": 0.0,
+        "peak": 0.925417377827621,
+        "shape": [
+          1080,
+          1920,
+          3
+        ]
+      },
+      "exp004-d4-edge-rg-v-q2": {
+        "cy": 16.0,
+        "cx": 959.0,
+        "peak": 0.9254452010863778,
+        "shape": [
+          1080,
+          1920,
+          3
+        ]
+      },
+      "exp004-d4-impulse-dct-q2": {
+        "cy": 539.1091146068942,
+        "cx": 963.3845946391372,
+        "peak": 0.35791419365410476,
+        "shape": [
+          1080,
+          1920,
+          3
+        ]
+      },
+      "exp004-d4-impulse-even-q2": {
+        "cy": 539.7611070316475,
+        "cx": 960.7895191644775,
+        "peak": 0.3993884945343486,
+        "shape": [
+          1080,
+          1920,
+          3
+        ]
+      },
+      "exp004-d4-impulse-odd-q2": {
+        "cy": 541.8845341643038,
+        "cx": 962.2548109577976,
+        "peak": 0.4826024230194038,
+        "shape": [
+          1080,
+          1920,
+          3
+        ]
+      }
+    },
+    "siting": {
+      "even": {
+        "cy": 539.7611070316475,
+        "cx": 960.7895191644775,
+        "peak": 0.3993884945343486,
+        "shape": [
+          1080,
+          1920,
+          3
+        ]
+      },
+      "odd": {
+        "cy": 541.8845341643038,
+        "cx": 962.2548109577976,
+        "peak": 0.4826024230194038,
+        "shape": [
+          1080,
+          1920,
+          3
+        ]
+      },
+      "even_src": [
+        960,
+        540
+      ],
+      "odd_src": [
+        963,
+        543
+      ],
+      "even_vs_cell_center_px": [
+        -0.7388929683525021,
+        0.2895191644774968
+      ],
+      "odd_vs_cell_center_px": [
+        -0.6154658356962273,
+        -0.24518904220235527
+      ],
+      "mean_l1_vs_cell_center": 0.9445335053642907,
+      "consistent_vertical_bias_px": [
+        -0.7388929683525021,
+        -0.6154658356962273
+      ],
+      "c3_warranted": false,
+      "c3_weak_vertical_bias": true,
+      "note": "SDK peaks sit near encoder 2\u00d72 centers; even-vs-odd \u0394~2 px is cell spacing. Weak consistent vertical bias ~-0.65 px (not C3 in F)."
+    }
+  },
   "synthetic_neutral": {
     "s5_cb_abs_mean": 0.0,
     "s5_cr_abs_mean": 0.0,
@@ -1021,6 +5654,8 @@
   "notes": [
     "S7 is local encoder reconstruct, not SDK.",
     "Do not compare buffers across incompatible domains.",
-    "Global fidelity gates unchanged."
+    "Global fidelity gates unchanged.",
+    "Halo reduction that destroys useful chroma resolution is not a win.",
+    "EXP-007/008 deferred; EXP-005 not started."
   ]
 }

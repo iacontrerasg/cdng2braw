@@ -3,7 +3,7 @@
 **Rama:** `experiment/pocket-og-chromatic-fidelity`  
 **Base:** `048af3ad6ea147e2e64adbb6bd95620c68ae4127` (main tras merge PR #8 / EXP-003b)  
 **Encoder por defecto:** sin cambios. RDOQ experimental y **OFF**. NR y synthesis **OFF** en esta campaña.  
-**Alcance:** fases A–D2. **No** se implementa corrección de producción ni fases E–H.
+**Alcance:** A–D2 (auditoría) + D3–D4 (integridad/aislamiento) + E (candidatos experimentales C0–C4) + F (comparación preliminar). **No** EXP-005. **No** EXP-007/008. Defaults de producción **sin cambios**.
 
 Leyenda de afirmaciones: **[código]** verificado en el árbol; **[exp]** medido en esta campaña; **[hip]** hipótesis.
 
@@ -145,13 +145,48 @@ Mediciones destacadas (A04_f044 salvo sintético):
 
 ---
 
-## Candidatos correctivos (no implementados)
+## D3 — Integridad experimental
 
-1. Caja 4:2:0 **después** de curva, o AA antes del subsample (H2/H3).  
-2. Emparejar fase de upsample del SDK (H4/H5) — requiere perfiles S7 vs S8.  
-3. Prefiltro croma en la ruta RGB OG (hoy solo VA).  
-4. Debayer alternativo **solo** si H1 domina en S1.  
-5. No usar α de deblock luma como arreglo de halo (H6).
+- Dump ON/OFF: `tools/exp004_sweep.py --phase identity` fuerza `--no-cache` (conversiones independientes).
+- Identidad de `CDNG_INJECT_RGB`: `path#sha256` en `experimental_env` de caché; el worker recibe solo la ruta (como `CDNG_DEADZONE_POLICY`).
+- Dumps: se **rechaza sobrescribir** `.bin` existentes; `stages_index.json` lista etapas escritas, ausentes del encoder (p. ej. S0 si el DNG no es Bayer) y S8/S9 como externas.
+- `CDNG_STATS_LABEL` = `run_id` asocia dump ↔ corrida. El dump **no** entra en la identidad de encode.
+
+## D4 — Aislamiento
+
+### Debayer (H1)
+
+S1/S2 son RGB **cámara lineal**; S9 es P3-D65 Linear. No se comparan en crudo. Error cromático **antes** de `imagePlanes`: cromaticidad (R−G, B−G) en S2. No se atribuye el defecto a AHD sin S1 vs verdad de mosaico.
+
+### Siting / SDK (H4/H5)
+
+Fixtures `impulse_even/odd/dct`, `edge_rg_{h,v}`, fases. Centroides en S8 (RGB SDK). C3 solo si `c3_warranted` en `d4.json`. No se asume bilinear/bicubic.
+
+### No linealidad (H2)
+
+`mean(map)` = caja 2×2 de S4; `map(mean)` = S5 C0. MAE/peak en dumps.
+
+### Deblock (H6)
+
+Cb/Cr de canvas **idénticos** pre/post. La cromaticidad **reconstruida** vía `code_from_ycc` puede moverse porque Y cambia (contribución indirecta).
+
+## E — Candidatos (Pocket OG, flags OUTPUT_ENV, default OFF)
+
+| Id | Flag | Qué hace | Y | Dimensiones |
+|----|------|----------|---|-------------|
+| C0 | ausente o `MODE=c0` | `map(mean RGB 2×2)` histórico | idéntica | 4:2:0 |
+| C1 | `MODE=c1` | curva+matriz por píxel; media 2×2 de Cb/Cr | idéntica | 4:2:0 |
+| C2 | `MODE=c2` + `KERNEL=b3\|b5\|b7` | AA separable binomial (ganancia DC 1) en croma **codificada**, luego 2×2 | idéntica | 4:2:0 |
+| C3 | `MODE=c3` + `PHASE` | muestreo even/odd/center | idéntica | 4:2:0 |
+| C4 | `MODE=c4` + kernel + phase | combina AA y fase | idéntica | 4:2:0 |
+
+Kernels (espejo, ganancia DC 1): b3=(1,2,1)/4 → \(H(\omega)=\cos^2(\omega/2)\); b5=(1,4,6,4,1)/16 → \(\cos^4(\omega/2)\); b7=(1,6,15,20,15,6,1)/64 → \(\cos^6(\omega/2)\).
+
+No se toca curva del sensor, matriz YCbCr, VLC, DCT, QMax, ISO, debayer de producción ni post-decode. Sin blur indiscriminado.
+
+## F — Comparación preliminar
+
+A04_f044 / A04_f049 / A01_f052; q2, q18, q24; NR/synth/RDOQ OFF; α=1, DZ=0. Métricas en `exp004-results-summary.json` (`candidate_comparison`). Una bajada de halo que aplaste MTF de croma **no** cuenta como mejora.
 
 ---
 
@@ -161,9 +196,10 @@ Mediciones destacadas (A04_f044 salvo sintético):
 cmake --build build/native --target cdng-convert engine_signal_test
 cp build/native/bin/cdng-convert build/worker/converter/cdng-convert
 PYTHON=out/.venv-exr/bin/python python tools/exp004_fixtures.py --out out/benchmark/experiments/exp004/fixtures
-PYTHON=out/.venv-exr/bin/python python tools/exp004_sweep.py --phase identity --skip-existing
-PYTHON=out/.venv-exr/bin/python python tools/exp004_sweep.py --phase real --skip-existing
-PYTHON=out/.venv-exr/bin/python python tools/exp004_sweep.py --phase synth --skip-existing
+PYTHON=out/.venv-exr/bin/python python tools/exp004_sweep.py --phase identity
+PYTHON=out/.venv-exr/bin/python python tools/exp004_sweep.py --phase d4 --skip-existing
+PYTHON=out/.venv-exr/bin/python python tools/exp004_sweep.py --phase candidates --skip-existing
+PYTHON=out/.venv-exr/bin/python python tools/exp004_d4.py
 PYTHON=out/.venv-exr/bin/python python tools/exp004_report.py
 ```
 

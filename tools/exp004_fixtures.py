@@ -90,11 +90,23 @@ def build_set(h=128, w=128):
         'edge_by_v': _levels(h, w, blue, yellow, 1, 0),
         'edge_neutral_diag': diagonal(h, w, lo_n, hi_n),
         'impulse_chroma': impulse(h, w, (0.6, 0.05, 0.4), w // 2, h // 2),
+        # Celdas 4:2:0 distintas: even (2x,2y) vs odd del cuarteto vecino (2x+3,2y+3).
+        'impulse_even': impulse(h, w, (0.7, 0.05, 0.05), (w // 2) & ~1, (h // 2) & ~1),
+        'impulse_odd': impulse(h, w, (0.7, 0.05, 0.05), ((w // 2) & ~1) + 3, ((h // 2) & ~1) + 3),
+        'impulse_dct': impulse(h, w, (0.05, 0.05, 0.7), (w // 2 // 8) * 8 + 3, (h // 2 // 8) * 8 + 3),
+        'edge_rg_h': _levels(h, w, red, green, 0, 0),
+        'edge_rg_v_phase1': _levels(h, w, red, green, 1, 1),
         'lines_1_2_4_8': lines(h, w, [1, 2, 4, 8], 1),
         'checker_chroma': checker(h, w, 8, red, green),
         'chirp_luma': chirp(h, w, False),
         'chirp_chroma': chirp(h, w, True),
     }
+    ramp = np.zeros((h, w, 3), np.float32)
+    t = np.linspace(0.02, 0.6, w, dtype=np.float32)
+    ramp[..., 0] = t
+    ramp[..., 1] = t * 0.1
+    ramp[..., 2] = t * 0.1
+    fixtures['chroma_iso_ramp'] = ramp
     # Variar fase CFA / subsample / DCT: desplazar el borde 0–8 px.
     for ph in range(0, 9):
         fixtures['edge_neutral_v_p%d' % ph] = _levels(h, w, lo_n, hi_n, 1, ph - 4)

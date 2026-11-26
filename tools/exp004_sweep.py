@@ -22,7 +22,8 @@ POL = os.path.join(ROOT, 'benchmark', 'experiments', 'exp003', 'policies', 'plan
 
 
 def write_manifest(path, *, q, alpha=1.0, deadzone=None, policy=None,
-                   inject_rgb=None, inject_at=None, diagnostic=None, notes=''):
+                   inject_rgb=None, inject_at=None, diagnostic=None, notes='',
+                   chroma_mode=None, chroma_kernel=None, chroma_phase=None):
     env = {'CDNG_OG_DEBLOCK_PRECOMP': '1'}
     if abs(float(alpha) - 1.0) > 1e-12:
         env['CDNG_OG_DEBLOCK_ALPHA'] = '%g' % float(alpha)
@@ -33,6 +34,12 @@ def write_manifest(path, *, q, alpha=1.0, deadzone=None, policy=None,
     if inject_rgb:
         env['CDNG_INJECT_RGB'] = os.path.abspath(inject_rgb)
         env['CDNG_INJECT_AT'] = inject_at or 'pre_map'
+    if chroma_mode:
+        env['CDNG_OG_CHROMA_MODE'] = chroma_mode
+    if chroma_kernel:
+        env['CDNG_OG_CHROMA_KERNEL'] = chroma_kernel
+    if chroma_phase:
+        env['CDNG_OG_CHROMA_PHASE'] = chroma_phase
     enc = {
         'compression': 'quality', 'q': q, 'ratio': None, 'rate_search': False,
         'noise_synthesis': False, 'nr_luma': 0, 'nr_chroma': 0, 'workers': 1,
@@ -51,10 +58,14 @@ def write_manifest(path, *, q, alpha=1.0, deadzone=None, policy=None,
 def dump_diag(args, run_id, extra=None):
     dump = os.path.abspath(os.path.join(args.out, 'experiments', 'exp004', 'stages', run_id))
     stats = os.path.abspath(os.path.join(args.out, 'experiments', 'exp004', 'stats', run_id))
+    if not args.skip_existing:
+        import shutil
+        shutil.rmtree(dump, ignore_errors=True)
     os.makedirs(dump, exist_ok=True)
     os.makedirs(stats, exist_ok=True)
     d = {'CDNG_DUMP_STAGES': dump, 'CDNG_DUMP_FRAME': '0',
          'CDNG_BIT_BUDGET': '1', 'CDNG_COEFF_STATS': '1', 'CDNG_STATS_DIR': stats,
+         'CDNG_STATS_LABEL': run_id,
          'CDNG_ALIGN_SOFT': '1'}
     if extra:
         d.update(extra)
@@ -79,11 +90,12 @@ def run_bench(args, run_id, manifest, *, test, frames=None, no_reference=False):
     return os.path.join(args.out, 'runs', run_id)
 
 
-def maybe_skip(args, run_id, **kw):
+def maybe_skip(args, run_id, no_reference=False, **kw):
     run_dir = os.path.join(args.out, 'runs', run_id)
     if not (args.skip_existing and os.path.isfile(os.path.join(run_dir, 'metrics.json'))):
         return None
-    RD.verify_run_matches_request(run_dir, **kw)
+    if not no_reference:
+        RD.verify_run_matches_request(run_dir, **kw)
     print('skip', run_id, flush=True)
     return run_dir
 
@@ -91,7 +103,7 @@ def maybe_skip(args, run_id, **kw):
 def _do(args, run_id, man_name, test, frames, man_kw, verify_kw, no_reference=False):
     man = os.path.join(MAN_DIR, man_name)
     write_manifest(man, diagnostic=dump_diag(args, run_id), **man_kw)
-    if maybe_skip(args, run_id, **verify_kw):
+    if maybe_skip(args, run_id, no_reference=no_reference, **verify_kw):
         return os.path.join(args.out, 'runs', run_id)
     return run_bench(args, run_id, man, test=test, frames=frames, no_reference=no_reference)
 
@@ -164,20 +176,66 @@ def phase_synth(args):
 
 
 def phase_identity(args):
-    """Dump ON vs implícito OFF: misma petición de encode; el dump es diagnóstico."""
+    """Dump ON vs OFF: conversiones independientes (--no-cache), dump no entra en identidad."""
+    args_nc = argparse.Namespace(**vars(args))
+    args_nc.no_cache = True
+    args_nc.skip_existing = False
     run_id = 'exp004-ident-g0'
     man = os.path.join(MAN_DIR, run_id + '.json')
     write_manifest(man, q=24, alpha=1.0, deadzone=0.0, notes='identity dump on',
-                   diagnostic=dump_diag(args, run_id))
-    if not maybe_skip(args, run_id, q=24):
-        run_bench(args, run_id, man, test='A04', frames='44')
+                   diagnostic=dump_diag(args_nc, run_id))
+    run_bench(args_nc, run_id, man, test='A04', frames='44')
     run_id2 = 'exp004-ident-g0-nodump'
     man2 = os.path.join(MAN_DIR, run_id2 + '.json')
     write_manifest(man2, q=24, alpha=1.0, deadzone=0.0, notes='identity dump off',
                    diagnostic={'CDNG_ALIGN_SOFT': '1'})
-    if not maybe_skip(args, run_id2, q=24):
-        run_bench(args, run_id2, man2, test='A04', frames='44')
+    run_bench(args_nc, run_id2, man2, test='A04', frames='44')
     return [os.path.join(args.out, 'runs', run_id), os.path.join(args.out, 'runs', run_id2)]
+
+
+def phase_d4(args):
+    """Impulsos / bordes cromáticos para siting SDK y no linealidad (inject @ pre_map)."""
+    fxdir = os.path.join(args.out, 'experiments', 'exp004', 'fixtures')
+    fx = build_set(1080, 1920)
+    names = ['impulse_even', 'impulse_odd', 'impulse_dct', 'edge_rg_h', 'edge_rg_v',
+             'edge_rg_v_phase1', 'chroma_iso_ramp']
+    out = []
+    for name in names:
+        rgb_path = write_fixture(fxdir, name, fx[name])
+        run_id = 'exp004-d4-%s-q2' % name.replace('_', '-')
+        man_kw = dict(q=2, alpha=1.0, deadzone=0.0, inject_rgb=rgb_path, inject_at='pre_map',
+                      notes='D4 fixture ' + name)
+        out.append(_do(args, run_id, run_id + '.json', 'A04', '44', man_kw, dict(q=2),
+                       no_reference=True))
+    return out
+
+
+def phase_candidates(args):
+    """C0–C2/C4 sobre A04_f044 (q2/18/24) y C1 en A04_f049 / A01_f052 @ q24."""
+    jobs = []
+    modes = [
+        ('c0', None, None, 'C0 baseline'),
+        ('c1', None, None, 'C1 mean mapped Cb/Cr'),
+        ('c2', 'b3', None, 'C2 binomial 3'),
+        ('c2', 'b5', None, 'C2 binomial 5'),
+        ('c2', 'b7', None, 'C2 binomial 7'),
+    ]
+    for q in (2, 18, 24):
+        for mode, kern, phase, note in modes:
+            tag = mode + (('-' + kern) if kern else '')
+            run_id = 'exp004-cand-%s-a04-q%d' % (tag, q)
+            jobs.append((run_id, 'A04', '44', dict(
+                q=q, alpha=1.0, deadzone=0.0, chroma_mode=mode, chroma_kernel=kern,
+                chroma_phase=phase, notes=note)))
+    jobs.append(('exp004-cand-c1-a04-f049-q24', 'A04', '49',
+                 dict(q=24, alpha=1.0, deadzone=0.0, chroma_mode='c1', notes='C1 f049')))
+    jobs.append(('exp004-cand-c1-a01-q24', 'A01', '52',
+                 dict(q=24, alpha=1.0, deadzone=0.0, chroma_mode='c1', notes='C1 A01')))
+    out = []
+    for run_id, test, frames, man_kw in jobs:
+        vkw = dict(q=man_kw['q'], alpha=1.0, deadzone=0.0)
+        out.append(_do(args, run_id, run_id + '.json', test, frames, man_kw, vkw))
+    return out
 
 
 def main():
@@ -188,7 +246,8 @@ def main():
     p.add_argument('--out', default=os.path.join(ROOT, 'out', 'benchmark'))
     p.add_argument('--converter', default=os.path.join(ROOT, 'build', 'worker', 'converter'))
     p.add_argument('--brawdec', default=os.path.join(ROOT, 'tools', 'brawdec', 'brawdec'))
-    p.add_argument('--phase', choices=('real', 'synth', 'identity', 'all'), default='all')
+    p.add_argument('--phase', choices=('real', 'synth', 'identity', 'd4', 'candidates', 'all'),
+                   default='all')
     p.add_argument('--skip-existing', action='store_true')
     p.add_argument('--no-cache', action='store_true')
     args = p.parse_args()
@@ -199,6 +258,10 @@ def main():
         phase_real(args)
     if args.phase in ('synth', 'all'):
         phase_synth(args)
+    if args.phase in ('d4', 'all'):
+        phase_d4(args)
+    if args.phase in ('candidates', 'all'):
+        phase_candidates(args)
 
 
 if __name__ == '__main__':

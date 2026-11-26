@@ -15,6 +15,7 @@ namespace {
 
 std::mutex gMutex;
 thread_local int gFrame = 0;
+thread_local std::vector<std::string> gWritten;
 
 const char *dumpDir() {
     const char *d = std::getenv("CDNG_DUMP_STAGES");
@@ -38,6 +39,9 @@ std::filesystem::path frameDir() {
 }
 
 void writeBytes(const std::filesystem::path &path, const void *data, std::size_t nbytes) {
+    if (std::filesystem::exists(path))
+        throw Error("CDNG_DUMP_STAGES: refusing to overwrite " + path.string() +
+                    " (use a unique dump directory per conversion / rate-search attempt)");
     std::ofstream out(path, std::ios::binary);
     if (!out) throw Error("CDNG_DUMP_STAGES: cannot write " + path.string());
     out.write(reinterpret_cast<const char *>(data), std::streamsize(nbytes));
@@ -90,6 +94,7 @@ void dumpBuffer(const char *stage, const char *plane, const void *data, std::siz
        << "  \"note\": \"" << jsonEscape(note ? note : "") << "\"\n"
        << "}\n";
     writeSidecar(dir / (stem + ".json"), js.str());
+    gWritten.push_back(stem);
 }
 
 RgbImage loadBrwd(const std::filesystem::path &path) {
@@ -128,7 +133,10 @@ RgbImage loadBrwd(const std::filesystem::path &path) {
 
 bool stageDumpEnabled() { return dumpDir() != nullptr; }
 
-void stageDumpSetFrame(int index) { gFrame = index; }
+void stageDumpSetFrame(int index) {
+    gFrame = index;
+    gWritten.clear();
+}
 
 bool stageDumpThisFrame() {
     return dumpDir() && gFrame == dumpFrameWanted();
@@ -184,6 +192,56 @@ void stageDumpPlanes(const char *stage, const Planes &planes, const char *note) 
     dumpBuffer(stage, "Cr", planes.cr.data(), planes.cr.size() * sizeof(float),
                "float32", planes.width / 2, planes.height / 2, 1, "HxW",
                "braw_ycbcr_4_2_0", "decoder_codes", note, 0, 0);
+}
+
+void stageDumpWriteIndex(int q, int width, int height, const char *chroma_mode,
+                         const char *kernel, const char *phase) {
+    if (!stageDumpThisFrame()) return;
+    std::lock_guard<std::mutex> lock(gMutex);
+    const auto dir = frameDir();
+    const char *label = std::getenv("CDNG_STATS_LABEL");
+    const char *inject = std::getenv("CDNG_INJECT_RGB");
+    const char *injectAt = std::getenv("CDNG_INJECT_AT");
+    auto has = [](const char *stem) {
+        for (const auto &s : gWritten) if (s == stem) return true;
+        return false;
+    };
+    const char *encoder[] = {
+        "S0_samples", "S0_cfa", "S1_rgb", "S2_rgb", "S3_rgb",
+        "S4_Y", "S4_Cb", "S4_Cr", "S5_Y", "S5_Cb", "S5_Cr",
+        "S6_pre_Y", "S6_pre_Cb", "S6_pre_Cr", "S6_post_Y", "S6_post_Cb", "S6_post_Cr",
+        "S7_Y", "S7_Cb", "S7_Cr"
+    };
+    std::ostringstream js;
+    js << "{\n"
+       << "  \"frame_index\": " << gFrame << ",\n"
+       << "  \"q\": " << q << ",\n"
+       << "  \"width\": " << width << ",\n"
+       << "  \"height\": " << height << ",\n"
+       << "  \"og_chroma_mode\": \"" << jsonEscape(chroma_mode ? chroma_mode : "c0") << "\",\n"
+       << "  \"og_chroma_kernel\": \"" << jsonEscape(kernel ? kernel : "") << "\",\n"
+       << "  \"og_chroma_phase\": \"" << jsonEscape(phase ? phase : "center") << "\",\n"
+       << "  \"stats_label\": \"" << jsonEscape(label ? label : "") << "\",\n"
+       << "  \"inject_rgb\": \"" << jsonEscape(inject ? inject : "") << "\",\n"
+       << "  \"inject_at\": \"" << jsonEscape(injectAt ? injectAt : "") << "\",\n"
+       << "  \"stages_written\": [";
+    for (std::size_t i = 0; i < gWritten.size(); ++i) {
+        if (i) js << ", ";
+        js << "\"" << jsonEscape(gWritten[i]) << "\"";
+    }
+    js << "],\n  \"stages_absent_encoder\": [";
+    bool first = true;
+    for (const char *s : encoder) {
+        if (has(s)) continue;
+        if (!first) js << ", ";
+        first = false;
+        js << "\"" << s << "\"";
+    }
+    js << "],\n"
+       << "  \"stages_absent_external\": [\"S8_sdk_rgb\", \"S9_reference_exr\"],\n"
+       << "  \"note\": \"S8/S9 are produced by brawdec/SDK and the EXR bank, not this encoder dump\"\n"
+       << "}\n";
+    writeSidecar(dir / "stages_index.json", js.str());
 }
 
 void stageDumpCanvas(const char *stage, const CanvasPlanes &canvas, const Geometry &g, const char *note) {

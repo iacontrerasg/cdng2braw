@@ -22,6 +22,7 @@
       "CDNG_BIT_BUDGET": "1",
       "CDNG_COEFF_STATS": "1",
       "CDNG_STATS_DIR": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stats/exp004-ident-g0",
+      "CDNG_STATS_LABEL": "exp004-ident-g0",
       "CDNG_ALIGN_SOFT": "1"
     }
   }

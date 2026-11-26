@@ -4,6 +4,7 @@
 #include "deadzone_policy.hpp"
 #include "rdoq.hpp"
 #include "signal_internal.hpp"
+#include "og_chroma.hpp"
 #include "stage_dump.hpp"
 
 #include <simdjson.h>
@@ -429,6 +430,9 @@ int convert(const std::filesystem::path &requestPath) {
     const RdoqConfig rdoqCfg = rdoqConfigFromEnv();
     if (rdoqCfg.enabled && route != Route::Og)
         throw Error("CDNG_RDOQ is only supported on Pocket OG");
+    const OgChromaConfig ogChroma = ogChromaConfigFromEnv();
+    if (ogChroma.mode != OgChromaMode::C0 && route != Route::Og)
+        throw Error("CDNG_OG_CHROMA_MODE is only supported on Pocket OG");
     // Carga una sola vez antes de los workers: tablas inmutables, sin mutex por coeficiente.
     deadzonePolicyEnsureLoaded();
     const auto &dzPol = deadzonePolicy();
@@ -448,6 +452,9 @@ int convert(const std::filesystem::path &requestPath) {
         .str("deadzone_policy_path", dzPol.path)
         .boolean("rdoq", rdoqCfg.enabled)
         .num("rdoq_lambda", rdoqCfg.enabled ? rdoqCfg.lambda : 0.0)
+        .str("og_chroma_mode", ogChromaModeName(ogChroma.mode))
+        .str("og_chroma_kernel", ogChromaKernelName(ogChroma.kernel))
+        .str("og_chroma_phase", ogChromaPhaseName(ogChroma.phase))
         .str("build", trace::buildId()).str("trace", trace::path().string()));
     const auto start = std::chrono::steady_clock::now();
     auto seconds = [&] { return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count(); };
@@ -637,6 +644,9 @@ int convert(const std::filesystem::path &requestPath) {
                         const auto rec = engine.codec.reconstruct(canvas, frame.q, geometry);
                         stageDumpCanvas("S7", rec, geometry,
                                         "local IDCT after DCT+quant on encoder canvas; not SDK upsample/CSC");
+                        stageDumpWriteIndex(frame.q, width, height, ogChromaModeName(ogChroma.mode),
+                                            ogChromaKernelName(ogChroma.kernel),
+                                            ogChromaPhaseName(ogChroma.phase));
                     }
                     seeded = true;
                     if (!request.options.noiseSynthesis) frame.noiseY = frame.noiseC = 0;
