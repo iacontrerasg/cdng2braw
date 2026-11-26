@@ -19,6 +19,8 @@ AUTHORIZED_EXP_ENV = frozenset({
     'CDNG_DEADZONE_POLICY',
     'CDNG_RDOQ',
     'CDNG_RDOQ_LAMBDA',
+    'CDNG_INJECT_RGB',
+    'CDNG_INJECT_AT',
 })
 
 # Campos de encode (request o config.encode) que pueden diferir entre puntos RD.

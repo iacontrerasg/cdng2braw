@@ -2,6 +2,7 @@
 // función. La aritmética sigue el orden de las operaciones de NumPy (sin contracción FMA, ver native/CMakeLists.txt)
 // para que image_planes y canvas_planes den los mismos valores.
 #include "signal_internal.hpp"
+#include "stage_dump.hpp"
 
 #include <simdjson.h>
 
@@ -583,9 +584,30 @@ Planes imagePlanes(const RgbImage &rgb, const SignalMap &map) {
     Planes planes(w, h);
     const auto *impl = dynamic_cast<const MapImpl *>(&map);
     std::vector<float> yccRow(std::size_t(w) * 3);
+    const bool dumpFull = stageDumpThisFrame();
+    std::vector<float> cbFull, crFull, rgbCode;
+    if (dumpFull) {
+        cbFull.resize(std::size_t(w) * h);
+        crFull.resize(std::size_t(w) * h);
+        rgbCode.resize(std::size_t(w) * h * 3);
+    }
     for (int y = 0; y < h; ++y) {
         map.map(rgb.px(0, y), yccRow.data(), std::size_t(w));
-        for (int x = 0; x < w; ++x) planes.y[std::size_t(y) * w + x] = yccRow[3 * std::size_t(x)];
+        for (int x = 0; x < w; ++x) {
+            const float Yv = yccRow[3 * std::size_t(x)];
+            const float Cb = yccRow[3 * std::size_t(x) + 1];
+            const float Cr = yccRow[3 * std::size_t(x) + 2];
+            planes.y[std::size_t(y) * w + x] = Yv;
+            if (dumpFull) {
+                const std::size_t i = std::size_t(y) * w + x;
+                cbFull[i] = Cb;
+                crFull[i] = Cr;
+                // code_from_ycc (model/pocket_og_cinemadng_signal.json): copia, no entra al encode.
+                rgbCode[3 * i + 0] = Yv - 0.5f * Cb + 1.5f * Cr;
+                rgbCode[3 * i + 1] = Yv - 0.5f * Cb - 0.5f * Cr;
+                rgbCode[3 * i + 2] = Yv + 1.5f * Cb - 0.5f * Cr;
+            }
+        }
     }
     const int hw = w / 2, hh = h / 2;
     std::vector<double> mean(std::size_t(hw) * 3), ycc(std::size_t(hw) * 3);
@@ -612,6 +634,15 @@ Planes imagePlanes(const RgbImage &rgb, const SignalMap &map) {
                 planes.cr[std::size_t(y) * hw + x] = yccF[3 * std::size_t(x) + 2];
             }
         }
+    }
+    if (dumpFull) {
+        RgbImage codes(w, h);
+        codes.data = std::move(rgbCode);
+        stageDumpRgb("S3", codes, "nonlinear_camera_codes",
+                     "derived via code_from_ycc of per-pixel map(); not a second encode kernel");
+        stageDumpYccFull("S4", w, h, planes.y.data(), cbFull.data(), crFull.data(),
+                         "per-pixel YCbCr before chroma box 2x2; Cb/Cr full-res discarded in production Planes");
+        stageDumpPlanes("S5", planes, "Y full; Cb/Cr mean 2x2 of linear RGB then map (centered 4:2:0)");
     }
     return planes;
 }

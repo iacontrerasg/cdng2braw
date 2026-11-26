@@ -45,6 +45,8 @@ OUTPUT_ENV = (
     'CDNG_OG_DEBLOCK_BOUNDED',   # EXP-001b: 1/on — precompensación restringida (excluye ALPHA)
     'CDNG_RDOQ',                 # EXP-003b: 1/on — RDOQ AC (solo Pocket OG)
     'CDNG_RDOQ_LAMBDA',          # EXP-003b: λ ≥ 0 finita (J = D + λ R); requiere CDNG_RDOQ
+    'CDNG_INJECT_RGB',           # EXP-004: BRWD RGB sustituye cameraRgb (o pre_map)
+    'CDNG_INJECT_AT',            # EXP-004: camera | pre_map
 )
 
 # Diagnóstico o i18n: no alteran el BRAW. No entran en la identidad de caché; se pasan al worker solo si se
@@ -53,6 +55,8 @@ DIAGNOSTIC_ENV = (
     'CDNG_PIPELINE_TRACE',
     'CDNG_PROFILE_LOG',
     'CDNG_DUMP_CANVAS',
+    'CDNG_DUMP_STAGES',          # EXP-004: directorio de volcados S0–S7 (no altera BRAW)
+    'CDNG_DUMP_FRAME',           # EXP-004: índice de fotograma a volcar (defecto 0)
     'CDNG_LANGUAGE',
     'CDNG_BIT_BUDGET',     # EXP-002a: contabiliza bits por plano/símbolo (no altera payload)
     'CDNG_COEFF_STATS',    # EXP-002a: histogramas DCT (no altera payload)
@@ -250,6 +254,11 @@ def encode_request(encode, environ=None):
             raise PipelineError('CDNG_RDOQ_LAMBDA inválido: %s' % lam)
         if not (lv == lv) or lv < 0 or abs(lv) == float('inf'):
             raise PipelineError('CDNG_RDOQ_LAMBDA debe ser finita y ≥ 0 (got %s)' % lam)
+    inject_at = env.get('CDNG_INJECT_AT')
+    if inject_at is not None and str(inject_at).strip() not in ('', 'camera', 'pre_map'):
+        raise PipelineError('CDNG_INJECT_AT debe ser camera|pre_map (got %s)' % inject_at)
+    if env.get('CDNG_INJECT_AT') and not env.get('CDNG_INJECT_RGB'):
+        raise PipelineError('CDNG_INJECT_AT requiere CDNG_INJECT_RGB')
     # Diagnóstico: manifiesto explícito gana; el ambiente se registra y también se pasa (no altera el BRAW).
     diagnostic = {k: ambient[k] for k in DIAGNOSTIC_ENV if k in ambient}
     for k, v in diag_declared.items():
@@ -312,6 +321,8 @@ def conversion_diagnostics(diagnostic):
     if requires_pipeline_trace(diagnostic):
         return True
     if diagnostic.get('CDNG_DUMP_CANVAS'):
+        return True
+    if diagnostic.get('CDNG_DUMP_STAGES'):
         return True
     if diagnostic.get('CDNG_PROFILE_LOG'):
         return True

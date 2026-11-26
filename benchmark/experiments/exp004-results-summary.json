@@ -1,0 +1,1026 @@
+{
+  "schema": 1,
+  "experiment": "EXP-004",
+  "base_commit": "048af3ad6ea147e2e64adbb6bd95620c68ae4127",
+  "branch": "experiment/pocket-og-chromatic-fidelity",
+  "rdoq": "experimental OFF default; not used here",
+  "instrumentation": {
+    "env": [
+      "CDNG_DUMP_STAGES",
+      "CDNG_DUMP_FRAME",
+      "CDNG_INJECT_RGB",
+      "CDNG_INJECT_AT"
+    ],
+    "stages": [
+      "S0",
+      "S1",
+      "S2",
+      "S3",
+      "S4",
+      "S5",
+      "S6_pre",
+      "S6_post",
+      "S7",
+      "S8",
+      "S9"
+    ],
+    "payload_identity": {
+      "dump_on": {
+        "A04_f044": {
+          "sample_bytes": 895744,
+          "q_eff": 24
+        }
+      },
+      "dump_off": {
+        "A04_f044": {
+          "sample_bytes": 895744,
+          "q_eff": 24
+        }
+      },
+      "payload_match": true
+    }
+  },
+  "n_runs": 18,
+  "runs": [
+    {
+      "run": "exp004-a01-g0",
+      "key": "A01_f052",
+      "sample_bytes": 872544,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "duv_edges_mean": 0.014568076141448828,
+      "detail_corr": 0.7853504530936714,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.21400451660156,
+          "cr_abs_mean": 112.58565521240234,
+          "cb_peak": 557.9865112304688,
+          "cr_peak": 560.6325073242188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.1281006783246994,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 6.194487499252124,
+        "h7_quant_cb_mae": 2.6593331189422043
+      }
+    },
+    {
+      "run": "exp004-a04-a0-q24",
+      "key": "A04_f044",
+      "sample_bytes": 816864,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "duv_edges_mean": 0.014478849725515637,
+      "detail_corr": 0.7524256300658759,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.1412983387708664,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": false
+        },
+        "h7_quant_luma_mae": 6.026780038440828,
+        "h7_quant_cb_mae": 2.6922060099317937
+      }
+    },
+    {
+      "run": "exp004-a04-a075-q24",
+      "key": "A04_f044",
+      "sample_bytes": 874000,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "duv_edges_mean": 0.014994769163013249,
+      "detail_corr": 0.7872155308362843,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.1412983387708664,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 6.169006895417016,
+        "h7_quant_cb_mae": 2.6922060099317937
+      }
+    },
+    {
+      "run": "exp004-a04-bounded-q24",
+      "key": "A04_f044",
+      "sample_bytes": 895752,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "duv_edges_mean": 0.015197660185672764,
+      "detail_corr": 0.7905027663049128,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.1412983387708664,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 6.210910389493837,
+        "h7_quant_cb_mae": 2.6922060099317937
+      }
+    },
+    {
+      "run": "exp004-a04-f049-g0",
+      "key": "A04_f049",
+      "sample_bytes": 895824,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "duv_edges_mean": 0.015156599608399128,
+      "detail_corr": 0.7899816036417864,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.4625015258789,
+          "cr_abs_mean": 113.11119079589844,
+          "cb_peak": 610.7884521484375,
+          "cr_peak": 600.9947509765625
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.14226505160331726,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 6.2117335205516335,
+        "h7_quant_cb_mae": 2.6985704349647004
+      }
+    },
+    {
+      "run": "exp004-a04-g0-q24",
+      "key": "A04_f044",
+      "sample_bytes": 895744,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "duv_edges_mean": 0.015197682563598738,
+      "detail_corr": 0.7904974978053981,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.1412983387708664,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 6.210804752004308,
+        "h7_quant_cb_mae": 2.6922060099317937
+      }
+    },
+    {
+      "run": "exp004-a04-g2-q24",
+      "key": "A04_f044",
+      "sample_bytes": 665016,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "duv_edges_mean": 0.014239176036248906,
+      "detail_corr": 0.7585386136994471,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.1412983387708664,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 8.992210871126002,
+        "h7_quant_cb_mae": 3.7441142156276177
+      }
+    },
+    {
+      "run": "exp004-a04-g3-q2",
+      "key": "A04_f044",
+      "sample_bytes": 1783016,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "duv_edges_mean": 0.014533381784568328,
+      "detail_corr": 0.8700507912500351,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.1412983387708664,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 1.385895618942204,
+        "h7_quant_cb_mae": 0.8978289158789039
+      }
+    },
+    {
+      "run": "exp004-a04-precomp-off-q24",
+      "key": "A04_f044",
+      "sample_bytes": 816864,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "duv_edges_mean": 0.014478849725515637,
+      "detail_corr": 0.7524256300658759,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.1412983387708664,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": false
+        },
+        "h7_quant_luma_mae": 6.026780038440828,
+        "h7_quant_cb_mae": 2.6922060099317937
+      }
+    },
+    {
+      "run": "exp004-a04-q18",
+      "key": "A04_f044",
+      "sample_bytes": 1028168,
+      "q_eff": 18,
+      "ratio_sample": null,
+      "duv_edges_mean": 0.015021708819530735,
+      "detail_corr": 0.8124293684321648,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.1412983387708664,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 4.978259711170276,
+        "h7_quant_cb_mae": 2.2613097552949624
+      }
+    },
+    {
+      "run": "exp004-ident-g0",
+      "key": "A04_f044",
+      "sample_bytes": 895744,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "duv_edges_mean": 0.015197682563598738,
+      "detail_corr": 0.7904974978053981,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 88.46981048583984,
+          "cr_abs_mean": 113.09699249267578,
+          "cb_peak": 592.9065551757812,
+          "cr_peak": 645.2233276367188
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.1412983387708664,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 6.210804752004308,
+        "h7_quant_cb_mae": 2.6922060099317937
+      }
+    },
+    {
+      "run": "exp004-ident-g0-nodump",
+      "key": "A04_f044",
+      "sample_bytes": 895744,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "duv_edges_mean": 0.015197682563598738,
+      "detail_corr": 0.7904974978053981,
+      "dump": {
+        "stages_present": []
+      }
+    },
+    {
+      "run": "exp004-syn-checker-chroma-q2",
+      "key": "A04_f044",
+      "sample_bytes": 1721072,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "duv_edges_mean": null,
+      "detail_corr": null,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 478.0999755859375,
+          "cr_abs_mean": 956.199951171875,
+          "cb_peak": 956.19873046875,
+          "cr_peak": 956.19873046875
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.0,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 0.5048051035060428,
+        "h7_quant_cb_mae": 0.36885245901639346
+      }
+    },
+    {
+      "run": "exp004-syn-chirp-chroma-q2",
+      "key": "A04_f044",
+      "sample_bytes": 443072,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "duv_edges_mean": null,
+      "detail_corr": null,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 180.10301208496094,
+          "cr_abs_mean": 182.51283264160156,
+          "cb_peak": 349.17938232421875,
+          "cr_peak": 349.1780090332031
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.011676899157464504,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 0.4098360655737705,
+        "h7_quant_cb_mae": 0.4016393442622951
+      }
+    },
+    {
+      "run": "exp004-syn-edge-neutral-v-phase1-q2",
+      "key": "A04_f044",
+      "sample_bytes": 78720,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "duv_edges_mean": null,
+      "detail_corr": null,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 0.0,
+          "cr_abs_mean": 0.0,
+          "cb_peak": 0.0,
+          "cr_peak": 0.0
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.0,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 0.0030737704918032786,
+        "h7_quant_cb_mae": 0.0
+      }
+    },
+    {
+      "run": "exp004-syn-edge-neutral-v-q2",
+      "key": "A04_f044",
+      "sample_bytes": 78600,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "duv_edges_mean": null,
+      "detail_corr": null,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 0.0,
+          "cr_abs_mean": 0.0,
+          "cb_peak": 0.0,
+          "cr_peak": 0.0
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.0,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 0.0056352459016393444,
+        "h7_quant_cb_mae": 0.0
+      }
+    },
+    {
+      "run": "exp004-syn-edge-neutral-v-q24",
+      "key": "A04_f044",
+      "sample_bytes": 77384,
+      "q_eff": 24,
+      "ratio_sample": null,
+      "duv_edges_mean": null,
+      "detail_corr": null,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 0.0,
+          "cr_abs_mean": 0.0,
+          "cb_peak": 0.0,
+          "cr_peak": 0.0
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.0,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 0.015881147540983607,
+        "h7_quant_cb_mae": 0.0
+      }
+    },
+    {
+      "run": "exp004-syn-edge-rg-v-q2",
+      "key": "A04_f044",
+      "sample_bytes": 79200,
+      "q_eff": 2,
+      "ratio_sample": null,
+      "duv_edges_mean": null,
+      "detail_corr": null,
+      "dump": {
+        "stages_present": [
+          "S0_cfa",
+          "S0_samples",
+          "S1_rgb",
+          "S2_rgb",
+          "S3_rgb",
+          "S4_Cb",
+          "S4_Cr",
+          "S4_Y",
+          "S5_Cb",
+          "S5_Cr",
+          "S5_Y",
+          "S6_post_Cb",
+          "S6_post_Cr",
+          "S6_post_Y",
+          "S6_pre_Cb",
+          "S6_pre_Cr",
+          "S6_pre_Y",
+          "S7_Cb",
+          "S7_Cr",
+          "S7_Y"
+        ],
+        "s4_chroma": {
+          "cb_abs_mean": 478.1000061035156,
+          "cr_abs_mean": 956.199951171875,
+          "cb_peak": 956.19873046875,
+          "cr_peak": 956.19873046875
+        },
+        "h3_box_vs_s5": {
+          "cb_mae": 0.0,
+          "note": "S5 is map(mean RGB 2x2), not mean of S4 YCbCr \u2014 MAE>0 is expected (H3/H2 mix)"
+        },
+        "h6_chroma_precomp": {
+          "cb_identical": true,
+          "cr_identical": true,
+          "y_changed": true
+        },
+        "h7_quant_luma_mae": 0.0020491803278688526,
+        "h7_quant_cb_mae": 0.0
+      }
+    }
+  ],
+  "hypothesis_matrix": [
+    {
+      "id": "H6",
+      "status": "confirmed",
+      "evidence": "Canvas chroma identical with/without luma precomp; luma changes=True"
+    },
+    {
+      "id": "H7",
+      "status": "confirmed",
+      "evidence": "S7 vs S6_post Cb MAE=2.659 codes (quant/IDCT); halo may preexist DCT"
+    },
+    {
+      "id": "H1",
+      "status": "plausible",
+      "evidence": "S0/S1 dumps exist; AHD false color is a known class \u2014 quantify vs S9 in RGB domain"
+    },
+    {
+      "id": "H2",
+      "status": "refined",
+      "evidence": "Mechanism exists (curve then YCbCr; box on linear RGB) but synthetic R=G=B yields S4/S5 chroma=0"
+    },
+    {
+      "id": "H3",
+      "status": "refined",
+      "evidence": "Box 2\u00d72 is the only OG AA; it does not create chroma on perfect greys \u2014 aliasing needs existing RGB mismatch"
+    },
+    {
+      "id": "H4",
+      "status": "inconclusive",
+      "evidence": "OG siting is centered 2\u00d72; SDK upsample kernel is opaque \u2014 compare S7 vs S8"
+    },
+    {
+      "id": "H5",
+      "status": "inconclusive",
+      "evidence": "Requires S8 vs S7 edge overshoot; SDK is closed"
+    },
+    {
+      "id": "H8",
+      "status": "plausible",
+      "evidence": "Lanczos-3 independent per RGB channel on linear camera RGB"
+    },
+    {
+      "id": "H9",
+      "status": "plausible",
+      "evidence": "Defect likely combination: AHD + nonlinear box-chroma + SDK upsample"
+    },
+    {
+      "id": "synth_neutral_chroma",
+      "status": "measured",
+      "evidence": {
+        "s5_cb_abs_mean": 0.0,
+        "s5_cr_abs_mean": 0.0,
+        "s4_cb_abs_mean": 0.0
+      }
+    }
+  ],
+  "first_stage_by_component": {
+    "luma_ringing_lanczos": "S2 (hypothesis: resize)",
+    "ahd_false_color": "S1 (hypothesis)",
+    "nonlinear_chroma_box": "S5 vs S4 (verified mechanism in imagePlanes)",
+    "deblock_luma_only": "S6_post Y; chroma unchanged (H6)",
+    "dct_quant": "S7",
+    "sdk_upsample_csc": "S8 (not substituted by S7)"
+  },
+  "corrective_candidates": [
+    {
+      "rank": 1,
+      "proposal": "Average chroma in YCbCr-after-curve or apply AA before 4:2:0 box",
+      "targets": [
+        "H2",
+        "H3"
+      ],
+      "risk": "changes OG chroma kernel \u2014 production later"
+    },
+    {
+      "rank": 2,
+      "proposal": "Document/match SDK chroma siting and upsample phase",
+      "targets": [
+        "H4",
+        "H5"
+      ],
+      "risk": "SDK opaque; needs S7 vs S8 profiles"
+    },
+    {
+      "rank": 3,
+      "proposal": "Optional chroma prefilter (binomial) on OG RGB path, currently VA-only",
+      "targets": [
+        "H3"
+      ],
+      "risk": "must not clone VA kernel blindly"
+    },
+    {
+      "rank": 4,
+      "proposal": "Debayer alternative only if H1 dominates on S1 vs S9",
+      "targets": [
+        "H1"
+      ],
+      "risk": "out of scope this PR"
+    },
+    {
+      "rank": 5,
+      "proposal": "Do not expect luma deblock \u03b1 to fix chroma halos (H6)",
+      "targets": [
+        "H6"
+      ],
+      "risk": "none"
+    }
+  ],
+  "synthetic_neutral": {
+    "s5_cb_abs_mean": 0.0,
+    "s5_cr_abs_mean": 0.0,
+    "s4_cb_abs_mean": 0.0
+  },
+  "notes": [
+    "S7 is local encoder reconstruct, not SDK.",
+    "Do not compare buffers across incompatible domains.",
+    "Global fidelity gates unchanged."
+  ]
+}

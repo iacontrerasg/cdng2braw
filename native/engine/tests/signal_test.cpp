@@ -1,5 +1,6 @@
 // Bloque B (señal): pruebas autónomas y de paridad con el prototipo.
 #include "../signal_internal.hpp"
+#include "../stage_dump.hpp"
 #include "check.hpp"
 
 #include <simdjson.h>
@@ -8,6 +9,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <set>
@@ -778,8 +780,37 @@ void writeExp001bSyntheticReport(const std::filesystem::path &path) {
     out << "  ]\n}\n";
 }
 
+void dumpDoesNotChangePlanes(const OgModel &og) {
+    const auto map = ogSignalMap(og);
+    RgbImage rgb(16, 16);
+    for (int y = 0; y < 16; ++y)
+        for (int x = 0; x < 16; ++x) {
+            float *p = rgb.px(x, y);
+            p[0] = 0.1f + 0.01f * float(x);
+            p[1] = 0.12f;
+            p[2] = 0.08f + 0.02f * float(y % 2);
+        }
+    const auto a = imagePlanes(rgb, *map);
+    const auto tmp = std::filesystem::temp_directory_path() / "cdng-exp004-dump";
+    std::filesystem::remove_all(tmp);
+    check::EnvVar dump("CDNG_DUMP_STAGES");
+    check::EnvVar frame("CDNG_DUMP_FRAME");
+    dump.set(tmp.string().c_str());
+    frame.set("0");
+    stageDumpSetFrame(0);
+    const auto b = imagePlanes(rgb, *map);
+    CHECK(a.y == b.y && a.cb == b.cb && a.cr == b.cr);
+    CHECK(std::filesystem::exists(tmp / "frame_0" / "S5_Y.bin"));
+    CHECK(std::filesystem::exists(tmp / "frame_0" / "S4_Cb.bin"));
+    dump.unset();
+    const auto c = imagePlanes(rgb, *map);
+    CHECK(a.y == c.y);
+    std::filesystem::remove_all(tmp);
+}
+
 int main() {
     const OgModel og = loadOgModel(Resources / "model/pocket_og_cinemadng_signal.json");
+    dumpDoesNotChangePlanes(og);
     autonomous(og);
     isoInference(og);
     isoTableConsistency();

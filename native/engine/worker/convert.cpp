@@ -4,6 +4,7 @@
 #include "deadzone_policy.hpp"
 #include "rdoq.hpp"
 #include "signal_internal.hpp"
+#include "stage_dump.hpp"
 
 #include <simdjson.h>
 
@@ -520,6 +521,7 @@ int convert(const std::filesystem::path &requestPath) {
                     index = next++;
                     waited = since(waitFrom);
                 }
+                stageDumpSetFrame(int(index));
                 FrameResult result;
                 result.tWait = waited;
                 trace::setActive(index == firstGood);
@@ -580,6 +582,14 @@ int convert(const std::filesystem::path &requestPath) {
                         trace::rangeStats("Y before round (without deblock, counterfactual)", measureCodeRange(yAlt, 0, 4095));
                     }
                     const auto canvas = canvasPlanes(planes, geometry, deblockCfg);
+                    if (stageDumpThisFrame()) {
+                        DeblockPrecomp offCfg;
+                        offCfg.enabled = false;
+                        stageDumpCanvas("S6_pre", canvasPlanes(planes, geometry, offCfg), geometry,
+                                        "canvas rounded/clamped without luma deblock precompensation");
+                        stageDumpCanvas("S6_post", canvas, geometry,
+                                        "canvas fed to codec (luma precomp according to DeblockPrecomp)");
+                    }
                     if (trace::active()) {
                         trace::canvas("canvasPlanes (effective path: rounded/clamped, input to the codec)", canvas, geometry);
                         DeblockPrecomp offCfg; offCfg.enabled = false;
@@ -623,6 +633,11 @@ int convert(const std::filesystem::path &requestPath) {
                     auto frame = q ? engine.codec.encodeFixed(canvas, geometry, *q)
                                    : search ? engine.codec.encodeRateControlled(canvas, geometry, target, qLast)
                                             : engine.codec.encodeFixed(canvas, geometry, qLast);
+                    if (stageDumpThisFrame()) {
+                        const auto rec = engine.codec.reconstruct(canvas, frame.q, geometry);
+                        stageDumpCanvas("S7", rec, geometry,
+                                        "local IDCT after DCT+quant on encoder canvas; not SDK upsample/CSC");
+                    }
                     seeded = true;
                     if (!request.options.noiseSynthesis) frame.noiseY = frame.noiseC = 0;
                     else if (noise.scale < 1) {

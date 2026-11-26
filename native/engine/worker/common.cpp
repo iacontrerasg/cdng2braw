@@ -1,5 +1,6 @@
 #include "worker.hpp"
 #include "signal_internal.hpp"
+#include "stage_dump.hpp"
 
 #include <simdjson.h>
 
@@ -304,9 +305,25 @@ Planes develop(const Engine &engine, const Dng &dng, const SourceInfo &info, int
         trace::planes("bayerPlanesSized output (before rounding)", planes);
         return planes;
     }
-    RgbImage rgb = dng.cameraRgb();
+    if (stageDumpThisFrame()) {
+        try {
+            stageDumpBayer(dng.cameraBayer(), "source mosaic via cameraBayer (OG encode uses cameraRgb/AHD, not this path)");
+        } catch (const std::exception &e) {
+            (void)e;  // S0 omitido si el DNG no es Bayer; no aborta el encode
+        }
+    }
+    const auto inject = stageInjectRgb();
+    const std::string injectAt = inject ? stageInjectAt() : std::string();
+    RgbImage rgb;
+    if (inject && injectAt == "camera") {
+        rgb = *inject;
+        if (tracing) trace::line("CDNG_INJECT_RGB applied at camera (replaces LibRaw AHD)");
+    } else {
+        rgb = dng.cameraRgb();
+    }
     if (tracing) trace::image("cameraRgb (LibRaw AHD, highlight=Clip, normalized black..white)", rgb.data.data(),
                               std::size_t(rgb.width) * rgb.height, 3, thresholds);
+    stageDumpRgb("S1", rgb, "linear_camera_rgb", "after LibRaw AHD or CDNG_INJECT_RGB@camera; before crop");
     if (info.route == Route::Pocket) {
         const auto color = dng.color();
         const Mat3 matrix = cameraTo709(color, color.asShotNeutral);
@@ -320,8 +337,16 @@ Planes develop(const Engine &engine, const Dng &dng, const SourceInfo &info, int
                                                 : std::string("multiply(): skipped (info.gain == 1)"));
     }
     if (tracing) trace::image("after gain", rgb.data.data(), std::size_t(rgb.width) * rgb.height, 3, thresholds);
-    rgb = resizeLinear(rgb, width, height);
+    if (inject && injectAt == "pre_map") {
+        if (inject->width != width || inject->height != height)
+            throw Error("CDNG_INJECT_RGB@pre_map must match output size");
+        rgb = *inject;
+        if (tracing) trace::line("CDNG_INJECT_RGB applied at pre_map (skips crop/resize result)");
+    } else {
+        rgb = resizeLinear(rgb, width, height);
+    }
     if (tracing) trace::image("resizeLinear (input to signal map)", rgb.data.data(), std::size_t(rgb.width) * rgb.height, 3, thresholds);
+    stageDumpRgb("S2", rgb, "linear_camera_rgb", "after crop/gain/resize (or inject@pre_map); before sensor curve");
     auto planes = imagePlanes(rgb, engine.map(info.route));
     if (tracing) trace::planes("imagePlanes output (after signal map, before rounding)", planes);
     return planes;
