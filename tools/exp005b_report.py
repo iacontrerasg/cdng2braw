@@ -48,6 +48,11 @@ def classify(oracle, sdk):
 
     candidates = []
     loop = sdk.get('closed_loop') or {}
+    ic = sdk.get('i_campaign') or {}
+    if ic.get('best') and ic['best'].get('red_plateau'):
+        p, i = pair(ic['best']['red_plateau'])
+        candidates.append({'name': 'discrete:' + str(ic['best'].get('kind', 'i')), 'p99': p, 'integrated': i,
+                           'joint': False})
     if loop.get('best') and loop['best'].get('red_plateau'):
         p, i = pair(loop['best']['red_plateau'])
         candidates.append({'name': loop['best'].get('kind', 'loop'), 'p99': p, 'integrated': i,
@@ -100,14 +105,18 @@ def build_payload(sdk=None):
     sdk = sdk or {'status': 'not_run', 'reason': 'campaña S8 no ejecutada en este informe'}
     decision = classify(oracle, sdk)
     loop = sdk.get('closed_loop') if isinstance(sdk, dict) else None
-    if loop:
+    ic = sdk.get('i_campaign') if isinstance(sdk, dict) else None
+    if loop or ic:
         decision['h6'] = {
-            'observed_irreducible': loop.get('best'),
-            'parametrization': {'n_cb': loop.get('n_cb'), 'n_cr': loop.get('n_cr')},
-            'optimizer': loop.get('gauss_newton'),
-            'quantization_note': 'GN step rms < 1 codec unit at q=2; residual unchanged',
-            'conditioning': loop.get('svd'),
+            'observed_irreducible': (ic or {}).get('best') or (loop or {}).get('best'),
+            'parametrization': {'n_cb': (loop or {}).get('n_cb'), 'n_cr': (loop or {}).get('n_cr')},
+            'optimizer': (loop or {}).get('gauss_newton'),
+            'discrete': (ic or {}).get('best'),
+            'quantization_note': 'búsqueda discreta a 4/16/32/64 códigos; solo descenso encode/decode real',
+            'conditioning': (ic or {}).get('svd_all_phases') or (loop or {}).get('svd'),
+            'periodic': (ic or {}).get('periodic', {}).get('mechanism_vs_bug002') if ic else None,
             'not_global_impossibility': True,
+            'strategies_evaluated_only': True,
         }
     return {
         'experiment': 'EXP-005b',
@@ -146,10 +155,10 @@ def build_payload(sdk=None):
             'condicionada a Y y a la curva, sin oráculo por ROI). No iniciado.'
         ),
         'remaining_if_cde': [
-            'Parametrización más rica que 6+6 columnas Cb/Cr compartidas y 4 ΔY pares (filas independientes, soporte más ancho).',
-            'Pasos del optimizador por encima del bin de cuantización (esta campaña: rms Δcódigo < 1).',
-            'DCT/QMax residual a q>2.',
-            'Cambio de representación (no 4:2:0) — fuera de alcance; no implementado.',
+            'Siting 4:2:0 y upsample del SDK (no un filtro bilinear invertible).',
+            'False color periódico en reglas: posible peine 2/8 px distinto del halo de borde.',
+            'Cambio de representación o ruta Bayer alternativa — no iniciado.',
+            'DCT/QMax a q>2 — no investigado en esta ronda.',
         ],
     }
 
@@ -375,6 +384,40 @@ def write_doc(p):
                 '- Interferencia espacial rel=%s (agrupación de FD no usada). Evaluaciones contadas %s/%s, %.1f s de encode/decode.'
                 % ((cl.get('interference') or {}).get('rel_err'), cl.get('evals_counted'),
                    cl.get('budget_max'), float(cl.get('seconds') or 0)),
+                '',
+            ]
+        ic = s.get('i_campaign') or {}
+        if ic:
+            ib = ic.get('best') or {}
+            irp = ib.get('red_plateau') or {}
+            per = ic.get('periodic') or {}
+            mech = per.get('mechanism_vs_bug002') or {}
+            live = ic.get('n_live_vars')
+            lines += [
+                '### I1–I2 — Residual a todas las fases y búsqueda discreta',
+                '',
+                'Residual: cuatro fases del ROI + luma P3-D65 (`Y=%s`, w_Y=%s). Evaluaciones nuevas contadas: %s / %s.'
+                % (ic.get('p3_luma'), ic.get('w_y'), ic.get('evals_counted'), ic.get('budget_max')),
+                '',
+                'Variables con cambio efectivo de payload/RGB a ε=64: %s. Ensayos discretos: %d (payload distinto de C0: %d; aceptados: %d). Mejor candidato real `%s`: p99 red. %.1f %% ; integral %.1f %% (mismo par).'
+                % (live, len(ic.get('trials') or []),
+                   sum(1 for t in (ic.get('trials') or []) if t.get('payload_changed')),
+                   sum(1 for t in (ic.get('trials') or []) if t.get('accepted')),
+                   ib.get('kind'), 100 * float(irp.get('p99') or 0), 100 * float(irp.get('integrated') or 0)),
+                '',
+                'Mejora sustancial (≥50 %% ambos): **%s**. No se abre otra ronda de filtros.'
+                % ic.get('substantial'),
+                '',
+                '### I3 — False color periódico (reglas ColorChecker)',
+                '',
+                'ROI `cc_ruler_left` / `cc_ruler_right`. S9: %s. Pico espectral de las reglas está limitado por el ancho de ROI; el fixture sintético muestra peine a 2× el medio-ciclo inyectado. Cubeta reglas=%s; cubeta white_strip=%s; mismo bin=%s. Causalidad común: **no** reivindicada. S2/S5/S7/S8/S9 comparados en sus dominios (cámara / códigos / P3).'
+                % (per.get('s9_exr') or per.get('s9_limitation'),
+                   mech.get('ruler_bin'), mech.get('halo_white_strip_bin'),
+                   mech.get('same_dominant_bin')),
+                '',
+                '### I4 — Cierre de esta estrategia',
+                '',
+                'Clase acotada a las estrategias evaluadas (C0, O1 bilinear, GN local, búsqueda discreta 4–64, ΔY conjunto local). No imposibilidad global. BUG-002 P0.'
                 '',
             ]
     else:

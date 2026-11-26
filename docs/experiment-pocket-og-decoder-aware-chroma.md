@@ -140,13 +140,28 @@ H4: omitida (sin mejora sustancial; no se barrió fase/horizontal/q18/WB).
 - **Condicionamiento:** Cb/Cr cond(J)=126.6, rango efectivo@1e-3=12, smin=0.002502. Conjunto Y cond=807.8, smin=0.0003923. No se invirtió un operador singular sin λ.
 - Interferencia espacial rel=0.0 (agrupación de FD no usada). Evaluaciones contadas 23/100, 12.8 s de encode/decode.
 
+### I1–I2 — Residual a todas las fases y búsqueda discreta
+
+Residual: cuatro fases del ROI + luma P3-D65 (`Y=[0.2289745641, 0.6917385219, 0.0792869141]`, w_Y=0.15). Evaluaciones nuevas contadas: 61 / 77.
+
+Variables con cambio efectivo de payload/RGB a ε=64: 12. Ensayos discretos: 60 (payload distinto de C0: 60; aceptados: 0). Mejor candidato real `c0`: p99 red. 0.0 % ; integral 0.0 % (mismo par).
+
+Mejora sustancial (≥50 % ambos): **False**. No se abre otra ronda de filtros.
+
+### I3 — False color periódico (reglas ColorChecker)
+
+ROI `cc_ruler_left` / `cc_ruler_right`. S9: /Users/isaac/Desktop/EXR/DNG1600MINUS3_00086731.exr. Pico espectral de las reglas está limitado por el ancho de ROI; el fixture sintético muestra peine a 2× el medio-ciclo inyectado. Cubeta reglas=other_28; cubeta white_strip=other_1.2e+02; mismo bin=False. Causalidad común: **no** reivindicada. S2/S5/S7/S8/S9 comparados en sus dominios (cámara / códigos / P3).
+
+### I4 — Cierre de esta estrategia
+
+Clase acotada a las estrategias evaluadas (C0, O1 bilinear, GN local, búsqueda discreta 4–64, ΔY conjunto local). No imposibilidad global. BUG-002 P0.
 ---
 
 ## G — Viabilidad
 
 Clase **D**. Ningún candidato S8 (mismo par p99+integral) es útil. No es inviabilidad global.
 
-Opciones restantes (no implementadas): Parametrización más rica que 6+6 columnas Cb/Cr compartidas y 4 ΔY pares (filas independientes, soporte más ancho).; Pasos del optimizador por encima del bin de cuantización (esta campaña: rms Δcódigo < 1).; DCT/QMax residual a q>2.; Cambio de representación (no 4:2:0) — fuera de alcance; no implementado.
+Opciones restantes (no implementadas): Siting 4:2:0 y upsample del SDK (no un filtro bilinear invertible).; False color periódico en reglas: posible peine 2/8 px distinto del halo de borde.; Cambio de representación o ruta Bayer alternativa — no iniciado.; DCT/QMax a q>2 — no investigado en esta ronda.
 
 BUG-002 sigue P0.
 

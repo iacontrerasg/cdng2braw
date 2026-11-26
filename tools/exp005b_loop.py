@@ -15,6 +15,7 @@ from tools.exp005b_sdk import (
     H, W, convert_and_decode, crop_ppm, default_encode, planes_from_rgb, rgb_chroma,
 )
 from tools.exp005b_signal import NativeSensor, camera_from_p3_grey, edge_pair, legal_clip_ycc
+from tools.fidelity.metrics import P3_LUMA
 
 N_CB = 6
 N_CR = 6
@@ -29,6 +30,9 @@ LAM0 = 1e-2
 MAX_EVAL = 100
 INTERIOR_PAD = 16
 EDGE_HALF = 48
+QUANT_RES = 2.0  # códigos: por debajo, DCT q=2 no mueve el payload de forma fiable
+W_Y = 0.15
+SCALES = (4.0, 16.0, 32.0, 64.0)
 
 
 class Budget:
@@ -79,11 +83,19 @@ def edge_slice(split=W // 2, half=EDGE_HALF):
     return y0, y1, x0, x1
 
 
-def residual_vec(s8, ref, split=W // 2):
+def luma_p3(rgb):
+    return np.asarray(rgb, dtype=np.float64) @ P3_LUMA
+
+
+def residual_vec(s8, ref, split=W // 2, w_y=0.0):
+    """Residuo firmado en las cuatro fases del ROI (todos los píxeles), no solo [::2, ::2]."""
     y0, y1, x0, x1 = edge_slice(split)
-    d = np.asarray(s8[y0:y1:2, x0:x1:2], dtype=np.float64) - np.asarray(ref[y0:y1:2, x0:x1:2], dtype=np.float64)
+    d = np.asarray(s8[y0:y1, x0:x1], dtype=np.float64) - np.asarray(ref[y0:y1, x0:x1], dtype=np.float64)
     rg, bg = rgb_chroma(d)
-    return np.concatenate([rg.reshape(-1), bg.reshape(-1)])
+    parts = [rg.reshape(-1), bg.reshape(-1)]
+    if w_y:
+        parts.append(float(w_y) * luma_p3(d).reshape(-1))
+    return np.concatenate(parts)
 
 
 def halo_pair(s8, ref, split=W // 2):
@@ -118,19 +130,35 @@ def apply_vars(y, cb, cr, x, n_y=0):
     return legal_clip_ycc(y, cb, cr)
 
 
+_EVAL_MEMO = {}
+
+
+def planes_digest(y, cb, cr):
+    y = np.ascontiguousarray(np.asarray(y, np.float32))
+    cb = np.ascontiguousarray(np.asarray(cb, np.float32))
+    cr = np.ascontiguousarray(np.asarray(cr, np.float32))
+    return hashlib.sha256(y.tobytes() + cb.tobytes() + cr.tobytes()).hexdigest()[:16]
+
+
 def eval_planes(budget, args, fixt, y, cb, cr, tag):
-    if budget.remaining() <= 0:
-        raise RuntimeError('presupuesto SDK agotado (%d)' % budget.max_n)
     y = np.asarray(y, np.float32)
     cb = np.asarray(cb, np.float32)
     cr = np.asarray(cr, np.float32)
-    digest = hashlib.sha256(y.tobytes() + cb.tobytes() + cr.tobytes()).hexdigest()[:16]
+    digest = planes_digest(y, cb, cr)
+    if digest in _EVAL_MEMO:
+        img, meta = _EVAL_MEMO[digest]
+        budget.note(tag + '/memo', meta, False)
+        return img, meta
+    if budget.remaining() <= 0:
+        raise RuntimeError('presupuesto SDK agotado (%d)' % budget.max_n)
     run_id = 'h2-%s-%s' % (tag.replace('/', '_'), digest)
     path = os.path.join(fixt, run_id + '.brwp')
     write_brwp(path, y, cb, cr)
     img, meta = convert_and_decode(args, run_id, default_encode(inject_planes=path, notes='H2 ' + tag))
+    meta = dict(meta, planes_digest=digest)
     counted = budget.count(meta)
     budget.note(tag, meta, counted)
+    _EVAL_MEMO[digest] = (img, meta)
     return img, meta
 
 
@@ -148,16 +176,16 @@ def solve_gn(J, r, lam, bound):
     return np.clip(dx, lo, hi)
 
 
-def jacobian_at(budget, args, fixt, y0, cb0, cr0, x, s8_0, ref, n_var, n_y, eps_c, eps_y, split):
-    J = np.zeros((residual_vec(s8_0, ref, split).size, n_var), dtype=np.float64)
+def jacobian_at(budget, args, fixt, y0, cb0, cr0, x, s8_0, ref, n_var, n_y, eps_c, eps_y, split, w_y=0.0):
+    r0 = residual_vec(s8_0, ref, split, w_y=w_y)
+    J = np.zeros((r0.size, n_var), dtype=np.float64)
     for i in range(n_var):
         e = np.zeros(n_var)
         e[i] = eps_y if (n_y and i >= N_CB + N_CR) else eps_c
         xp = x + e
         yp, cbp, crp = apply_vars(y0, cb0, cr0, xp, n_y)
         s8p, _ = eval_planes(budget, args, fixt, yp, cbp, crp, 'fd%d' % i)
-        rp = residual_vec(s8p, ref, split)
-        r0 = residual_vec(s8_0, ref, split)
+        rp = residual_vec(s8p, ref, split, w_y=w_y)
         J[:, i] = (rp - r0) / e[i]
     return J
 
@@ -248,7 +276,10 @@ def run_closed_loop(args, fixt, vis, *, max_eval=MAX_EVAL):
                 break
         else:
             no_descent += 1
-            lam *= 4
+            step_rms = float(np.sqrt(np.mean(dx * dx)))
+            # I1: no inflar λ si el paso ya está bajo la resolución cuantizada.
+            if step_rms >= QUANT_RES:
+                lam *= 4
             if no_descent >= 2:
                 break
         # una re-Jacobiana si queda presupuesto y el modelo falló
@@ -264,24 +295,20 @@ def run_closed_loop(args, fixt, vis, *, max_eval=MAX_EVAL):
         xj = np.zeros(n_var_j)
         xj[:n_var] = best['x']
         s8_b = best['s8']
-        Jt = jacobian_at(budget, args, fixt, y0, cb0, cr0, xj, s8_b, ref_plat, n_var_j, n_y, EPS_C, EPS_Y, split)
-        svj = svd_report(Jt)
         boundj = (-np.full(n_var_j, span), np.full(n_var_j, span))
         boundj[0][n_var:] = -80
         boundj[1][n_var:] = 80
-        rj = residual_vec(s8_b, ref_plat, split)
-        # penalizar ΔY en el residual aumentado
-        w_y = 0.15
-        # usar solo cromático + regularización en ΔY vía λ extra
+        rj = residual_vec(s8_b, ref_plat, split, w_y=W_Y)
+        Jt = jacobian_at(budget, args, fixt, y0, cb0, cr0, xj, s8_b, ref_plat, n_var_j, n_y, EPS_C, EPS_Y, split, w_y=W_Y)
+        svj = svd_report(Jt)
         lamj = max(lam, 0.5)
         dxj = solve_gn(Jt, rj, lamj, boundj)
         xj2 = np.clip(xj + dxj, boundj[0], boundj[1])
         s8j, _ = eval_planes(budget, args, fixt, *apply_vars(y0, cb0, cr0, xj2, n_y), 'joint')
         hj = halo_pair(s8j, ref_plat, split)
         redj = reduction_pair(h0_plat, hj)
-        # luminancia S8
-        y_c0 = 0.2126 * s8_c0[..., 0] + 0.7152 * s8_c0[..., 1] + 0.0722 * s8_c0[..., 2]
-        y_j = 0.2126 * s8j[..., 0] + 0.7152 * s8j[..., 1] + 0.0722 * s8j[..., 2]
+        y_c0 = luma_p3(s8_c0)
+        y_j = luma_p3(s8j)
         gy0 = np.gradient(y_c0, axis=1)
         gyj = np.gradient(y_j, axis=1)
         joint = {
@@ -351,3 +378,179 @@ def run_closed_loop(args, fixt, vis, *, max_eval=MAX_EVAL):
         'not_bilinear': True,
         'held_out_peak_not_used_as_operator_proof': True,
     }
+
+
+def _x_key(x):
+    return tuple(int(np.rint(v)) for v in np.asarray(x).ravel())
+
+
+def luma_ok(s8_c0, s8, split):
+    y0, y1, x0, x1 = edge_slice(split)
+    a = luma_p3(s8_c0[y0:y1, x0:x1])
+    b = luma_p3(s8[y0:y1, x0:x1])
+    ga = np.gradient(a, axis=1)
+    gb = np.gradient(b, axis=1)
+    rms = float(np.sqrt(np.mean((b - a) ** 2)))
+    rel = float(rms / (np.sqrt(np.mean(a * a)) + 1e-12))
+    grad_rel = float(np.linalg.norm(gb - ga) / (np.linalg.norm(ga) + 1e-12))
+    return {
+        'luma_rms': rms, 'luma_rel': rel, 'grad_rel': grad_rel,
+        'ok': rel < 0.08 and grad_rel < 0.25,
+    }
+
+
+def accept_real(h0, h, luma, r0, r):
+    red = reduction_pair(h0, h)
+    drop = float(np.dot(r0, r0) - np.dot(r, r))
+    return (drop > 0 and red['p99'] > 0 and red['integrated'] > -0.05
+            and luma['ok'] and not (red['p99'] > 0.15 and red['integrated'] < 0)), red, drop
+
+
+def run_i_campaign(args, fixt, vis, *, max_eval=77):
+    """I1–I2: residual a todas las fases, búsqueda discreta, sin rehacer H2 si el payload ya existe."""
+    from tools.exp005b_periodic import run_periodic
+
+    sensor = NativeSensor()
+    budget = Budget(max_eval)
+    rgb = p3_fixture(sensor)
+    y0, cb0, cr0 = planes_from_rgb(rgb, sensor)
+    split = W // 2
+    t0 = time.monotonic()
+    seen = set()
+
+    s8_c0, m0 = eval_planes(budget, args, fixt, y0, cb0, cr0, 'c0')
+    ref_plat = plateau_ref(s8_c0, split)
+    ref_alg = algebraic_ref(rgb, sensor)
+    h0 = halo_pair(s8_c0, ref_plat, split)
+    r0 = residual_vec(s8_c0, ref_plat, split, w_y=W_Y)
+    n_var = N_CB + N_CR
+    x0 = np.zeros(n_var)
+    seen.add(_x_key(x0))
+
+    fd = []
+    for i in range(n_var):
+        if budget.remaining() < 1:
+            break
+        e = np.zeros(n_var)
+        e[i] = EPS_C
+        s8p, mp = eval_planes(budget, args, fixt, *apply_vars(y0, cb0, cr0, e, 0), 'fd%d' % i)
+        dlt = np.asarray(s8p, np.float64) - np.asarray(s8_c0, np.float64)
+        rgb_rms = float(np.sqrt(np.mean(dlt * dlt)))
+        payload = mp.get('braw_sha256') != m0.get('braw_sha256')
+        fd.append({
+            'i': i, 'plane': 'cb' if i < N_CB else 'cr',
+            'rgb_rms': rgb_rms, 'payload_changed': bool(payload),
+            'braw_sha256': mp.get('braw_sha256'),
+            'counted': not (mp.get('reused_braw') and mp.get('reused_decode')),
+        })
+        seen.add(_x_key(e))
+
+    live = [d for d in fd if d['payload_changed'] or d['rgb_rms'] > 1e-8]
+    ranked = sorted(live or fd, key=lambda d: -d['rgb_rms'])
+    trials = []
+    best = {'kind': 'c0', 'x': x0.copy(), 's8' : s8_c0, 'red': {'p99': 0.0, 'integrated': 0.0},
+            'halo': h0, 'drop': 0.0}
+
+    def try_x(x, tag):
+        x = np.clip(np.asarray(x, dtype=np.float64), -400, 400)
+        key = _x_key(x)
+        if key in seen:
+            return None
+        if budget.remaining() < 1:
+            return None
+        seen.add(key)
+        s8, meta = eval_planes(budget, args, fixt, *apply_vars(y0, cb0, cr0, x, 0), tag)
+        r = residual_vec(s8, ref_plat, split, w_y=W_Y)
+        h = halo_pair(s8, ref_plat, split)
+        lu = luma_ok(s8_c0, s8, split)
+        ok, red, drop = accept_real(h0, h, lu, r0, r)
+        rec = {
+            'tag': tag, 'x': [float(v) for v in x], 'red': red, 'drop': drop,
+            'luma': lu, 'accepted': ok,
+            'payload_changed': meta.get('braw_sha256') != m0.get('braw_sha256'),
+            'rgb_rms': float(np.sqrt(np.mean((np.asarray(s8) - np.asarray(s8_c0)) ** 2))),
+        }
+        trials.append(rec)
+        if ok and (red['p99'] > best['red']['p99'] or
+                   (red['p99'] == best['red']['p99'] and red['integrated'] > best['red']['integrated'])):
+            best.update(kind=tag, x=x.copy(), s8=s8, red=red, halo=h, drop=drop, luma=lu)
+        return rec
+
+    # Coordinate / pattern: ±escalas en variables vivas, sin repetir +64 del jacobiano.
+    for d in ranked[:8]:
+        i = d['i']
+        for sc in SCALES:
+            for sgn in (-1.0, 1.0):
+                e = np.zeros(n_var)
+                e[i] = sgn * sc
+                try_x(e, 'cd-%s-%d-%s' % (d['plane'], i, int(sgn * sc)))
+                if budget.remaining() < 12:
+                    break
+            if budget.remaining() < 12:
+                break
+
+    # Dirección GN a escala cuantizada (residual de todas las fases + luma).
+    Jcols = []
+    for d in fd:
+        e = np.zeros(n_var)
+        e[d['i']] = EPS_C
+        # residual de FD memoizado
+        s8p, _ = eval_planes(budget, args, fixt, *apply_vars(y0, cb0, cr0, e, 0), 'fd%d' % d['i'])
+        rp = residual_vec(s8p, ref_plat, split, w_y=W_Y)
+        Jcols.append((rp - r0) / EPS_C)
+    if Jcols:
+        J = np.stack(Jcols, 1)
+        bound = (-np.full(n_var, 400.0), np.full(n_var, 400.0))
+        dx = solve_gn(J, r0, LAM0, bound)
+        nrm = float(np.max(np.abs(dx)))
+        if nrm > 1e-9:
+            direction = dx / nrm
+            for sc in (16.0, 32.0, 64.0):
+                try_x(direction * sc, 'gn-scale-%d' % int(sc))
+        sv = svd_report(J)
+    else:
+        sv = {}
+
+    # Un patrón: las 4 mejores columnas al mejor signo de 32.
+    if budget.remaining() >= 1 and ranked:
+        combo = np.zeros(n_var)
+        for d in ranked[:4]:
+            combo[d['i']] = 32.0
+            signed = [t for t in trials if t['tag'].startswith('cd-%s-%d-' % (d['plane'], d['i']))]
+            if signed:
+                best_t = max(signed, key=lambda t: t['drop'])
+                combo[d['i']] = best_t['x'][d['i']]
+        try_x(combo, 'pattern-top4')
+
+    periodic = run_periodic(args, fixt, vis, budget, s8_c0=None)
+
+    crop_ppm(os.path.join(vis, 'i2_c0_nnx4.ppm'), np.clip(s8_c0, 0, 1), split - 40, 500, 80, 80, 4)
+    crop_ppm(os.path.join(vis, 'i2_best_nnx4.ppm'), np.clip(best['s8'], 0, 1), split - 40, 500, 80, 80, 4)
+
+    substantial = best['red']['p99'] >= 0.5 and best['red']['integrated'] >= 0.5
+    return {
+        'budget_max': max_eval,
+        'evals_counted': budget.n,
+        'seconds': budget.seconds,
+        'wall_seconds': time.monotonic() - t0,
+        'w_y': W_Y, 'p3_luma': [float(v) for v in P3_LUMA],
+        'residual_all_phases': True,
+        'quant_res_codes': QUANT_RES,
+        'fd_sensitivity': fd,
+        'n_live_vars': len(live),
+        'svd_all_phases': sv,
+        'trials': [{k: t[k] for k in t if k != 's8'} for t in trials],
+        'best': {
+            'kind': best['kind'],
+            'red_plateau': best['red'],
+            'x_chroma': [float(v) for v in np.asarray(best['x'])],
+            'drop': best['drop'],
+            'luma': best.get('luma'),
+        },
+        'substantial': substantial,
+        'periodic': periodic,
+        'stopped': 'budget' if budget.remaining() <= 0 else 'complete',
+        'not_global_impossibility': True,
+        'same_pair_only': True,
+    }
+

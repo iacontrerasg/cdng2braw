@@ -17,7 +17,7 @@ if ROOT not in sys.path:
 from tools.exp005_metrics import halo_stats
 from tools.exp005b_io import write_brwp
 from tools.exp005b_oracle import bilinear_chroma
-from tools.exp005b_loop import run_closed_loop
+from tools.exp005b_loop import run_closed_loop, run_i_campaign
 from tools.exp005b_report import JSON_OUT, build_payload, write_doc, write_visuals
 from tools.exp005b_sdk import (
     CLIP, FRAME0, FRAME1, H, W, apply_e2, build_control_planes, build_edge_rgb, build_impulse_planes,
@@ -44,6 +44,8 @@ def _args():
                     default='/Library/Application Support/Blackmagic Design/Blackmagic RAW/Camera Support')
     ap.add_argument('--skip-sdk', action='store_true')
     ap.add_argument('--no-cache', action='store_true')
+    ap.add_argument('--references', default=os.path.expanduser('~/Desktop/EXR'))
+    ap.add_argument('--rerun-closed-loop', action='store_true')
     return ap.parse_args()
 
 
@@ -269,7 +271,15 @@ def main():
     else:
         sdk = run_sdk(args)
         vis = os.path.join(args.out, 'experiments', 'exp005b', 'visuals')
-        sdk['closed_loop'] = run_closed_loop(args, FIXT, vis)
+        prev = None
+        if os.path.isfile(JSON_OUT):
+            with open(JSON_OUT, encoding='utf-8') as f:
+                prev = json.load(f).get('sdk_campaign') or {}
+        if args.rerun_closed_loop or not (prev or {}).get('closed_loop'):
+            sdk['closed_loop'] = run_closed_loop(args, FIXT, vis)
+        else:
+            sdk['closed_loop'] = prev['closed_loop']
+        sdk['i_campaign'] = run_i_campaign(args, FIXT, vis, max_eval=77)
     os.makedirs(MAN_DIR, exist_ok=True)
     payload = build_payload(sdk)
     os.makedirs(os.path.dirname(JSON_OUT), exist_ok=True)

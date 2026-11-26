@@ -6,7 +6,10 @@ import unittest
 import numpy as np
 
 from tools.exp005b_io import read_brwp, write_brwp
-from tools.exp005b_loop import solve_gn, svd_report
+from tools.exp005b_loop import residual_vec, solve_gn, svd_report, luma_p3
+from tools.exp005b_periodic import period_spectrum, packed_line_rgb, load_ruler_rois
+from tools.fidelity.metrics import P3_LUMA
+from tools.fidelity import rois as rois_mod
 from tools.exp005b_oracle import characterize_upsamplers, run_oracle_suite, solve_o1
 from tools.exp005b_report import classify
 from tools.exp005b_sdk import (
@@ -184,6 +187,46 @@ class MethodH1Tests(unittest.TestCase):
         self.assertLess(np.max(np.abs(dx - x)), 1e-4)
         sv = svd_report(J)
         self.assertGreater(sv['smax'], sv['smin'])
+
+    def test_residual_uses_all_phases_and_p3_luma(self):
+        s8 = np.zeros((1080, 1920, 3))
+        ref = np.zeros_like(s8)
+        s8[128:952, 960 - 48:960 + 48, 0] = 0.1
+        s8[129, 961, 0] = 0.4  # fase impar
+        r2 = residual_vec(s8, ref, w_y=0.0)
+        y0, y1, x0, x1 = 128, 952, 912, 1008
+        n_pix = (y1 - y0) * (x1 - x0)
+        self.assertEqual(r2.size, 2 * n_pix)
+        rw = residual_vec(s8, ref, w_y=0.15)
+        self.assertEqual(rw.size, 3 * n_pix)
+        rgb = np.array([1.0, 1.0, 1.0])
+        self.assertAlmostEqual(float(luma_p3(rgb)), float(P3_LUMA.sum()), places=6)
+
+    def test_period_spectrum_finds_period_8(self):
+        x = np.arange(256)
+        field = np.tile(np.cos(2 * np.pi * x / 8.0), (32, 1))
+        spec = period_spectrum(field, axis=1)
+        self.assertIsNotNone(spec['peak_period_px'])
+        self.assertLess(abs(spec['peak_period_px'] - 8.0), 1.5)
+
+    def test_ruler_rois_in_chart(self):
+        r = load_ruler_rois()
+        self.assertIn('cc_ruler_left', r)
+        self.assertIn('cc_ruler_right', r)
+        doc = rois_mod.load(
+            os.path.join(os.path.dirname(__file__), '..', 'benchmark', 'rois', 'chart_wall.json'),
+            (1920, 1080))
+        names = {roi['name'] for roi in doc['rois']}
+        self.assertIn('cc_ruler_left', names)
+        self.assertIn('cc_ruler_right', names)
+
+    def test_packed_lines_geometry(self):
+        img, bands = packed_line_rgb(NativeSensor())
+        self.assertEqual(img.shape, (1080, 1920, 3))
+        self.assertGreaterEqual(len(bands), 8)
+        self.assertTrue(any(b['tilt'] > 0 for b in bands))
+        self.assertTrue(any(b['neutral'] == 'p3' for b in bands))
+        self.assertTrue(any(b['neutral'] == 'camera' for b in bands))
 
 
 if __name__ == '__main__':
