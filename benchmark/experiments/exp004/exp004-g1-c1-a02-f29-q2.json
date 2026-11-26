@@ -1,0 +1,30 @@
+{
+  "base": "../../manifest.json",
+  "encode": {
+    "compression": "quality",
+    "q": 2,
+    "ratio": null,
+    "rate_search": false,
+    "noise_synthesis": false,
+    "nr_luma": 0,
+    "nr_chroma": 0,
+    "workers": 1,
+    "experimental_env": {
+      "CDNG_OG_DEBLOCK_PRECOMP": "1",
+      "CDNG_DEADZONE": "0",
+      "CDNG_OG_CHROMA_MODE": "c1"
+    },
+    "notes": [
+      "G1 C1 mean mapped Cb/Cr A02 f29 q2"
+    ],
+    "diagnostic_env": {
+      "CDNG_DUMP_STAGES": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stages/exp004-g1-c1-a02-f29-q2",
+      "CDNG_DUMP_FRAME": "0",
+      "CDNG_BIT_BUDGET": "1",
+      "CDNG_COEFF_STATS": "1",
+      "CDNG_STATS_DIR": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp004/stats/exp004-g1-c1-a02-f29-q2",
+      "CDNG_STATS_LABEL": "exp004-g1-c1-a02-f29-q2",
+      "CDNG_ALIGN_SOFT": "1"
+    }
+  }
+}

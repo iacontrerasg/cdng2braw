@@ -4,6 +4,8 @@
 #include "deadzone_policy.hpp"
 #include "rdoq.hpp"
 #include "signal_internal.hpp"
+#include "og_chroma.hpp"
+#include "stage_dump.hpp"
 
 #include <simdjson.h>
 
@@ -428,6 +430,9 @@ int convert(const std::filesystem::path &requestPath) {
     const RdoqConfig rdoqCfg = rdoqConfigFromEnv();
     if (rdoqCfg.enabled && route != Route::Og)
         throw Error("CDNG_RDOQ is only supported on Pocket OG");
+    const OgChromaConfig ogChroma = ogChromaConfigFromEnv();
+    if (ogChroma.mode != OgChromaMode::C0 && route != Route::Og)
+        throw Error("CDNG_OG_CHROMA_MODE is only supported on Pocket OG");
     // Carga una sola vez antes de los workers: tablas inmutables, sin mutex por coeficiente.
     deadzonePolicyEnsureLoaded();
     const auto &dzPol = deadzonePolicy();
@@ -447,6 +452,9 @@ int convert(const std::filesystem::path &requestPath) {
         .str("deadzone_policy_path", dzPol.path)
         .boolean("rdoq", rdoqCfg.enabled)
         .num("rdoq_lambda", rdoqCfg.enabled ? rdoqCfg.lambda : 0.0)
+        .str("og_chroma_mode", ogChromaModeName(ogChroma.mode))
+        .str("og_chroma_kernel", ogChromaKernelName(ogChroma.kernel))
+        .str("og_chroma_phase", ogChromaPhaseName(ogChroma.phase))
         .str("build", trace::buildId()).str("trace", trace::path().string()));
     const auto start = std::chrono::steady_clock::now();
     auto seconds = [&] { return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count(); };
@@ -520,6 +528,7 @@ int convert(const std::filesystem::path &requestPath) {
                     index = next++;
                     waited = since(waitFrom);
                 }
+                stageDumpSetFrame(int(index));
                 FrameResult result;
                 result.tWait = waited;
                 trace::setActive(index == firstGood);
@@ -580,6 +589,14 @@ int convert(const std::filesystem::path &requestPath) {
                         trace::rangeStats("Y before round (without deblock, counterfactual)", measureCodeRange(yAlt, 0, 4095));
                     }
                     const auto canvas = canvasPlanes(planes, geometry, deblockCfg);
+                    if (stageDumpThisFrame()) {
+                        DeblockPrecomp offCfg;
+                        offCfg.enabled = false;
+                        stageDumpCanvas("S6_pre", canvasPlanes(planes, geometry, offCfg), geometry,
+                                        "canvas rounded/clamped without luma deblock precompensation");
+                        stageDumpCanvas("S6_post", canvas, geometry,
+                                        "canvas fed to codec (luma precomp according to DeblockPrecomp)");
+                    }
                     if (trace::active()) {
                         trace::canvas("canvasPlanes (effective path: rounded/clamped, input to the codec)", canvas, geometry);
                         DeblockPrecomp offCfg; offCfg.enabled = false;
@@ -623,6 +640,14 @@ int convert(const std::filesystem::path &requestPath) {
                     auto frame = q ? engine.codec.encodeFixed(canvas, geometry, *q)
                                    : search ? engine.codec.encodeRateControlled(canvas, geometry, target, qLast)
                                             : engine.codec.encodeFixed(canvas, geometry, qLast);
+                    if (stageDumpThisFrame()) {
+                        const auto rec = engine.codec.reconstruct(canvas, frame.q, geometry);
+                        stageDumpCanvas("S7", rec, geometry,
+                                        "local IDCT after DCT+quant on encoder canvas; not SDK upsample/CSC");
+                        stageDumpWriteIndex(frame.q, width, height, ogChromaModeName(ogChroma.mode),
+                                            ogChromaKernelName(ogChroma.kernel),
+                                            ogChromaPhaseName(ogChroma.phase));
+                    }
                     seeded = true;
                     if (!request.options.noiseSynthesis) frame.noiseY = frame.noiseC = 0;
                     else if (noise.scale < 1) {

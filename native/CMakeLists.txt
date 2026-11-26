@@ -63,10 +63,10 @@ find_package(simdjson REQUIRED)
 add_library(cdng_engine STATIC
     engine/common.cpp engine/geometry.cpp
     engine/dng.cpp engine/resize.cpp engine/wav.cpp
-    engine/signal.cpp engine/nr.cpp
+    engine/signal.cpp engine/nr.cpp engine/og_chroma.cpp
     engine/signal_asshot.cpp engine/signal_scatter.cpp engine/signal_source.cpp engine/signal_util.cpp
     engine/codec.cpp engine/codec_tables.cpp engine/encode_stats.cpp engine/deadzone_policy.cpp
-    engine/rdoq.cpp src/entropy.cpp
+    engine/rdoq.cpp engine/stage_dump.cpp src/entropy.cpp
     engine/container.cpp)
 target_compile_features(cdng_engine PUBLIC cxx_std_17)
 target_include_directories(cdng_engine PUBLIC engine include)
@@ -112,7 +112,7 @@ endif()
 # Bloque B: la paridad con NumPy necesita la aritmética tal cual (las FMA de los productos de matrices se escriben
 # explícitamente con std::fma, como las hace Accelerate).
 if(NOT MSVC)
-    set_source_files_properties(engine/signal.cpp engine/nr.cpp engine/signal_asshot.cpp engine/signal_scatter.cpp
+    set_source_files_properties(engine/signal.cpp engine/nr.cpp engine/og_chroma.cpp engine/signal_asshot.cpp engine/signal_scatter.cpp
         PROPERTIES COMPILE_OPTIONS "-ffp-contract=off")
 else()
     # MSVC no tiene -ffp-contract: lo que evita la contracción es /fp:precise, que es lo que se pide aquí.

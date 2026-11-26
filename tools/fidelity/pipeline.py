@@ -45,6 +45,11 @@ OUTPUT_ENV = (
     'CDNG_OG_DEBLOCK_BOUNDED',   # EXP-001b: 1/on — precompensación restringida (excluye ALPHA)
     'CDNG_RDOQ',                 # EXP-003b: 1/on — RDOQ AC (solo Pocket OG)
     'CDNG_RDOQ_LAMBDA',          # EXP-003b: λ ≥ 0 finita (J = D + λ R); requiere CDNG_RDOQ
+    'CDNG_INJECT_RGB',           # EXP-004: BRWD RGB sustituye cameraRgb (o pre_map)
+    'CDNG_INJECT_AT',            # EXP-004: camera | pre_map
+    'CDNG_OG_CHROMA_MODE',       # EXP-004: c0 (defecto) | c1 | c2 | c3 | c4 — solo Pocket OG
+    'CDNG_OG_CHROMA_KERNEL',     # EXP-004: b3|b5|b7; obligatorio con c2|c4
+    'CDNG_OG_CHROMA_PHASE',      # EXP-004: center|even|odd
 )
 
 # Diagnóstico o i18n: no alteran el BRAW. No entran en la identidad de caché; se pasan al worker solo si se
@@ -53,6 +58,8 @@ DIAGNOSTIC_ENV = (
     'CDNG_PIPELINE_TRACE',
     'CDNG_PROFILE_LOG',
     'CDNG_DUMP_CANVAS',
+    'CDNG_DUMP_STAGES',          # EXP-004: directorio de volcados S0–S7 (no altera BRAW)
+    'CDNG_DUMP_FRAME',           # EXP-004: índice de fotograma a volcar (defecto 0)
     'CDNG_LANGUAGE',
     'CDNG_BIT_BUDGET',     # EXP-002a: contabiliza bits por plano/símbolo (no altera payload)
     'CDNG_COEFF_STATS',    # EXP-002a: histogramas DCT (no altera payload)
@@ -175,6 +182,15 @@ def encode_request(encode, environ=None):
         # Identidad de caché: contenido (SHA) + ruta; el entorno del worker recibe solo la ruta.
         effective['CDNG_DEADZONE_POLICY'] = '%s#%s' % (path, sha)
 
+    inject_meta = None
+    if effective.get('CDNG_INJECT_RGB') is not None:
+        ipath = os.path.abspath(effective['CDNG_INJECT_RGB'])
+        if not os.path.isfile(ipath):
+            raise PipelineError('CDNG_INJECT_RGB no existe: %s' % ipath)
+        isha = identity.sha256_file(ipath)
+        inject_meta = {'path': ipath, 'sha256': isha}
+        effective['CDNG_INJECT_RGB'] = '%s#%s' % (ipath, isha)
+
     ambient = ambient_cdng(environ)
     surprises = []
     for name, value in sorted(ambient.items()):
@@ -201,6 +217,8 @@ def encode_request(encode, environ=None):
             continue
         if k == 'CDNG_DEADZONE_POLICY' and policy_meta is not None:
             env[k] = policy_meta['path']
+        elif k == 'CDNG_INJECT_RGB' and inject_meta is not None:
+            env[k] = inject_meta['path']
         else:
             env[k] = v
     # EXP-001b: coherencia PRECOMP / ALPHA / BOUNDED (el worker también rechaza).
@@ -250,6 +268,29 @@ def encode_request(encode, environ=None):
             raise PipelineError('CDNG_RDOQ_LAMBDA inválido: %s' % lam)
         if not (lv == lv) or lv < 0 or abs(lv) == float('inf'):
             raise PipelineError('CDNG_RDOQ_LAMBDA debe ser finita y ≥ 0 (got %s)' % lam)
+    inject_at = env.get('CDNG_INJECT_AT')
+    if inject_at is not None and str(inject_at).strip() not in ('', 'camera', 'pre_map'):
+        raise PipelineError('CDNG_INJECT_AT debe ser camera|pre_map (got %s)' % inject_at)
+    if env.get('CDNG_INJECT_AT') and not env.get('CDNG_INJECT_RGB'):
+        raise PipelineError('CDNG_INJECT_AT requiere CDNG_INJECT_RGB')
+    chroma_mode = (env.get('CDNG_OG_CHROMA_MODE') or '').strip().lower()
+    chroma_kernel = (env.get('CDNG_OG_CHROMA_KERNEL') or '').strip().lower()
+    chroma_phase = (env.get('CDNG_OG_CHROMA_PHASE') or '').strip().lower()
+    if chroma_mode and chroma_mode not in ('c0', '0', 'baseline', 'c1', 'c2', 'c3', 'c4'):
+        raise PipelineError('CDNG_OG_CHROMA_MODE debe ser c0|c1|c2|c3|c4 (got %s)' % env.get('CDNG_OG_CHROMA_MODE'))
+    if chroma_kernel and chroma_kernel not in ('b3', 'b5', 'b7'):
+        raise PipelineError('CDNG_OG_CHROMA_KERNEL debe ser b3|b5|b7 (got %s)' % env.get('CDNG_OG_CHROMA_KERNEL'))
+    need_k = chroma_mode in ('c2', 'c4')
+    if need_k and not chroma_kernel:
+        raise PipelineError('CDNG_OG_CHROMA_KERNEL requerido para MODE=c2|c4')
+    if chroma_kernel and not need_k:
+        raise PipelineError('CDNG_OG_CHROMA_KERNEL solo es válido con MODE=c2|c4')
+    if chroma_phase and chroma_phase not in ('center', 'even', 'odd'):
+        raise PipelineError('CDNG_OG_CHROMA_PHASE debe ser center|even|odd (got %s)' % env.get('CDNG_OG_CHROMA_PHASE'))
+    if chroma_mode in ('', 'c0', '0', 'baseline') and chroma_phase:
+        raise PipelineError('CDNG_OG_CHROMA_PHASE requiere MODE=c1|c2|c3|c4')
+    if chroma_mode == 'c3' and not chroma_phase:
+        raise PipelineError('CDNG_OG_CHROMA_PHASE requerido para MODE=c3')
     # Diagnóstico: manifiesto explícito gana; el ambiente se registra y también se pasa (no altera el BRAW).
     diagnostic = {k: ambient[k] for k in DIAGNOSTIC_ENV if k in ambient}
     for k, v in diag_declared.items():
@@ -312,6 +353,8 @@ def conversion_diagnostics(diagnostic):
     if requires_pipeline_trace(diagnostic):
         return True
     if diagnostic.get('CDNG_DUMP_CANVAS'):
+        return True
+    if diagnostic.get('CDNG_DUMP_STAGES'):
         return True
     if diagnostic.get('CDNG_PROFILE_LOG'):
         return True

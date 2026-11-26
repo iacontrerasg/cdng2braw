@@ -93,7 +93,8 @@ Planes resizeBayerFields(const BayerFields &fields, int width, int height);
 // CDNG_RESIZE_CHROMA=sites vuelve a reescalar las proporciones ya divididas sin corregir la fase (resizePlanes).
 Planes bayerPlanesSized(const BayerImage &bayer, const SignalMap &map, double gain, int width, int height);
 void finishPlanes(Planes &planes, const SignalMap &map, Route route, double luma, double chroma);
-// image_planes: Y a resolución completa del mapa del píxel; Cb/Cr del mapa de la media 2×2 del RGB.
+// image_planes: Y a resolución completa del mapa del píxel; Cb/Cr C0 = mapa de la media 2×2 del RGB.
+// EXP-004: CDNG_OG_CHROMA_MODE=c1|c2|c3|c4 cambia solo Cb/Cr (Y idéntica). Ausente ≡ C0.
 Planes imagePlanes(const RgbImage &rgb, const SignalMap &map);
 // canvas_planes: lienzo con bordes replicados, precompensación del filtro de desbloqueo (3,10,3)/16 en luma y
 // redondeo/recorte a 0…4095 (Y) y −4096…4095 (croma).
