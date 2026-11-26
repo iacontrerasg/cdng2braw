@@ -63,7 +63,7 @@ find_package(simdjson REQUIRED)
 add_library(cdng_engine STATIC
     engine/common.cpp engine/geometry.cpp
     engine/dng.cpp engine/resize.cpp engine/wav.cpp
-    engine/signal.cpp engine/nr.cpp engine/og_chroma.cpp
+    engine/signal.cpp engine/nr.cpp engine/og_chroma.cpp engine/og_debayer.cpp
     engine/signal_asshot.cpp engine/signal_scatter.cpp engine/signal_source.cpp engine/signal_util.cpp
     engine/codec.cpp engine/codec_tables.cpp engine/encode_stats.cpp engine/deadzone_policy.cpp
     engine/rdoq.cpp engine/stage_dump.cpp src/entropy.cpp

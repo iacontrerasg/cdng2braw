@@ -50,6 +50,7 @@ OUTPUT_ENV = (
     'CDNG_OG_CHROMA_MODE',       # EXP-004: c0 (defecto) | c1 | c2 | c3 | c4 — solo Pocket OG
     'CDNG_OG_CHROMA_KERNEL',     # EXP-004: b3|b5|b7; obligatorio con c2|c4
     'CDNG_OG_CHROMA_PHASE',      # EXP-004: center|even|odd
+    'CDNG_OG_DEBAYER',           # EXP-005: linear|vng|ppg|ahd|dcb|dht|aahd — solo Pocket OG; default AHD
 )
 
 # Diagnóstico o i18n: no alteran el BRAW. No entran en la identidad de caché; se pasan al worker solo si se
@@ -291,6 +292,14 @@ def encode_request(encode, environ=None):
         raise PipelineError('CDNG_OG_CHROMA_PHASE requiere MODE=c1|c2|c3|c4')
     if chroma_mode == 'c3' and not chroma_phase:
         raise PipelineError('CDNG_OG_CHROMA_PHASE requerido para MODE=c3')
+    debayer = (env.get('CDNG_OG_DEBAYER') or '').strip().lower()
+    if debayer in ('amaze', 'rcd', 'lmmse'):
+        raise PipelineError('CDNG_OG_DEBAYER=%s no está en esta compilación LibRaw' % debayer)
+    if debayer and debayer not in (
+            'linear', 'lin', '0', 'vng', '1', 'ppg', '2', 'ahd', '3',
+            'dcb', '4', 'dht', '11', 'aahd', '12'):
+        raise PipelineError(
+            'CDNG_OG_DEBAYER debe ser linear|vng|ppg|ahd|dcb|dht|aahd (got %s)' % env.get('CDNG_OG_DEBAYER'))
     # Diagnóstico: manifiesto explícito gana; el ambiente se registra y también se pasa (no altera el BRAW).
     diagnostic = {k: ambient[k] for k in DIAGNOSTIC_ENV if k in ambient}
     for k, v in diag_declared.items():

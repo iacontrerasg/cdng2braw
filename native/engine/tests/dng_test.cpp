@@ -2,6 +2,8 @@
 // remuestreo, el recorte y WAV sintéticos. Paridad (CDNG_GOLDEN): los frames y los casos que guardaba
 // el prototipo.
 #include "../dng.hpp"
+#include "../dng_math.hpp"
+#include "../og_debayer.hpp"
 #include "../signal_internal.hpp"
 #include "check.hpp"
 
@@ -168,6 +170,47 @@ void autonomousMath() {
     for (int i = 0; i < 3; ++i) rgb[i] = m[i * 3] * n[0] + m[i * 3 + 1] * n[1] + m[i * 3 + 2] * n[2];
     CHECK_NEAR(rgb[0] / rgb[1], 1.0, 2e-3);
     CHECK_NEAR(rgb[2] / rgb[1], 1.0, 2e-3);
+    const Mat3 p3 = cameraToP3(c, n);
+    double p3n[3];
+    for (int i = 0; i < 3; ++i) p3n[i] = p3[i * 3] * n[0] + p3[i * 3 + 1] * n[1] + p3[i * 3 + 2] * n[2];
+    CHECK_NEAR(p3n[0] / p3n[1], 1.0, 2e-3);
+    CHECK_NEAR(p3n[2] / p3n[1], 1.0, 2e-3);
+    const Mat3 round = math::mul(math::inv(p3), p3);
+    for (int i = 0; i < 9; ++i) CHECK_NEAR(round[i], i % 4 == 0 ? 1.0 : 0.0, 1e-9);
+    {
+        check::EnvVar env("CDNG_OG_DEBAYER");
+        env.unset();
+        const auto d = ogDebayerFromEnv();
+        CHECK(!d.fromEnv && d.userQual == 3 && d.name == "ahd");
+        env.set("ahd");
+        const auto ahd = ogDebayerFromEnv();
+        CHECK(ahd.fromEnv && ahd.userQual == 3);
+        env.set("vng");
+        CHECK(ogDebayerFromEnv().userQual == 1);
+        env.set("dht");
+        CHECK(ogDebayerFromEnv().userQual == 11);
+        env.set("aahd");
+        CHECK(ogDebayerFromEnv().userQual == 12);
+        env.set("ppg");
+        CHECK(ogDebayerFromEnv().userQual == 2);
+        env.set("linear");
+        CHECK(ogDebayerFromEnv().userQual == 0);
+        bool threw = false;
+        env.set("amaze");
+        try { ogDebayerFromEnv(); } catch (const Error &) { threw = true; }
+        CHECK(threw);
+        threw = false;
+        env.set("nope");
+        try { ogDebayerFromEnv(); } catch (const Error &) { threw = true; }
+        CHECK(threw);
+        env.set("vng");
+        threw = false;
+        try { ogDebayerRejectIfNotOg(Route::Va); } catch (const Error &) { threw = true; }
+        CHECK(threw);
+        env.unset();
+        ogDebayerRejectIfNotOg(Route::Va);
+        ogDebayerRejectIfNotOg(Route::Og);
+    }
 }
 
 void autonomousResize() {

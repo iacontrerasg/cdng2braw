@@ -57,8 +57,9 @@ public:
     std::optional<RawTag> rawTag(uint16_t tag, bool exif = false) const;
     bool littleEndian() const { return little_; }
 
-    // dng_camera_rgb: LibRaw con exactamente los parámetros de rawpy del Python (AHD, salida raw, 16 bits, sin WB,
-    // negro de LibRaw desactivado y negro racional exacto restado después, user_sat = white_level, sin recortar).
+    // dng_camera_rgb: LibRaw (AHD por defecto; CDNG_OG_DEBAYER puede elegir otro user_qual en Pocket OG).
+    // Salida raw, 16 bits, sin WB, negro de LibRaw desactivado y negro racional exacto restado después,
+    // user_sat = white_level. Highlight clip. No cambia matrices ni exposición.
     RgbImage cameraRgb() const;
     BayerImage cameraBayer() const;
 
@@ -87,6 +88,8 @@ Mat3 bradford(const Vec3 &srcWhite, const Vec3 &dstWhite);
 std::pair<Mat3, double> matrixForNeutral(const DngColor &color, const Vec3 &neutral);
 // Matriz cámara (sin balance) → Rec.709 lineal D65 de dng_to_709 (cm = "interp").
 Mat3 cameraTo709(const DngColor &color, const Vec3 &neutral);
+// Misma cadena (inv(ColorMatrix@AsShotNeutral) + Bradford a D65) → P3-D65 lineal. Sin BaselineExposure ni ISO.
+Mat3 cameraToP3(const DngColor &color, const Vec3 &neutral);
 
 // crop_sensor: DefaultCropOrigin (50719) y DefaultCropSize (50720); sin esos tags devuelve la imagen tal cual.
 RgbImage cropSensor(const RgbImage &image, const Dng &dng);
