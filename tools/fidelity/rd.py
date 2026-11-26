@@ -15,11 +15,13 @@ QMAX = 24
 # Variables experimentales autorizadas en EXP-002.
 AUTHORIZED_EXP_ENV = frozenset({
     'CDNG_OG_DEBLOCK_PRECOMP', 'CDNG_OG_DEBLOCK_ALPHA', 'CDNG_OG_DEBLOCK_BOUNDED', 'CDNG_RATE',
+    'CDNG_DEADZONE',
 })
 
 # Campos de encode (request o config.encode) que pueden diferir entre puntos RD.
 AUTHORIZED_ENCODE_DIFF_KEYS = frozenset({
     'q', 'ratio', 'compression', 'rate_search', 'experimental_env', 'notes',
+    'noise_synthesis', 'nr_luma', 'nr_chroma', 'workers', 'diagnostic_env',
 })
 
 

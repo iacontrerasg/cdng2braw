@@ -14,12 +14,14 @@
 #include "codec_tables.hpp"
 
 #include "cdng_native.h"
+#include "cdng_bit_budget.h"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
 #include <limits>
 #include <optional>
 #include <string>
@@ -270,12 +272,54 @@ Codec::Codec(const std::filesystem::path &resources) : impl_(std::make_unique<Im
 Codec::~Codec() = default;
 Codec::Codec(Codec &&) noexcept = default;
 
+namespace {
+bool coeffStatsEnabled() {
+    static const bool on = [] {
+        const char *v = std::getenv("CDNG_COEFF_STATS");
+        return v && *v && std::string(v) != "0";
+    }();
+    return on;
+}
+struct CoeffHist {
+    // histogramas de |nivel| cuantizado AC (0..32+); energía por índice de scan; pre/post nulos
+    std::array<uint64_t, 33> magY{}, magC{};
+    std::array<double, 64> energyY{}, energyC{};       // antes de cuantizar, por índice de frecuencia
+    std::array<double, 64> energyQY{}, energyQC{};     // tras cuantizar (reconstruido)
+    std::array<uint64_t, 64> nzY{}, nzC{};             // no nulos tras cuantizar por posición
+    uint64_t acY = 0, acC = 0, zeroY = 0, zeroC = 0, nzYtot = 0, nzCtot = 0;
+    uint64_t pm1Y = 0, pm2Y = 0, pm1C = 0, pm2C = 0;
+    void acYlevel(int64_t v, int scan, double raw, double step) {
+        ++acY;
+        if (!v) ++zeroY; else { ++nzYtot; ++nzY[std::size_t(scan)]; }
+        const auto a = v < 0 ? -v : v;
+        magY[std::size_t(std::min<int64_t>(a, 32))]++;
+        if (a == 1) ++pm1Y; else if (a == 2) ++pm2Y;
+        energyY[std::size_t(scan)] += raw * raw;
+        const double r = double(v) * step;
+        energyQY[std::size_t(scan)] += r * r;
+    }
+    void acClevel(int64_t v, int scan, double raw, double step) {
+        ++acC;
+        if (!v) ++zeroC; else { ++nzCtot; ++nzC[std::size_t(scan)]; }
+        const auto a = v < 0 ? -v : v;
+        magC[std::size_t(std::min<int64_t>(a, 32))]++;
+        if (a == 1) ++pm1C; else if (a == 2) ++pm2C;
+        energyC[std::size_t(scan)] += raw * raw;
+        const double r = double(v) * step;
+        energyQC[std::size_t(scan)] += r * r;
+    }
+};
+}  // namespace
+
 EncodedFrame Codec::encode(const CanvasPlanes &planes, int q, const Geometry &g, bool strict) const {
     const auto &t = impl_->tables;
     const auto &st = t.steps(q);
     if (planes.ws != g.ws || planes.hs != g.hs || planes.y.size() != std::size_t(g.ws) * g.hs ||
         planes.cb.size() != std::size_t(g.ws / 2) * (g.hs / 2) || planes.cr.size() != planes.cb.size())
         throw Error("Unsupported frame geometry.");
+    if (cdng_bit_budget_enabled()) cdng_bit_budget_reset();
+    CoeffHist hist{};
+    const bool wantHist = coeffStatsEnabled();
     EncodedFrame frame;
     frame.q = q;
     frame.slices.reserve(std::size_t(g.n));
@@ -311,6 +355,7 @@ EncodedFrame Codec::encode(const CanvasPlanes &planes, int q, const Geometry &g,
                         ac[i] = quantize(c, st.qY);
                         const double r = double(ac[i]) * st.qY;
                         ein += c * c; eout += r * r;
+                        if (wantHist) hist.acYlevel(ac[i], ScanY[i], c, st.qY);
                     }
                     inY.push_back(ein); outY.push_back(eout);
                 }
@@ -337,6 +382,7 @@ EncodedFrame Codec::encode(const CanvasPlanes &planes, int q, const Geometry &g,
                             ac[i] = quantize(c, st.qC);
                             const double r = double(ac[i]) * st.qC;
                             ein += c * c; eout += r * r;
+                            if (wantHist) hist.acClevel(ac[i], ScanC[i], c, st.qC);
                         }
                         inC.push_back(ein); outC.push_back(eout);
                     }
@@ -371,6 +417,44 @@ EncodedFrame Codec::encode(const CanvasPlanes &planes, int q, const Geometry &g,
         frame.noiseC = noiseField(eC, NoiseUnitC);
     }
     frame.size += FirstSlice;
+    // Diagnóstico: JSONL acumulativo (CDNG_BIT_BUDGET / CDNG_COEFF_STATS). No altera el frame.
+    if (cdng_bit_budget_enabled() || wantHist) {
+        const char *dir = std::getenv("CDNG_STATS_DIR");
+        const std::string base = dir && *dir ? std::string(dir) : std::string(".");
+        if (cdng_bit_budget_enabled()) {
+            char json[4096];
+            if (cdng_bit_budget_json(json, sizeof json) > 0) {
+                std::ofstream f(base + "/bit-budget.jsonl", std::ios::app);
+                f << "{\"q\":" << q
+                  << ",\"frame_size_bytes\":" << frame.size
+                  << ",\"first_slice_bytes\":" << FirstSlice
+                  << ",\"slices_payload_bytes\":" << (frame.size - FirstSlice)
+                  << ",\"budget\":" << json << "}\n";
+            }
+        }
+        if (wantHist) {
+            std::ofstream f(base + "/coeff-stats.jsonl", std::ios::app);
+            f << "{\"q\":" << q << ",\"qY\":" << st.qY << ",\"qC\":" << st.qC
+              << ",\"ac_total\":{\"Y\":" << hist.acY << ",\"C\":" << hist.acC << "}"
+              << ",\"ac_zero\":{\"Y\":" << hist.zeroY << ",\"C\":" << hist.zeroC << "}"
+              << ",\"ac_nonzero\":{\"Y\":" << hist.nzYtot << ",\"C\":" << hist.nzCtot << "}"
+              << ",\"pm1\":{\"Y\":" << hist.pm1Y << ",\"C\":" << hist.pm1C << "}"
+              << ",\"pm2\":{\"Y\":" << hist.pm2Y << ",\"C\":" << hist.pm2C << "}"
+              << ",\"mag_hist_Y\":[";
+            for (int i = 0; i < 33; ++i) { if (i) f << ','; f << hist.magY[std::size_t(i)]; }
+            f << "],\"mag_hist_C\":[";
+            for (int i = 0; i < 33; ++i) { if (i) f << ','; f << hist.magC[std::size_t(i)]; }
+            f << "],\"energy_Y\":[";
+            for (int i = 0; i < 64; ++i) { if (i) f << ','; f << hist.energyY[std::size_t(i)]; }
+            f << "],\"energy_QY\":[";
+            for (int i = 0; i < 64; ++i) { if (i) f << ','; f << hist.energyQY[std::size_t(i)]; }
+            f << "],\"energy_C\":[";
+            for (int i = 0; i < 64; ++i) { if (i) f << ','; f << hist.energyC[std::size_t(i)]; }
+            f << "],\"energy_QC\":[";
+            for (int i = 0; i < 64; ++i) { if (i) f << ','; f << hist.energyQC[std::size_t(i)]; }
+            f << "]}\n";
+        }
+    }
     return frame;
 }
 

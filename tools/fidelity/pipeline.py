@@ -50,6 +50,9 @@ DIAGNOSTIC_ENV = (
     'CDNG_PROFILE_LOG',
     'CDNG_DUMP_CANVAS',
     'CDNG_LANGUAGE',
+    'CDNG_BIT_BUDGET',     # EXP-002a: contabiliza bits por plano/símbolo (no altera payload)
+    'CDNG_COEFF_STATS',    # EXP-002a: histogramas DCT (no altera payload)
+    'CDNG_STATS_DIR',      # directorio de volcados bit-budget / coeff-stats
 )
 
 
@@ -135,6 +138,13 @@ def encode_request(encode, environ=None):
     for name, value in declared.items():
         if name in OUTPUT_ENV:
             effective[name] = None if value is None else str(value)
+    if effective.get('CDNG_DEADZONE') is not None:
+        try:
+            z = float(effective['CDNG_DEADZONE'])
+        except (TypeError, ValueError) as e:
+            raise PipelineError('CDNG_DEADZONE inválido: %r' % effective['CDNG_DEADZONE']) from e
+        if not (0.0 <= z <= 0.5):
+            raise PipelineError('CDNG_DEADZONE fuera de rango [0, 0.5]: %g' % z)
 
     ambient = ambient_cdng(environ)
     surprises = []
@@ -215,15 +225,32 @@ def worker_environ(process_env):
     return {k: v for k, v in process_env.items() if not k.startswith('CDNG_')}
 
 
+def requires_pipeline_trace(diagnostic):
+    return bool(diagnostic) and diagnostic.get('CDNG_PIPELINE_TRACE') not in (None, '', '0')
+
+
+def requires_encode_stats(diagnostic):
+    """EXP-002a: presupuesto/histogramas se emiten en encode(); hay que ejecutar el worker."""
+    if not diagnostic:
+        return False
+    if diagnostic.get('CDNG_BIT_BUDGET') not in (None, '', '0'):
+        return True
+    if diagnostic.get('CDNG_COEFF_STATS') not in (None, '', '0'):
+        return True
+    return False
+
+
 def conversion_diagnostics(diagnostic):
     """Diagnósticos que exigen ejecutar el worker aunque el BRAW ya esté en caché."""
     if not diagnostic:
         return False
-    if diagnostic.get('CDNG_PIPELINE_TRACE') not in (None, '', '0'):
+    if requires_pipeline_trace(diagnostic):
         return True
     if diagnostic.get('CDNG_DUMP_CANVAS'):
         return True
     if diagnostic.get('CDNG_PROFILE_LOG'):
+        return True
+    if requires_encode_stats(diagnostic):
         return True
     return False
 
@@ -436,13 +463,15 @@ def convert(converter, converter_id, clip_dir, files, start, count, encode, cach
             src_log = os.path.join(instr, 'convert.log')
             if os.path.isfile(src_log):
                 shutil.copy2(src_log, os.path.join(directory, 'convert.instrumented.log'))
-            # Solo publicar traza si nació en instr.tmp; una traza vieja en directory no basta.
-            trace_id, trace_meta = _publish_fresh_trace(
-                instr, directory, key, material, saved['sha256'], producer_sha,
-                diagnostic, media_eq, instrumented)
-            _require_requested_traces(directory, diagnostic,
-                                     expect_body_sha=trace_meta['trace_body_sha256'],
-                                     expect_published_sha=trace_meta['trace_sha256'])
+            trace_id, trace_meta = None, None
+            if requires_pipeline_trace(diagnostic):
+                # Solo publicar traza si nació en instr.tmp; una traza vieja en directory no basta.
+                trace_id, trace_meta = _publish_fresh_trace(
+                    instr, directory, key, material, saved['sha256'], producer_sha,
+                    diagnostic, media_eq, instrumented)
+                _require_requested_traces(directory, diagnostic,
+                                         expect_body_sha=trace_meta['trace_body_sha256'],
+                                         expect_published_sha=trace_meta['trace_sha256'])
         finally:
             shutil.rmtree(instr, ignore_errors=True)
         # completed/seconds del BRAW efectivamente evaluado (caché); instrumented aparte.
@@ -451,7 +480,7 @@ def convert(converter, converter_id, clip_dir, files, start, count, encode, cach
                     completed=saved['completed'], seconds=saved['seconds'],
                     instrumented=instrumented, media_equivalent=media_eq,
                     binds_to_evaluated_image=media_eq, equivalence=eq,
-                    trace=trace_id, trace_refreshed=True, trace_meta=trace_meta)
+                    trace=trace_id, trace_refreshed=bool(trace_id), trace_meta=trace_meta)
 
     if os.path.isdir(directory):
         shutil.rmtree(directory)
@@ -466,7 +495,7 @@ def convert(converter, converter_id, clip_dir, files, start, count, encode, cach
         json.dump(saved, f, indent=1, sort_keys=True)
     trace_id = None
     trace_meta = None
-    if want_diag:
+    if want_diag and requires_pipeline_trace(diagnostic):
         instrumented = {
             'seconds': seconds,
             'completed': done,
