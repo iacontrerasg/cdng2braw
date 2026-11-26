@@ -114,6 +114,9 @@ endif
 ifneq ($(RUN),)
 _BENCH_COMMON += --run "$(RUN)"
 endif
+ifneq ($(MANIFEST),)
+_BENCH_COMMON += --manifest "$(MANIFEST)"
+endif
 _BENCH_RUN = $(_BENCH_COMMON)
 ifneq ($(SERIES),)
 _BENCH_RUN += --series "$(SERIES)"

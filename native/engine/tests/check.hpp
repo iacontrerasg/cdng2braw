@@ -9,8 +9,13 @@
 #include <cstring>
 #include <fstream>
 #include <map>
+#include <optional>
 #include <sstream>
 #include <string>
+
+#ifdef _WIN32
+#include <stdlib.h>
+#endif
 
 namespace check {
 
@@ -67,5 +72,38 @@ inline int finish(const char *name) {
     std::printf("%s: correcto\n", name);
     return 0;
 }
+
+// Guarda y restaura una variable de entorno (setenv/_putenv_s). Compatible con Windows y POSIX.
+struct EnvVar {
+    std::string name;
+    std::optional<std::string> previous;
+    bool had = false;
+
+    explicit EnvVar(const char *n) : name(n) {
+        if (const char *v = std::getenv(n)) { previous = v; had = true; }
+    }
+    EnvVar(const EnvVar &) = delete;
+    EnvVar &operator=(const EnvVar &) = delete;
+
+    void set(const char *value) {
+#ifdef _WIN32
+        _putenv_s(name.c_str(), value ? value : "");
+#else
+        if (value) setenv(name.c_str(), value, 1);
+        else unsetenv(name.c_str());
+#endif
+    }
+    void unset() {
+#ifdef _WIN32
+        _putenv_s(name.c_str(), "");
+#else
+        unsetenv(name.c_str());
+#endif
+    }
+    ~EnvVar() {
+        if (had) set(previous->c_str());
+        else unset();
+    }
+};
 
 }  // namespace check

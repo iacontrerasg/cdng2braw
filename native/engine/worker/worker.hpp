@@ -108,6 +108,8 @@ void image(const std::string &label, const float *data, std::size_t pixels, int 
 void planes(const std::string &label, const Planes &planes);
 // Lienzo ya redondeado y recortado (lo que recibe el codificador).
 void canvas(const std::string &label, const CanvasPlanes &canvas, const Geometry &geometry);
+// Overshoot/clipping de un plano en coma flotante (antes de rounded). Distingue techo natural vs clamp.
+void rangeStats(const std::string &label, const RangeStats &stats);
 }  // namespace trace
 
 }  // namespace cdng::worker

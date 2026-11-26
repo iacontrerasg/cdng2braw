@@ -5,6 +5,7 @@ tramo, petición de codificación, variables CDNG_* experimentales efectivas; y 
 brawdec, framework del SDK, perfiles de Camera Support y ajustes de revelado. Antes de reutilizar se relee
 identity.json y se recalcula el sha del fichero: si algo no coincide es un error, nunca una reutilización.
 """
+import hashlib
 import json
 import os
 import re
@@ -12,7 +13,7 @@ import shutil
 import subprocess
 import time
 
-from . import identity
+from . import braw_inspect, identity
 from .images import read_f32
 
 
@@ -25,21 +26,23 @@ class PipelineError(RuntimeError):
 
 
 # Variables CDNG_* que pueden cambiar el BRAW o la imagen. Sus valores efectivos (o null si no aplica) entran en la
-# identidad de caché y en setup. Añadir aquí cualquier nueva opción experimental; no hace falta tocar el deblocking.
+# identidad de caché y en setup. Añadir aquí cualquier nueva opción experimental.
 OUTPUT_ENV = (
-    'CDNG_RATE',           # search: búsqueda exacta de q por fotograma en modo ratio
-    'CDNG_NOISE_SYNTH',    # desactiva o fuerza la síntesis de ruido
-    'CDNG_DEADZONE',       # zona muerta del cuantizador AC
-    'CDNG_GREEN',          # demosaic del verde (dir = media direccional)
-    'CDNG_CHROMA_FILTER',  # longitud del filtro de croma
-    'CDNG_RESIZE_CHROMA',  # sites = reescalado sin corregir fase
-    'CDNG_SHARPEN',        # nitidez nativa al ampliar
-    'CDNG_SDK_TOE',        # pie de la curva de señal
-    'CDNG_NR_THREADS',     # hilos de NR (puede alterar el resultado con NR activo)
-    'CDNG_RESOURCES',      # raíz de model/; si se hereda, no es el worker empaquetado
+    'CDNG_RATE',                 # search: búsqueda exacta de q por fotograma en modo ratio
+    'CDNG_NOISE_SYNTH',          # desactiva o fuerza la síntesis de ruido
+    'CDNG_DEADZONE',             # zona muerta del cuantizador AC
+    'CDNG_GREEN',                # demosaic del verde (dir = media direccional)
+    'CDNG_CHROMA_FILTER',        # longitud del filtro de croma
+    'CDNG_RESIZE_CHROMA',        # sites = reescalado sin corregir fase
+    'CDNG_SHARPEN',              # nitidez nativa al ampliar
+    'CDNG_SDK_TOE',              # pie de la curva de señal
+    'CDNG_NR_THREADS',           # hilos de NR (puede alterar el resultado con NR activo)
+    'CDNG_RESOURCES',            # raíz de model/; si se hereda, no es el worker empaquetado
+    'CDNG_OG_DEBLOCK_PRECOMP',   # Pocket OG: 1/on (defecto) o 0/off — precompensación antibloques
 )
 
-# Diagnóstico o i18n: no deben alterar el BRAW. Si están en el entorno se registran y se quitan al lanzar el worker.
+# Diagnóstico o i18n: no alteran el BRAW. No entran en la identidad de caché; se pasan al worker solo si se
+# declaran en encode.diagnostic_env o están en el entorno (y entonces se registran en run.json).
 DIAGNOSTIC_ENV = (
     'CDNG_PIPELINE_TRACE',
     'CDNG_PROFILE_LOG',
@@ -114,8 +117,15 @@ def encode_request(encode, environ=None):
         raise PipelineError('experimental_env declara variables desconocidas: %s (añádelas a OUTPUT_ENV o DIAGNOSTIC_ENV)' %
                             ', '.join(unknown))
     if any(k in declared for k in DIAGNOSTIC_ENV):
-        raise PipelineError('experimental_env no admite variables de diagnóstico (%s); quítalas del entorno o ignóralas' %
+        raise PipelineError('experimental_env no admite variables de diagnóstico (%s); usa encode.diagnostic_env' %
                             ', '.join(DIAGNOSTIC_ENV))
+
+    diag_declared = dict(encode.get('diagnostic_env') or {})
+    diag_unknown = sorted(set(diag_declared) - set(DIAGNOSTIC_ENV))
+    if diag_unknown:
+        raise PipelineError('diagnostic_env declara variables desconocidas: %s' % ', '.join(diag_unknown))
+    if any(k in diag_declared for k in OUTPUT_ENV):
+        raise PipelineError('diagnostic_env no admite variables de salida (usa experimental_env)')
 
     effective = {name: None for name in OUTPUT_ENV}
     if encode['compression'] == 'ratio' and encode.get('rate_search', True):
@@ -142,9 +152,15 @@ def encode_request(encode, environ=None):
         raise PipelineError('variables CDNG_* heredadas no declaradas (evita overrides silenciosos):\n  ' +
                             '\n  '.join(surprises))
 
-    # Solo las que tienen valor concreto van al entorno del proceso hijo.
+    # Solo las que tienen valor concreto van al entorno del proceso hijo (identidad de caché).
     env = {k: v for k, v in effective.items() if v is not None}
+    # Diagnóstico: manifiesto explícito gana; el ambiente se registra y también se pasa (no altera el BRAW).
     diagnostic = {k: ambient[k] for k in DIAGNOSTIC_ENV if k in ambient}
+    for k, v in diag_declared.items():
+        if v is None:
+            diagnostic.pop(k, None)
+        else:
+            diagnostic[k] = str(v)
     return req, effective, env, diagnostic
 
 
@@ -178,26 +194,115 @@ def worker_environ(process_env):
     return {k: v for k, v in process_env.items() if not k.startswith('CDNG_')}
 
 
-def convert(converter, converter_id, clip_dir, files, start, count, encode, cache, log, no_cache=False):
-    """Convierte los DNG [start, start + count) de un clip. Devuelve la entrada de caché (ruta, sha, evento final)."""
-    staged = files[start:start + count]
-    req, effective, env, diagnostic = encode_request(encode)
-    if diagnostic:
-        log('aviso: CDNG_* de diagnóstico en el entorno (no se pasan al worker): %s' %
-            ', '.join('%s=%s' % kv for kv in sorted(diagnostic.items())))
-    material = conversion_material(converter_id, clip_dir, staged, start, req, effective)
-    key = identity.sha256_json(material)
-    directory = os.path.join(cache, 'braw', key[:24])
-    if os.path.isdir(directory) and not no_cache:
-        saved = _verify(directory, material, 'clip.braw')
-        log('BRAW reutilizado %s (%s, fotogramas %d–%d; worker %s; identidad verificada)' % (
-            key[:12], material['clip'], start, start + count - 1, converter_id['cdng_convert_sha256'][:12]))
-        return dict(saved, path=os.path.join(directory, 'clip.braw'), key=key, reused=True,
-                    experimental_env=effective, inputs=material['inputs'])
-    if os.path.isdir(directory):
-        shutil.rmtree(directory)
-    tmp = directory + '.tmp'
-    shutil.rmtree(tmp, ignore_errors=True)
+def conversion_diagnostics(diagnostic):
+    """Diagnósticos que exigen ejecutar el worker aunque el BRAW ya esté en caché."""
+    if not diagnostic:
+        return False
+    if diagnostic.get('CDNG_PIPELINE_TRACE') not in (None, '', '0'):
+        return True
+    if diagnostic.get('CDNG_DUMP_CANVAS'):
+        return True
+    if diagnostic.get('CDNG_PROFILE_LOG'):
+        return True
+    return False
+
+
+def parse_worker_events(stdout):
+    """Todas las líneas JSON del stdout del worker; falla si alguna línea `{…}` no es JSON válido."""
+    events = []
+    for i, line in enumerate(stdout.splitlines()):
+        text = line.strip()
+        if not text or text[0] != '{':
+            continue
+        try:
+            events.append(json.loads(text))
+        except ValueError as e:
+            raise PipelineError('evento JSON del worker ilegible (línea %d): %s' % (i + 1, text[:240])) from e
+    return events
+
+
+def _stamp_trace_text(trace_path, key, evaluated_braw_sha, producer_braw_sha, generated, trace_body_sha):
+    with open(trace_path, encoding='utf-8', errors='replace') as f:
+        lines = f.read().splitlines(True)
+    while lines and lines[0].startswith(('# conversion_key ', '# braw_sha256 ', '# producer_braw_sha256 ',
+                                         '# evaluated_braw_sha256 ', '# generated ', '# trace_sha256 ',
+                                         '# trace_body_sha256 ')):
+        lines.pop(0)
+    stamp = ('# conversion_key %s\n# evaluated_braw_sha256 %s\n# producer_braw_sha256 %s\n'
+             '# braw_sha256 %s\n# generated %s\n# trace_body_sha256 %s\n' % (
+                 key, evaluated_braw_sha, producer_braw_sha, evaluated_braw_sha, generated, trace_body_sha))
+    with open(trace_path, 'w', encoding='utf-8') as f:
+        f.write(stamp)
+        f.writelines(lines)
+
+
+def _publish_fresh_trace(instr_dir, directory, key, material, evaluated_braw_sha, producer_braw_sha,
+                         diagnostic, media_equivalent, instrumented_meta):
+    """Publica la traza recién generada en instr_dir. Una traza antigua en directory no basta."""
+    src = os.path.join(instr_dir, 'clip.pipeline-trace.txt')
+    if not os.path.isfile(src):
+        raise PipelineError('CDNG_PIPELINE_TRACE solicitado pero el worker no escribió %s' % src)
+    with open(src, 'rb') as f:
+        raw = f.read()
+    if not raw.strip():
+        raise PipelineError('CDNG_PIPELINE_TRACE: la traza en %s está vacía' % src)
+    body_sha = identity.sha256_bytes(raw)
+    dest = os.path.join(directory, 'clip.pipeline-trace.txt')
+    same = os.path.exists(dest) and os.path.samefile(src, dest)
+    if not same:
+        # No reutilizar una traza previa de la caché: borrar antes de copiar la fresca.
+        if os.path.isfile(dest):
+            os.remove(dest)
+        shutil.copy2(src, dest)
+    generated = time.strftime('%Y-%m-%dT%H:%M:%S')
+    _stamp_trace_text(dest, key, evaluated_braw_sha, producer_braw_sha, generated, body_sha)
+    with open(dest, 'rb') as f:
+        published_sha = hashlib.sha256(f.read()).hexdigest()
+    meta = {
+        'conversion_key': key,
+        'material': material,
+        'diagnostic_env': diagnostic,
+        'generated': generated,
+        'trace_sha256': published_sha,
+        'trace_body_sha256': body_sha,
+        'evaluated_braw_sha256': evaluated_braw_sha,
+        'producer_braw_sha256': producer_braw_sha,
+        'braw_file_sha_equal': evaluated_braw_sha == producer_braw_sha,
+        'media_equivalent': bool(media_equivalent),
+        # Solo si mdat/payload coinciden la traza describe la imagen evaluada.
+        'binds_to_evaluated_image': bool(media_equivalent),
+        'instrumented': instrumented_meta,
+        # Alias históricos
+        'braw_sha256': evaluated_braw_sha,
+        'instrumented_braw_sha256': producer_braw_sha,
+    }
+    path = os.path.join(directory, 'pipeline-trace.identity.json')
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(meta, f, indent=1, sort_keys=True, ensure_ascii=False)
+        f.write('\n')
+    return path, meta
+
+
+def _require_requested_traces(directory, diagnostic, expect_body_sha=None):
+    if diagnostic.get('CDNG_PIPELINE_TRACE') not in (None, '', '0'):
+        path = os.path.join(directory, 'clip.pipeline-trace.txt')
+        ident = os.path.join(directory, 'pipeline-trace.identity.json')
+        if not os.path.isfile(path) or not os.path.isfile(ident):
+            raise PipelineError('CDNG_PIPELINE_TRACE solicitado pero falta la traza o su identidad en %s' % directory)
+        with open(ident, encoding='utf-8') as f:
+            meta = json.load(f)
+        if not meta.get('generated') or not meta.get('trace_body_sha256'):
+            raise PipelineError('pipeline-trace.identity.json incompleto (falta generated/trace_body_sha256)')
+        if expect_body_sha is not None and meta.get('trace_body_sha256') != expect_body_sha:
+            raise PipelineError('la traza publicada no coincide con la generada en esta ejecución')
+        if meta.get('producer_braw_sha256') and meta.get('evaluated_braw_sha256'):
+            if (not meta.get('media_equivalent') and
+                    meta.get('binds_to_evaluated_image')):
+                raise PipelineError('binds_to_evaluated_image contradice media_equivalent')
+
+
+def _run_convert_worker(converter, clip_dir, staged, req, env, diagnostic, tmp):
+    """Ejecuta cdng-convert en tmp/; devuelve (out_path, events, completed, seconds)."""
     src = os.path.join(tmp, 'staging', os.path.basename(clip_dir))
     os.makedirs(src)
     for f in staged:
@@ -206,44 +311,138 @@ def convert(converter, converter_id, clip_dir, files, start, count, encode, cach
     request = dict(req, input=src, output=out)
     with open(os.path.join(tmp, 'request.json'), 'w') as f:
         json.dump(request, f, indent=1)
-    rate_note = ''
-    if env.get('CDNG_RATE') == 'search':
-        rate_note = ' búsqueda exacta'
-    exp_note = ''
-    active = {k: v for k, v in effective.items() if v is not None}
-    if active:
-        exp_note = '; experimental %s' % ','.join('%s=%s' % kv for kv in sorted(active.items()))
-    log('convirtiendo %s fotogramas %d–%d (%s%s%s) con worker %s' % (
-        material['clip'], start, start + count - 1,
-        'q %s' % req['q'] if 'q' in req else 'ratio %s:1' % req['ratio'], rate_note, exp_note,
-        converter_id['cdng_convert_sha256'][:12]))
     child_env = worker_environ(os.environ)
     child_env.update(env)
+    child_env.update(diagnostic)
     t0 = time.monotonic()
     r = subprocess.run([os.path.join(converter, 'cdng-convert'), '--request', os.path.join(tmp, 'request.json')],
                        capture_output=True, text=True, env=child_env)
     seconds = time.monotonic() - t0
-    with open(os.path.join(tmp, 'convert.log'), 'w', encoding='utf-8') as f:
+    log_path = os.path.join(tmp, 'convert.log')
+    with open(log_path, 'w', encoding='utf-8') as f:
         f.write(r.stdout + ('\n--- stderr ---\n' + r.stderr if r.stderr else ''))
-    events = []
-    for line in r.stdout.splitlines():
-        try:
-            events.append(json.loads(line))
-        except ValueError:
-            pass
+    events = parse_worker_events(r.stdout)
     done = [e for e in events if e.get('event') == 'completed']
     if r.returncode or not done or not os.path.isfile(out):
         errors = [e.get('message') for e in events if e.get('event') == 'error']
-        raise PipelineError('el worker falló (código %d): %s; ver %s' % (r.returncode, errors or r.stderr.strip()[-500:], os.path.join(tmp, 'convert.log')))
+        raise PipelineError('el worker falló (código %d): %s; ver %s' % (
+            r.returncode, errors or r.stderr.strip()[-500:], log_path))
     if done[0].get('replaced_frames'):
         raise PipelineError('el worker sustituyó fotogramas %s por negro' % done[0]['replaced_frames'])
+    for e in events:
+        if e.get('event') == 'started' and 'og_deblock_precomp' in e and not isinstance(e['og_deblock_precomp'], bool):
+            raise PipelineError('started.og_deblock_precomp debe ser booleano JSON, got %r' % e['og_deblock_precomp'])
     shutil.rmtree(os.path.join(tmp, 'staging'))
-    saved = {'material': material, 'sha256': identity.sha256_file(out), 'completed': done[0], 'seconds': seconds}
+    return out, events, done[0], seconds
+
+
+def convert(converter, converter_id, clip_dir, files, start, count, encode, cache, log, no_cache=False):
+    """Convierte los DNG [start, start + count) de un clip. Devuelve la entrada de caché (ruta, sha, evento final)."""
+    staged = files[start:start + count]
+    req, effective, env, diagnostic = encode_request(encode)
+    if diagnostic:
+        log('diagnóstico al worker (no entra en la identidad de caché): %s' %
+            ', '.join('%s=%s' % kv for kv in sorted(diagnostic.items())))
+    material = conversion_material(converter_id, clip_dir, staged, start, req, effective)
+    key = identity.sha256_json(material)
+    directory = os.path.join(cache, 'braw', key[:24])
+    want_diag = conversion_diagnostics(diagnostic)
+    rate_note = ' búsqueda exacta' if env.get('CDNG_RATE') == 'search' else ''
+    exp_note = ''
+    active = {k: v for k, v in effective.items() if v is not None}
+    if active:
+        exp_note = '; experimental %s' % ','.join('%s=%s' % kv for kv in sorted(active.items()))
+    convert_msg = 'convirtiendo %s fotogramas %d–%d (%s%s%s) con worker %s' % (
+        material['clip'], start, start + count - 1,
+        'q %s' % req['q'] if 'q' in req else 'ratio %s:1' % req['ratio'], rate_note, exp_note,
+        converter_id['cdng_convert_sha256'][:12])
+
+    if os.path.isdir(directory) and not no_cache:
+        saved = _verify(directory, material, 'clip.braw')
+        if not want_diag:
+            log('BRAW reutilizado %s (%s, fotogramas %d–%d; worker %s; identidad verificada)' % (
+                key[:12], material['clip'], start, start + count - 1, converter_id['cdng_convert_sha256'][:12]))
+            return dict(saved, path=os.path.join(directory, 'clip.braw'), key=key, reused=True,
+                        experimental_env=effective, inputs=material['inputs'], trace=None)
+        # Caché de imagen intacta: regenerar instrumentación en tmp; no contaminar completed/compression.
+        log('BRAW en caché %s; regenerando instrumentación (metadatos de conversión = caché evaluada)' % key[:12])
+        log(convert_msg + ' [diagnóstico]')
+        instr = directory + '.instr.tmp'
+        shutil.rmtree(instr, ignore_errors=True)
+        os.makedirs(instr)
+        try:
+            out, events, done, seconds = _run_convert_worker(
+                converter, clip_dir, staged, req, env, diagnostic, instr)
+            producer_sha = identity.sha256_file(out)
+            evaluated_path = os.path.join(directory, 'clip.braw')
+            media_eq = braw_inspect.same_media(evaluated_path, out)
+            if producer_sha != saved['sha256']:
+                log('aviso: SHA del contenedor BRAW instrumentado (%s) ≠ caché (%s); '
+                    'mdat/payload %s' % (
+                        producer_sha[:12], saved['sha256'][:12],
+                        'idénticos — la traza describe la misma imagen' if media_eq
+                        else 'DIFEREN — la traza NO se presenta como de la imagen cacheada'))
+            if not media_eq:
+                log('aviso: imagen decodificable distinta entre caché e instrumentación; '
+                    'binds_to_evaluated_image=false')
+            instrumented = {
+                'seconds': seconds,
+                'completed': done,
+                'braw_sha256': producer_sha,
+                'media_equivalent': media_eq,
+                'file_sha_equal': producer_sha == saved['sha256'],
+                'mdat_sha256': braw_inspect.atom_sha256(out, b'mdat'),
+                'moov_sha256': braw_inspect.atom_sha256(out, b'moov'),
+            }
+            src_log = os.path.join(instr, 'convert.log')
+            if os.path.isfile(src_log):
+                shutil.copy2(src_log, os.path.join(directory, 'convert.instrumented.log'))
+            # Solo publicar traza si nació en instr.tmp; una traza vieja en directory no basta.
+            trace_id, trace_meta = _publish_fresh_trace(
+                instr, directory, key, material, saved['sha256'], producer_sha,
+                diagnostic, media_eq, instrumented)
+            _require_requested_traces(directory, diagnostic, expect_body_sha=trace_meta['trace_body_sha256'])
+        finally:
+            shutil.rmtree(instr, ignore_errors=True)
+        # completed/seconds del BRAW efectivamente evaluado (caché); instrumented aparte.
+        return dict(saved, path=evaluated_path, key=key, reused=True,
+                    experimental_env=effective, inputs=material['inputs'],
+                    completed=saved['completed'], seconds=saved['seconds'],
+                    instrumented=instrumented, media_equivalent=media_eq,
+                    binds_to_evaluated_image=media_eq,
+                    trace=trace_id, trace_refreshed=True, trace_meta=trace_meta)
+
+    if os.path.isdir(directory):
+        shutil.rmtree(directory)
+    tmp = directory + '.tmp'
+    shutil.rmtree(tmp, ignore_errors=True)
+    os.makedirs(tmp)
+    log(convert_msg)
+    out, events, done, seconds = _run_convert_worker(
+        converter, clip_dir, staged, req, env, diagnostic, tmp)
+    saved = {'material': material, 'sha256': identity.sha256_file(out), 'completed': done, 'seconds': seconds}
     with open(os.path.join(tmp, 'identity.json'), 'w') as f:
         json.dump(saved, f, indent=1, sort_keys=True)
+    trace_id = None
+    trace_meta = None
+    if want_diag:
+        instrumented = {
+            'seconds': seconds,
+            'completed': done,
+            'braw_sha256': saved['sha256'],
+            'media_equivalent': True,
+            'file_sha_equal': True,
+        }
+        # Traza fresca en tmp (mismo directorio que se publicará).
+        trace_id, trace_meta = _publish_fresh_trace(
+            tmp, tmp, key, material, saved['sha256'], saved['sha256'],
+            diagnostic, True, instrumented)
+        _require_requested_traces(tmp, diagnostic, expect_body_sha=trace_meta['trace_body_sha256'])
     os.rename(tmp, directory)
     return dict(saved, path=os.path.join(directory, 'clip.braw'), key=key, reused=False,
-                experimental_env=effective, inputs=material['inputs'])
+                experimental_env=effective, inputs=material['inputs'],
+                instrumented=None, media_equivalent=True, binds_to_evaluated_image=True,
+                trace=trace_id, trace_meta=trace_meta)
 
 
 def decode_args(settings):
@@ -301,15 +500,24 @@ def parse_frame_info(text):
     return info
 
 
-def verify_decode(settings, info):
-    """Compara lo solicitado con lo que brawdec reportó. Distingue aplicado / no verificable / error."""
+def verify_decode(settings, info, expected_iso=None):
+    """Compara lo solicitado con lo que brawdec reportó. Distingue aplicado / no verificable / error.
+
+    Atributos críticos (gamut, gamma, csgn, hlry, scale, exposure, y la presencia de iso/kelvin/tint)
+    deben aparecer en la salida de brawdec: su ausencia detiene la evaluación. As Shot no puede
+    contrastarse aún contra AsShotNeutral del DNG; si el SDK reporta ISO y se conoce el ISO del
+    manifiesto, se exige coincidencia numérica.
+    """
     requested = dict(settings)
+    if expected_iso is not None:
+        requested['expected_iso'] = expected_iso
     applied, unverifiable, errors = {}, [], []
 
-    def take_clip(name, want, cast=lambda x: x):
+    def take_clip(name, want, cast=lambda x: x, critical=True):
         entry = info['clip'].get(name)
         if not entry or 'value' not in entry:
-            unverifiable.append(name)
+            (errors if critical else unverifiable).append(
+                '%s no reportado por brawdec' % name if critical else name)
             return
         got = cast(entry['value'])
         applied[name] = got
@@ -322,7 +530,7 @@ def verify_decode(settings, info):
     take_clip('hlry', settings.get('highlight_recovery'), lambda v: float(v))
 
     if info.get('scale') is None:
-        unverifiable.append('scale')
+        errors.append('scale no reportado por brawdec')
     else:
         applied['scale'] = info['scale']
         if settings.get('scale', 'full') != info['scale']:
@@ -332,12 +540,15 @@ def verify_decode(settings, info):
         want = settings.get(setting_key)
         entry = info['frame'].get(name)
         if not entry or 'value' not in entry:
-            unverifiable.append(name)
+            errors.append('%s no reportado por brawdec' % name)
             continue
         got = entry['value']
         applied[name] = got
         if want is None or want == 'as_shot':
-            # As Shot: no hay valor numérico solicitado; solo comprobamos que el SDK dio un valor.
+            if name == 'exposure' and abs(float(got)) > 1e-6:
+                errors.append('exposure: As Shot/0 EV esperado, SDK %s' % got)
+            if name == 'iso' and expected_iso is not None and abs(float(got) - float(expected_iso)) > 0.5:
+                errors.append('iso As Shot: manifiesto %s, SDK %s' % (expected_iso, got))
             continue
         if abs(float(got) - float(want)) > 1e-6:
             errors.append('%s: solicitado %s, SDK %s' % (name, want, got))
@@ -346,11 +557,12 @@ def verify_decode(settings, info):
             'ok': not errors, 'errors': errors}
 
 
-def decode(brawdec, framework, decoder_id, braw, braw_sha, index, settings, cache, log, no_cache=False):
+def decode(brawdec, framework, decoder_id, braw, braw_sha, index, settings, cache, log, no_cache=False,
+           expected_iso=None):
     """Revela un fotograma del BRAW a RGB float. Devuelve (imagen, entrada de caché)."""
     # info_schema 2: frame_info anidado + decode_verification (invalida cachés del schema 1).
     material = {'kind': 'decode', 'info_schema': 2, 'decoder': decoder_id, 'braw_sha256': braw_sha,
-                'index': index, 'settings': settings}
+                'index': index, 'settings': settings, 'expected_iso': expected_iso}
     key = identity.sha256_json(material)
     directory = os.path.join(cache, 'decode', key[:24])
     if os.path.isdir(directory) and not no_cache:
@@ -372,7 +584,7 @@ def decode(brawdec, framework, decoder_id, braw, braw_sha, index, settings, cach
     if r.returncode or not os.path.isfile(out):
         raise PipelineError('brawdec falló (código %d): %s' % (r.returncode, (r.stdout + r.stderr).strip()[-500:]))
     info = parse_frame_info(r.stdout + r.stderr)
-    verification = verify_decode(settings, info)
+    verification = verify_decode(settings, info, expected_iso=expected_iso)
     if not verification['ok']:
         raise PipelineError('el revelado no coincide con lo solicitado: %s' % '; '.join(verification['errors']))
     if verification['unverifiable']:

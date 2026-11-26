@@ -113,7 +113,7 @@ def run(args):
     if git['dirty']:
         log('aviso: el árbol tiene cambios sin commit; la identidad del worker es su sha, no el commit')
     if diagnostic:
-        log('aviso: CDNG_* de diagnóstico en el entorno (no se pasan al worker): %s' %
+        log('diagnóstico activo (no entra en identidad de caché): %s' %
             ', '.join('%s=%s' % kv for kv in sorted(diagnostic.items())))
 
     analysis = doc['analysis']
@@ -141,14 +141,37 @@ def run(args):
             start, count, fs = rng
             conv = P.convert(converter_dir, conv_id, clip, files, start, count, doc['encode'], cache, log, args.no_cache)
             cache_use.append({'kind': 'braw', 'key': conv['key'], 'reused': conv['reused']})
-            timing['conversions'].append({'test': t['id'], 'range': [start, count], 'seconds': conv['seconds'], 'reused': conv['reused']})
-            shutil.copyfile(os.path.join(os.path.dirname(conv['path']), 'convert.log'),
-                            os.path.join(run_dir, 'logs', 'convert_%s_%03d-%03d.log' % (t['id'], start, start + count - 1)))
+            conv_timing = {'test': t['id'], 'range': [start, count], 'seconds': conv['seconds'],
+                           'reused': conv['reused']}
+            if conv.get('instrumented'):
+                conv_timing['instrumented_seconds'] = conv['instrumented'].get('seconds')
+                conv_timing['media_equivalent'] = conv.get('media_equivalent')
+                conv_timing['binds_to_evaluated_image'] = conv.get('binds_to_evaluated_image')
+                conv_timing['evaluated_braw_sha256'] = conv.get('sha256')
+                conv_timing['producer_braw_sha256'] = conv['instrumented'].get('braw_sha256')
+            timing['conversions'].append(conv_timing)
+            cache_dir = os.path.dirname(conv['path'])
+            convert_log = os.path.join(cache_dir, 'convert.log')
+            if os.path.isfile(convert_log):
+                shutil.copyfile(convert_log,
+                                os.path.join(run_dir, 'logs', 'convert_%s_%03d-%03d.log' % (
+                                    t['id'], start, start + count - 1)))
+            instr_log = os.path.join(cache_dir, 'convert.instrumented.log')
+            if os.path.isfile(instr_log):
+                shutil.copyfile(instr_log,
+                                os.path.join(run_dir, 'logs', 'convert_%s_%03d-%03d.instrumented.log' % (
+                                    t['id'], start, start + count - 1)))
+            for name in ('clip.pipeline-trace.txt', 'pipeline-trace.identity.json'):
+                src = os.path.join(cache_dir, name)
+                if os.path.isfile(src):
+                    dest = os.path.join(run_dir, 'logs', '%s_%03d-%03d_%s' % (t['id'], start, start + count - 1, name))
+                    shutil.copyfile(src, dest)
             for frame in fs:
                 key = result_key(t['id'], frame)
                 ref_meta = refs.get(frame)
                 settings = decode_settings(doc, decode_override_for(refs, frame))
-                img, dec = P.decode(args.brawdec, framework, dec_id, conv['path'], conv['sha256'], frame - start, settings, cache, log, args.no_cache)
+                img, dec = P.decode(args.brawdec, framework, dec_id, conv['path'], conv['sha256'], frame - start, settings,
+                                    cache, log, args.no_cache, expected_iso=t['iso'])
                 cache_use.append({'kind': 'decode', 'key': dec['key'], 'reused': dec['reused']})
                 timing['decodes'].append({'result': key, 'seconds': dec['seconds'], 'reused': dec['reused']})
                 shutil.copyfile(os.path.join(os.path.dirname(dec['path']), 'decode.log'), os.path.join(run_dir, 'logs', 'decode_%s.log' % key))

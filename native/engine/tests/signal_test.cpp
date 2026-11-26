@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <set>
 
@@ -387,6 +388,37 @@ void autonomous(const OgModel &og) {
         auto q = p;
         denoisePlanes(q, 0, 0);
         CHECK(q.y == p.y && q.cb == p.cb);
+    }
+    {   // CDNG_OG_DEBLOCK_PRECOMP: por defecto on; 0 desactiva; valor inválido → Error
+        check::EnvVar env("CDNG_OG_DEBLOCK_PRECOMP");
+        env.unset();
+        CHECK(ogDeblockPrecompensationEnabled());
+        env.set("1");
+        CHECK(ogDeblockPrecompensationEnabled());
+        env.set("0");
+        CHECK(!ogDeblockPrecompensationEnabled());
+        env.set("off");
+        CHECK(!ogDeblockPrecompensationEnabled());
+        bool rejected = false;
+        env.set("maybe");
+        try { ogDeblockPrecompensationEnabled(); } catch (const Error &) { rejected = true; }
+        CHECK(rejected);
+        // Un escalón en frontera de bloque 8×8: con precompensación el Y redondeado difiere del sin ella.
+        Planes p(16, 16);
+        std::fill(p.y.begin(), p.y.end(), 1000.f);
+        for (int y = 0; y < 16; ++y) for (int x = 8; x < 16; ++x) p.y[std::size_t(y) * 16 + x] = 2000.f;
+        std::fill(p.cb.begin(), p.cb.end(), 0.f); std::fill(p.cr.begin(), p.cr.end(), 0.f);
+        const Geometry g(16, 16);
+        const auto on = canvasPlanes(p, g, true), off = canvasPlanes(p, g, false);
+        CHECK(on.y != off.y);
+        CHECK(on.cb == off.cb && on.cr == off.cr);   // la precompensación solo toca Y
+        // Overshoot matemático vs clip: valor >4095 se marca como math_above y clamped_high; at_hi ≠ solo clip.
+        const RangeStats over = measureCodeRange({100.0, 4095.0, 4100.5, -1.0}, 0, 4095);
+        CHECK(over.math_above == 1 && over.math_below == 1);
+        CHECK(over.clamped_high == 1 && over.clamped_low == 1);
+        CHECK(over.at_hi == 2);            // 4095 natural + 4100.5 clampado
+        CHECK(over.at_hi_natural == 1);   // solo el 4095 natural
+        CHECK(over.excess_max >= 5.0);
     }
     {   // ruta pocket: gris medio dentro del modelo, vista previa de vuelta al mismo gris
         const auto pocket = pocketMap(Resources);

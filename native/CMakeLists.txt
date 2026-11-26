@@ -165,7 +165,7 @@ else()
 endif()
 
 if(BUILD_TESTING)
-    foreach(module geometry dng signal codec container)
+    foreach(module geometry dng signal codec container json)
         add_executable(engine_${module}_test engine/tests/${module}_test.cpp)
         target_link_libraries(engine_${module}_test PRIVATE cdng_engine)
         set_target_properties(engine_${module}_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")

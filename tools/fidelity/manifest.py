@@ -16,11 +16,38 @@ class ManifestError(ValueError):
 def load(path):
     with open(path, encoding='utf-8') as f:
         doc = json.load(f)
-    doc['_path'] = os.path.abspath(path)
+    # Manifiesto experimental fino: {"base": "../manifest.json", "encode": {...parcial...}, ...}
+    overlay_path = None
+    if 'base' in doc:
+        base_path = doc['base']
+        if not os.path.isabs(base_path):
+            base_path = os.path.join(os.path.dirname(os.path.abspath(path)), base_path)
+        base = load(base_path)
+        overlay = {k: v for k, v in doc.items() if k != 'base'}
+        overlay_path = os.path.abspath(path)
+        doc = _merge(base, overlay)
+        # ROI y rutas relativas se resuelven contra el manifiesto base, no contra el overlay.
+        doc['_path'] = base['_path']
+        doc['_overlay_path'] = overlay_path
+    else:
+        doc['_path'] = os.path.abspath(path)
     problems = structure(doc)
     if problems:
         raise ManifestError('%s:\n  %s' % (path, '\n  '.join(problems)))
     return doc
+
+
+def _merge(base, overlay):
+    """Fusión superficial de secciones de diccionario (encode/decode/…); el resto sustituye."""
+    out = json.loads(json.dumps({k: v for k, v in base.items() if not str(k).startswith('_')}))
+    for key, value in overlay.items():
+        if isinstance(value, dict) and isinstance(out.get(key), dict):
+            merged = dict(out[key])
+            merged.update(value)
+            out[key] = merged
+        else:
+            out[key] = value
+    return out
 
 
 def structure(doc):

@@ -9,6 +9,10 @@ import sys
 _SHA_CACHE = {}
 
 
+def sha256_bytes(data):
+    return hashlib.sha256(data).hexdigest()
+
+
 def sha256_file(path):
     path = os.path.realpath(path)
     st = os.stat(path)

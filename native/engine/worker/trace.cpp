@@ -212,15 +212,30 @@ void canvas(const std::string &label, const CanvasPlanes &c, const Geometry &g) 
             cb.push_back(c.cb[ci]); cr.push_back(c.cr[ci]);
             cLimit += c.cb[ci] == 4095 || c.cb[ci] == -4096 || c.cr[ci] == 4095 || c.cr[ci] == -4096;
         }
-    line("  Y == 4095 (recortado por canvasPlanes/rounded): " + std::to_string(yMax) + " (" + percent(yMax, y.size()) + ")");
-    line("  Y == 0: " + std::to_string(yZero) + " (" + percent(yZero, y.size()) + ")");
-    line("  Cb/Cr en el límite ±4096/4095: " + std::to_string(cLimit));
+    // Y==4095 tras el lienzo redondeado NO implica clip: puede ser código natural al techo.
+    line("  Y == 4095 (código final en techo; no implica clamp): " + std::to_string(yMax) + " (" + percent(yMax, y.size()) + ")");
+    line("  Y == 0 (código final en suelo; no implica clamp): " + std::to_string(yZero) + " (" + percent(yZero, y.size()) + ")");
+    line("  Cb/Cr en el límite ±4096/4095 (código final): " + std::to_string(cLimit));
     line("  Y:  " + summary(std::move(y), {4095}));
     line("  Cb: " + summary(std::move(cb), {}));
     line("  Cr: " + summary(std::move(cr), {}));
     line("  code R: " + summary(std::move(rgb[0]), {4094.5, 4095.5}));
     line("  code G: " + summary(std::move(rgb[1]), {4094.5, 4095.5}));
     line("  code B: " + summary(std::move(rgb[2]), {4094.5, 4095.5}));
+}
+
+void rangeStats(const std::string &label, const RangeStats &s) {
+    if (!tracing) return;
+    line(label + ": samples " + std::to_string(s.samples));
+    line("  math_below " + std::to_string(s.math_below) + " math_above " + std::to_string(s.math_above) +
+         " (" + percent(s.math_below + s.math_above, s.samples) + " fuera de rango antes de redondear)");
+    line("  round_below " + std::to_string(s.round_below) + " round_above " + std::to_string(s.round_above) +
+         " (nearbyint fuera del intervalo representable)");
+    line("  clamped_low " + std::to_string(s.clamped_low) + " clamped_high " + std::to_string(s.clamped_high) +
+         " (clamp efectivo)");
+    line("  at_lo " + std::to_string(s.at_lo) + " (natural " + std::to_string(s.at_lo_natural) + ")" +
+         "  at_hi " + std::to_string(s.at_hi) + " (natural " + std::to_string(s.at_hi_natural) + ")");
+    line("  excess_sum " + num(s.excess_sum) + "  excess_max " + num(s.excess_max));
 }
 
 }  // namespace cdng::worker::trace

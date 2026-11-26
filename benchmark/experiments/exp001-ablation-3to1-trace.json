@@ -1,0 +1,22 @@
+{
+  "base": "../manifest.json",
+  "encode": {
+    "compression": "ratio",
+    "q": null,
+    "ratio": 3,
+    "rate_search": true,
+    "noise_synthesis": false,
+    "nr_luma": 0,
+    "nr_chroma": 0,
+    "workers": 2,
+    "experimental_env": {
+      "CDNG_OG_DEBLOCK_PRECOMP": "0"
+    },
+    "notes": [
+      "EXP-001 ablaci\u00f3n: id\u00e9ntico al control salvo CDNG_OG_DEBLOCK_PRECOMP=0."
+    ],
+    "diagnostic_env": {
+      "CDNG_PIPELINE_TRACE": "1"
+    }
+  }
+}
