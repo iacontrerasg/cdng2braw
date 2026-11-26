@@ -13,42 +13,42 @@
     "phase_f": 17,
     "phase_g": 9,
     "phase_h": 4,
-    "total_runs": 49,
+    "total_runs": 89,
     "complete_ce": true
   },
   "best_ratio_demonstrated": {
-    "run_id": "exp002a-f-a04-a75-dz50-q24",
-    "ratio_sample_1080p": 5.055456590427399,
-    "sample_bytes": 615256.0,
-    "psnr_mean": 43.23099815939648
+    "run_id": "exp002a-nrd-a04-a75-dz50-nr050-q24",
+    "ratio_sample_1080p": 5.845610645033021,
+    "sample_bytes": 532092.0,
+    "psnr_mean": 43.126313407309105
   },
   "gaps_to_targets": {
     "3": {
       "target_bytes": 1036800,
-      "best_sample_bytes": 615256.0,
-      "delta_bytes": -421544.0,
-      "delta_pct": -68.5152196809133,
+      "best_sample_bytes": 532092.0,
+      "delta_bytes": -504708.0,
+      "delta_pct": -94.85352157145756,
       "achieved": true
     },
     "5": {
       "target_bytes": 622080,
-      "best_sample_bytes": 615256.0,
-      "delta_bytes": -6824.0,
-      "delta_pct": -1.1091318085479864,
+      "best_sample_bytes": 532092.0,
+      "delta_bytes": -89988.0,
+      "delta_pct": -16.91211294287454,
       "achieved": true
     },
     "8": {
       "target_bytes": 388800,
-      "best_sample_bytes": 615256.0,
-      "delta_bytes": 226456.0,
-      "delta_pct": 36.80679261965751,
+      "best_sample_bytes": 532092.0,
+      "delta_bytes": 143292.0,
+      "delta_pct": 26.929929410703412,
       "achieved": false
     },
     "12": {
       "target_bytes": 259200,
-      "best_sample_bytes": 615256.0,
-      "delta_bytes": 356056.0,
-      "delta_pct": 57.871195079771674,
+      "best_sample_bytes": 532092.0,
+      "delta_bytes": 272892.0,
+      "delta_pct": 51.286619607135606,
       "achieved": false
     }
   },
@@ -13200,9 +13200,9 @@
     "q6_five_to_one": {
       "status": "confirmada",
       "achieved_labeled": true,
-      "best_ratio": 5.055456590427399,
-      "best_run": "exp002a-f-a04-a75-dz50-q24",
-      "gap_bytes_to_5_1": -6824.0,
+      "best_ratio": 5.845610645033021,
+      "best_run": "exp002a-nrd-a04-a75-dz50-nr050-q24",
+      "gap_bytes_to_5_1": -89988.0,
       "note": "5:1 demostrado en modo quality (p. ej. \u03b1=0.75 DZ=0.5 q=24); rate search con saturaci\u00f3n QMax puede no etiquetar 5:1"
     },
     "q7_eight_twelve": {

@@ -55,11 +55,9 @@ constexpr unsigned kClasses = 12;
 constexpr int64_t kMax = 4095;
 
 bool budget_enabled() {
-    static const bool on = [] {
-        const char *v = std::getenv("CDNG_BIT_BUDGET");
-        return v && *v && std::string(v) != "0";
-    }();
-    return on;
+    // Sin memoizar: los tests y el worker pueden activar el diagnóstico tras arrancar.
+    const char *v = std::getenv("CDNG_BIT_BUDGET");
+    return v && *v && std::string(v) != "0";
 }
 
 thread_local CdngBitBudget g_budget{};

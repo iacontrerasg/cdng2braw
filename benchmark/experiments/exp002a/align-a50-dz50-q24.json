@@ -1,0 +1,27 @@
+{
+  "base": "../../manifest.json",
+  "encode": {
+    "compression": "quality",
+    "q": 24,
+    "ratio": null,
+    "rate_search": false,
+    "noise_synthesis": false,
+    "nr_luma": 0,
+    "nr_chroma": 0,
+    "workers": 1,
+    "experimental_env": {
+      "CDNG_OG_DEBLOCK_PRECOMP": "1",
+      "CDNG_OG_DEBLOCK_ALPHA": "0.5",
+      "CDNG_DEADZONE": "0.5"
+    },
+    "notes": [
+      "EXP-002a align soft \u03b1=0.5 DZ=0.5 q24"
+    ],
+    "diagnostic_env": {
+      "CDNG_BIT_BUDGET": "1",
+      "CDNG_COEFF_STATS": "1",
+      "CDNG_STATS_DIR": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp002a/stats/exp002a-align-a50-dz50-q24",
+      "CDNG_ALIGN_SOFT": "1"
+    }
+  }
+}

@@ -15,15 +15,16 @@
 
 #include "cdng_native.h"
 #include "cdng_bit_budget.h"
+#include "encode_stats.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <fstream>
 #include <limits>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <tuple>
 
@@ -274,11 +275,8 @@ Codec::Codec(Codec &&) noexcept = default;
 
 namespace {
 bool coeffStatsEnabled() {
-    static const bool on = [] {
-        const char *v = std::getenv("CDNG_COEFF_STATS");
-        return v && *v && std::string(v) != "0";
-    }();
-    return on;
+    const char *v = std::getenv("CDNG_COEFF_STATS");
+    return v && *v && std::string(v) != "0";
 }
 struct CoeffHist {
     // histogramas de |nivel| cuantizado AC (0..32+); energía por índice de scan; pre/post nulos
@@ -417,24 +415,13 @@ EncodedFrame Codec::encode(const CanvasPlanes &planes, int q, const Geometry &g,
         frame.noiseC = noiseField(eC, NoiseUnitC);
     }
     frame.size += FirstSlice;
-    // Diagnóstico: JSONL acumulativo (CDNG_BIT_BUDGET / CDNG_COEFF_STATS). No altera el frame.
-    if (cdng_bit_budget_enabled() || wantHist) {
-        const char *dir = std::getenv("CDNG_STATS_DIR");
-        const std::string base = dir && *dir ? std::string(dir) : std::string(".");
-        if (cdng_bit_budget_enabled()) {
-            char json[4096];
-            if (cdng_bit_budget_json(json, sizeof json) > 0) {
-                std::ofstream f(base + "/bit-budget.jsonl", std::ios::app);
-                f << "{\"q\":" << q
-                  << ",\"frame_size_bytes\":" << frame.size
-                  << ",\"first_slice_bytes\":" << FirstSlice
-                  << ",\"slices_payload_bytes\":" << (frame.size - FirstSlice)
-                  << ",\"budget\":" << json << "}\n";
-            }
-        }
+    // Diagnóstico en memoria (EXP-002a): no se publica aquí — encodeFixed / rate search /
+    // convert publican solo el intento seleccionado (y los descartados en encode-attempts.jsonl).
+    if (encodeStatsEnabled()) {
+        std::string coeff;
         if (wantHist) {
-            std::ofstream f(base + "/coeff-stats.jsonl", std::ios::app);
-            f << "{\"q\":" << q << ",\"qY\":" << st.qY << ",\"qC\":" << st.qC
+            std::ostringstream f;
+            f << "\"qY\":" << st.qY << ",\"qC\":" << st.qC
               << ",\"ac_total\":{\"Y\":" << hist.acY << ",\"C\":" << hist.acC << "}"
               << ",\"ac_zero\":{\"Y\":" << hist.zeroY << ",\"C\":" << hist.zeroC << "}"
               << ",\"ac_nonzero\":{\"Y\":" << hist.nzYtot << ",\"C\":" << hist.nzCtot << "}"
@@ -452,8 +439,10 @@ EncodedFrame Codec::encode(const CanvasPlanes &planes, int q, const Geometry &g,
             for (int i = 0; i < 64; ++i) { if (i) f << ','; f << hist.energyC[std::size_t(i)]; }
             f << "],\"energy_QC\":[";
             for (int i = 0; i < 64; ++i) { if (i) f << ','; f << hist.energyQC[std::size_t(i)]; }
-            f << "]}\n";
+            f << "]";
+            coeff = f.str();
         }
+        encodeStatsCapture(frame, q, strict, st.qY, st.qC, coeff);
     }
     return frame;
 }
@@ -467,6 +456,11 @@ EncodedFrame Codec::encodeRateControlled(const CanvasPlanes &planes, const Geome
         double size = Inf;
     };
     int attempts = 0;
+    auto discard = [&](EncodedFrame &f, const char *outcome) {
+        if (!f.diag.present) return;
+        f.diag.attempt_index = attempts;
+        encodeStatsPublish(f, false, outcome);
+    };
     auto enc = [&](int q) {
         Try r;
         ++attempts;
@@ -475,6 +469,7 @@ EncodedFrame Codec::encodeRateControlled(const CanvasPlanes &planes, const Geome
             r.ok = true;
             r.size = double(r.frame.size);
         } catch (const CodecRangeError &) {
+            encodeStatsPublishDiscarded(q, attempts, "CodecRangeError");
         }
         return r;
     };
@@ -490,21 +485,42 @@ EncodedFrame Codec::encodeRateControlled(const CanvasPlanes &planes, const Geome
     const int start = std::clamp(q0, qMin, QMax);
     Try cur = enc(start);
     const bool fits = cur.ok && cur.size <= limit;
-    if (fits) { hi = start; best = std::move(cur); } else lo = start;
+    if (fits) { hi = start; best = std::move(cur); }
+    else {
+        if (cur.ok) discard(cur.frame, "over_target");
+        lo = start;
+    }
     // Extremo: si cabe al primer intento se prueba el más fino de todos; si no cabe, el más grueso.
     if (hi - lo > 1) {
         const int edge = fits ? qMin : QMax;
         Try t = enc(edge);
-        if (t.ok && t.size <= limit) { hi = edge; best = std::move(t); } else lo = edge;
+        if (t.ok && t.size <= limit) {
+            if (best.ok) discard(best.frame, "superseded");
+            hi = edge; best = std::move(t);
+        } else {
+            if (t.ok) discard(t.frame, "over_target");
+            lo = edge;
+        }
     }
     while (hi - lo > 1) {   // bisección en el hueco que quede: como mucho log2(QMax) codificaciones más
         const int mid = lo + (hi - lo) / 2;
         Try t = enc(mid);
-        if (t.ok && t.size <= limit) { hi = mid; best = std::move(t); }
-        else lo = mid;
+        if (t.ok && t.size <= limit) {
+            if (best.ok) discard(best.frame, "superseded");
+            hi = mid; best = std::move(t);
+        } else {
+            if (t.ok) discard(t.frame, "over_target");
+            lo = mid;
+        }
     }
-    if (!best.ok) { auto last = encode(planes, QMax, g, false); last.stats.attempts = attempts + 1; return last; }
+    if (!best.ok) {
+        auto last = encode(planes, QMax, g, false);
+        last.stats.attempts = attempts + 1;
+        last.diag.attempt_index = last.stats.attempts;
+        return last;
+    }
     best.frame.stats.attempts = attempts;
+    best.frame.diag.attempt_index = attempts;
     return std::move(best.frame);
 }
 
@@ -515,9 +531,16 @@ EncodedFrame Codec::encodeFixed(const CanvasPlanes &planes, const Geometry &g, i
         try {
             auto frame = encode(planes, q, g);
             frame.stats.attempts = attempts;
+            frame.diag.attempt_index = attempts;
             return frame;
         } catch (const CodecRangeError &) {
-            if (q >= QMax) { auto frame = encode(planes, QMax, g, false); frame.stats.attempts = attempts + 1; return frame; }
+            encodeStatsPublishDiscarded(q, attempts, "CodecRangeError");
+            if (q >= QMax) {
+                auto frame = encode(planes, QMax, g, false);
+                frame.stats.attempts = attempts + 1;
+                frame.diag.attempt_index = frame.stats.attempts;
+                return frame;
+            }
             ++q;
         }
     }

@@ -53,6 +53,8 @@ DIAGNOSTIC_ENV = (
     'CDNG_BIT_BUDGET',     # EXP-002a: contabiliza bits por plano/símbolo (no altera payload)
     'CDNG_COEFF_STATS',    # EXP-002a: histogramas DCT (no altera payload)
     'CDNG_STATS_DIR',      # directorio de volcados bit-budget / coeff-stats
+    'CDNG_STATS_LABEL',    # etiqueta opcional (conversion_key) embebida en JSONL
+    'CDNG_ALIGN_SOFT',     # banco: registrar fallo de alineación sin abortar (no altera BRAW)
 )
 
 

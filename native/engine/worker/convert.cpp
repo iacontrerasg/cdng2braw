@@ -1,5 +1,6 @@
 #include "worker.hpp"
 #include "gyro.hpp"
+#include "encode_stats.hpp"
 
 #include <simdjson.h>
 
@@ -580,6 +581,17 @@ int convert(const std::filesystem::path &requestPath) {
                     // buscar tampoco vale: con N procesos, cada uno tarda varios fotogramas en converger y
                     // mientras tanto entrega menos datos de los que la relación permite, o sea peor calidad.
                     const bool search = exhaustiveRate || !seeded;
+                    {
+                        EncodeStatsContext statsCtx;
+                        statsCtx.clip = request.input.filename().string();
+                        statsCtx.frame_index = int(index);
+                        if (!files[index].empty()) statsCtx.source_name = files[index].filename().string();
+                        statsCtx.q_requested = q ? *q : -1;
+                        statsCtx.ratio_requested = q ? -1.0 : request.options.ratio;
+                        statsCtx.mode = q ? "quality" : "ratio";
+                        if (const char *lab = std::getenv("CDNG_STATS_LABEL")) statsCtx.label = lab;
+                        encodeStatsSetContext(statsCtx);
+                    }
                     auto frame = q ? engine.codec.encodeFixed(canvas, geometry, *q)
                                    : search ? engine.codec.encodeRateControlled(canvas, geometry, target, qLast)
                                             : engine.codec.encodeFixed(canvas, geometry, qLast);
@@ -589,11 +601,16 @@ int convert(const std::filesystem::path &requestPath) {
                         frame.noiseY = decoderNoiseField(noise.scale * decoderNoise(frame.noiseY, false), false);
                         frame.noiseC = decoderNoiseField(noise.scale * decoderNoise(frame.noiseC, true), true);
                     }
+                    // Publica solo el intento finalmente escrito en el sample (intentos descartados ya
+                    // fueron a encode-attempts.jsonl desde encodeFixed / encodeRateControlled).
+                    if (frame.diag.present) encodeStatsPublish(frame, true, "selected");
+                    encodeStatsClearContext();
                     qLast = q || search ? frame.q : Codec::nextQuantiser(frame.q, frame.size, target);
                     result.chunk = frameChunk(header, gap, frame); result.stats = frame.stats; result.q = frame.q;
                     result.noiseLevelY = frame.noiseLevelY; result.noiseLevelC = frame.noiseLevelC; result.noiseY = frame.noiseY; result.noiseC = frame.noiseC;
                     result.tEncode = since(encodeFrom);
                 } catch (...) {
+                    encodeStatsClearContext();
                     result.error = std::current_exception();
                 }
                 std::lock_guard<std::mutex> lock(mutex);

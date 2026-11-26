@@ -31,6 +31,11 @@ def load_budget(stats_dir):
         rows = [json.loads(l) for l in fh if l.strip()]
     if not rows:
         return None
+    # Solo intentos seleccionados (fix EXP-002a). Sin el campo → legado (todas las líneas).
+    if any('selected' in r for r in rows):
+        rows = [r for r in rows if r.get('selected') is True]
+    if not rows:
+        return None
     # Una línea por fotograma; promediar.
     keys_plane = ['dc_bits', 'ac_prefix_bits', 'ac_final_bits', 'ac_magnitude_bits', 'eob_bits']
     agg = {k: [0.0, 0.0, 0.0] for k in keys_plane}

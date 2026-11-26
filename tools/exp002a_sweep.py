@@ -192,7 +192,7 @@ def phase_g_rate(args):
 
 
 def phase_h_nr(args):
-    """NR / noise synthesis — A04 q=24 α=1 DZ=0."""
+    """NR / noise synthesis — A04 q=24 α=1 DZ=0 (intensidad 1 histórica)."""
     cases = [
         (0, 0, False, 'nr0-syn0'),
         (1, 1, False, 'nr1-syn0'),
@@ -215,11 +215,159 @@ def phase_h_nr(args):
     return runs
 
 
+def phase_align_diag(args):
+    """Re-evalúa α=0.5 DZ=0.5 q24 con CDNG_ALIGN_SOFT (no baja el umbral)."""
+    os.environ['CDNG_ALIGN_SOFT'] = '1'
+    run_id = 'exp002a-align-a50-dz50-q24'
+    man = os.path.join(ROOT, 'benchmark', 'experiments', 'exp002a', 'align-a50-dz50-q24.json')
+    stats = os.path.abspath(os.path.join(args.out, 'experiments', 'exp002a', 'stats', run_id))
+    os.makedirs(stats, exist_ok=True)
+    write_manifest(man, q=24, alpha=0.5, deadzone=0.5,
+                   notes='EXP-002a align soft α=0.5 DZ=0.5 q24',
+                   diagnostic={'CDNG_BIT_BUDGET': '1', 'CDNG_COEFF_STATS': '1',
+                               'CDNG_STATS_DIR': stats, 'CDNG_ALIGN_SOFT': '1'})
+    if args.dry_run:
+        print('dry', run_id); return []
+    # No skip-existing: queremos métricas con gate_failed
+    dest = os.path.join(args.out, 'runs', run_id)
+    if os.path.isdir(dest):
+        import shutil
+        shutil.rmtree(dest)
+    return [run_bench(args, run_id, man)]
+
+
+def phase_nr_intensity(args):
+    """NR-B: intensidades 0,1,10,25,50,75,100 — tres ejes sin duplicar nr=0."""
+    intensities = [0, 1, 10, 25, 50, 75, 100]
+    runs = []
+    # C: Y=C
+    for v in intensities:
+        run_id = 'exp002a-nr-yc%03d-q24' % v
+        man = os.path.join(ROOT, 'benchmark', 'experiments', 'exp002a', 'nr-yc%03d-q24.json' % v)
+        stats = os.path.abspath(os.path.join(args.out, 'experiments', 'exp002a', 'stats', run_id))
+        os.makedirs(stats, exist_ok=True)
+        write_manifest(man, q=24, alpha=1.0, deadzone=0.0, nr_luma=v, nr_chroma=v,
+                       noise_synthesis=False,
+                       notes='EXP-002a NR-B Y=C=%d' % v,
+                       diagnostic={'CDNG_BIT_BUDGET': '1', 'CDNG_COEFF_STATS': '1',
+                                   'CDNG_STATS_DIR': stats})
+        if args.dry_run:
+            print('dry', run_id); continue
+        skipped = maybe_skip(args, run_id, q=24, alpha=1.0)
+        if skipped:
+            runs.append(skipped); continue
+        runs.append(run_bench(args, run_id, man))
+    # A: Y var, C=0 (omitir 0 = ya en yc000)
+    for v in intensities:
+        if v == 0:
+            continue
+        run_id = 'exp002a-nr-y%03d-c000-q24' % v
+        man = os.path.join(ROOT, 'benchmark', 'experiments', 'exp002a', 'nr-y%03d-c000-q24.json' % v)
+        stats = os.path.abspath(os.path.join(args.out, 'experiments', 'exp002a', 'stats', run_id))
+        os.makedirs(stats, exist_ok=True)
+        write_manifest(man, q=24, alpha=1.0, deadzone=0.0, nr_luma=v, nr_chroma=0,
+                       noise_synthesis=False,
+                       notes='EXP-002a NR-B Y=%d C=0' % v,
+                       diagnostic={'CDNG_BIT_BUDGET': '1', 'CDNG_COEFF_STATS': '1',
+                                   'CDNG_STATS_DIR': stats})
+        if args.dry_run:
+            print('dry', run_id); continue
+        skipped = maybe_skip(args, run_id, q=24, alpha=1.0)
+        if skipped:
+            runs.append(skipped); continue
+        runs.append(run_bench(args, run_id, man))
+    # B: C var, Y=0
+    for v in intensities:
+        if v == 0:
+            continue
+        run_id = 'exp002a-nr-y000-c%03d-q24' % v
+        man = os.path.join(ROOT, 'benchmark', 'experiments', 'exp002a', 'nr-y000-c%03d-q24.json' % v)
+        stats = os.path.abspath(os.path.join(args.out, 'experiments', 'exp002a', 'stats', run_id))
+        os.makedirs(stats, exist_ok=True)
+        write_manifest(man, q=24, alpha=1.0, deadzone=0.0, nr_luma=0, nr_chroma=v,
+                       noise_synthesis=False,
+                       notes='EXP-002a NR-B Y=0 C=%d' % v,
+                       diagnostic={'CDNG_BIT_BUDGET': '1', 'CDNG_COEFF_STATS': '1',
+                                   'CDNG_STATS_DIR': stats})
+        if args.dry_run:
+            print('dry', run_id); continue
+        skipped = maybe_skip(args, run_id, q=24, alpha=1.0)
+        if skipped:
+            runs.append(skipped); continue
+        runs.append(run_bench(args, run_id, man))
+    return runs
+
+
+def phase_nr_synth(args):
+    """NR-C: synth ON/OFF en intensidades representativas."""
+    levels = getattr(args, 'nr_levels', None) or [25, 50, 100]
+    runs = []
+    for v in levels:
+        for syn, tag in ((False, 'syn0'), (True, 'syn1')):
+            run_id = 'exp002a-nr-yc%03d-q24-%s' % (v, tag)
+            if not syn and v in (0, 1, 10, 25, 50, 75, 100):
+                # syn0 ya cubierto por nr-yc*; reutilizar si existe
+                alt = 'exp002a-nr-yc%03d-q24' % v
+                alt_dir = os.path.join(args.out, 'runs', alt)
+                if os.path.isfile(os.path.join(alt_dir, 'metrics.json')):
+                    print('reuse', alt, 'as', run_id)
+                    runs.append(alt_dir)
+                    continue
+            man = os.path.join(ROOT, 'benchmark', 'experiments', 'exp002a',
+                               'nr-yc%03d-q24-%s.json' % (v, tag))
+            write_manifest(man, q=24, alpha=1.0, deadzone=0.0, nr_luma=v, nr_chroma=v,
+                           noise_synthesis=syn,
+                           notes='EXP-002a NR-C Y=C=%d synth=%s' % (v, syn), workers=2)
+            if args.dry_run:
+                print('dry', run_id); continue
+            skipped = maybe_skip(args, run_id, q=24, alpha=1.0)
+            if skipped:
+                runs.append(skipped); continue
+            runs.append(run_bench(args, run_id, man))
+    return runs
+
+
+def phase_nr_dz(args):
+    """NR-D: matriz reducida α×DZ×NR @ q24."""
+    # Soft align en el proceso del banco (no baja el umbral; evita abortar al combinar NR+DZ).
+    os.environ['CDNG_ALIGN_SOFT'] = '1'
+    alphas = [1.0, 0.75]
+    zones = [0.0, 0.25, 0.5]
+    nrs = [0, 25, 50]
+    runs = []
+    for a in alphas:
+        for z in zones:
+            for nr in nrs:
+                tag = 'a%02d-dz%02d-nr%03d' % (int(round(a * 100)), int(round(z * 100)), nr)
+                run_id = 'exp002a-nrd-a04-%s-q24' % tag
+                man = os.path.join(ROOT, 'benchmark', 'experiments', 'exp002a',
+                                   'nrd-%s-q24.json' % tag)
+                stats = os.path.abspath(os.path.join(args.out, 'experiments', 'exp002a', 'stats', run_id))
+                os.makedirs(stats, exist_ok=True)
+                write_manifest(man, q=24, alpha=a, deadzone=z if z else 0.0,
+                               nr_luma=nr, nr_chroma=nr, noise_synthesis=False,
+                               notes='EXP-002a NR-D %s' % tag,
+                               diagnostic={'CDNG_BIT_BUDGET': '1', 'CDNG_COEFF_STATS': '1',
+                                           'CDNG_STATS_DIR': stats, 'CDNG_ALIGN_SOFT': '1'})
+                if args.dry_run:
+                    print('dry', run_id); continue
+                dest = os.path.join(args.out, 'runs', run_id)
+                metrics = os.path.join(dest, 'metrics.json')
+                if os.path.isfile(metrics):
+                    print('skip', run_id); runs.append(dest); continue
+                if os.path.isdir(dest):
+                    import shutil
+                    shutil.rmtree(dest)
+                runs.append(run_bench(args, run_id, man))
+    return runs
+
+
 def main():
     ap = argparse.ArgumentParser(description='EXP-002a sweep')
     ap.add_argument('--phase', required=True,
                     choices=['c-a04', 'e-deadzone', 'f-alpha', 'g-rate', 'h-nr',
-                             'all-ce', 'all'])
+                             'align-diag', 'nr-b', 'nr-c', 'nr-d',
+                             'all-ce', 'all-nr', 'all'])
     ap.add_argument('--dataset', default=os.path.expanduser('~/Desktop/BMD'))
     ap.add_argument('--references', default=os.path.expanduser('~/Desktop/EXR'))
     ap.add_argument('--out', default=os.path.join(ROOT, 'out', 'benchmark'))
@@ -235,8 +383,14 @@ def main():
         'f-alpha': [phase_f_alpha_dz],
         'g-rate': [phase_g_rate],
         'h-nr': [phase_h_nr],
+        'align-diag': [phase_align_diag],
+        'nr-b': [phase_nr_intensity],
+        'nr-c': [phase_nr_synth],
+        'nr-d': [phase_nr_dz],
         'all-ce': [phase_c_a04, phase_e_deadzone],
-        'all': [phase_c_a04, phase_e_deadzone, phase_f_alpha_dz, phase_g_rate, phase_h_nr],
+        'all-nr': [phase_nr_intensity, phase_nr_synth, phase_nr_dz],
+        'all': [phase_c_a04, phase_e_deadzone, phase_f_alpha_dz, phase_g_rate, phase_h_nr,
+                phase_align_diag, phase_nr_intensity, phase_nr_synth, phase_nr_dz],
     }
     for fn in phases[args.phase]:
         fn(args)

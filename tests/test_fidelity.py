@@ -887,6 +887,29 @@ class Exp002aInstrumentationTests(unittest.TestCase):
         _, _, env, _ = P.encode_request(self._encode(), environ={})
         self.assertIsNone(env.get('CDNG_DEADZONE'))
 
+    def test_align_soft_records_without_raising(self):
+        from tools.fidelity import images as IMG
+        yy, xx = np.mgrid[0:64, 0:64]
+        base = 0.2 + 0.3 * (xx / 63.0)
+        ref = np.stack([base, base, base], -1)
+        # Misma geometría de baja frecuencia; detalle distinto (ruido) → baja correlación highpass.
+        rng = np.random.default_rng(0)
+        cand = ref + rng.normal(0, 0.08, ref.shape)
+        cand = np.clip(cand, 1e-4, None)
+        old = os.environ.get('CDNG_ALIGN_SOFT')
+        os.environ['CDNG_ALIGN_SOFT'] = '1'
+        try:
+            out = IMG.check_alignment(ref, cand, 0.99)
+            self.assertTrue(out.get('gate_failed'))
+            self.assertIn(out.get('gate_reason'), ('detail_correlation', 'shift'))
+        finally:
+            if old is None:
+                os.environ.pop('CDNG_ALIGN_SOFT', None)
+            else:
+                os.environ['CDNG_ALIGN_SOFT'] = old
+        with self.assertRaises(IMG.ImageError):
+            IMG.check_alignment(ref, cand, 0.99)
+
 
 @unittest.skipUnless(np is not None, 'numpy es necesario (make venv)')
 class ManifestTests(unittest.TestCase):
