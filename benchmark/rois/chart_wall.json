@@ -357,6 +357,28 @@
       ]
     },
     {
+      "name": "cc_ruler_left",
+      "type": "region",
+      "category": "colorchecker",
+      "rect": [
+        1026,
+        350,
+        28,
+        380
+      ]
+    },
+    {
+      "name": "cc_ruler_right",
+      "type": "region",
+      "category": "colorchecker",
+      "rect": [
+        1280,
+        350,
+        30,
+        380
+      ]
+    },
+    {
       "name": "text_calibrite_left",
       "type": "region",
       "category": "text",

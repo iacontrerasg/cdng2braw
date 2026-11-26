@@ -47,6 +47,7 @@ OUTPUT_ENV = (
     'CDNG_RDOQ_LAMBDA',          # EXP-003b: λ ≥ 0 finita (J = D + λ R); requiere CDNG_RDOQ
     'CDNG_INJECT_RGB',           # EXP-004: BRWD RGB sustituye cameraRgb (o pre_map)
     'CDNG_INJECT_AT',            # EXP-004: camera | pre_map
+    'CDNG_INJECT_PLANES',        # EXP-005b: BRWP Y/Cb/Cr tras finishPlanes, antes de canvas
     'CDNG_OG_CHROMA_MODE',       # EXP-004: c0 (defecto) | c1 | c2 | c3 | c4 — solo Pocket OG
     'CDNG_OG_CHROMA_KERNEL',     # EXP-004: b3|b5|b7; obligatorio con c2|c4
     'CDNG_OG_CHROMA_PHASE',      # EXP-004: center|even|odd
@@ -192,6 +193,15 @@ def encode_request(encode, environ=None):
         inject_meta = {'path': ipath, 'sha256': isha}
         effective['CDNG_INJECT_RGB'] = '%s#%s' % (ipath, isha)
 
+    inject_planes_meta = None
+    if effective.get('CDNG_INJECT_PLANES') is not None:
+        ppath = os.path.abspath(effective['CDNG_INJECT_PLANES'])
+        if not os.path.isfile(ppath):
+            raise PipelineError('CDNG_INJECT_PLANES no existe: %s' % ppath)
+        psha = identity.sha256_file(ppath)
+        inject_planes_meta = {'path': ppath, 'sha256': psha}
+        effective['CDNG_INJECT_PLANES'] = '%s#%s' % (ppath, psha)
+
     ambient = ambient_cdng(environ)
     surprises = []
     for name, value in sorted(ambient.items()):
@@ -220,6 +230,8 @@ def encode_request(encode, environ=None):
             env[k] = policy_meta['path']
         elif k == 'CDNG_INJECT_RGB' and inject_meta is not None:
             env[k] = inject_meta['path']
+        elif k == 'CDNG_INJECT_PLANES' and inject_planes_meta is not None:
+            env[k] = inject_planes_meta['path']
         else:
             env[k] = v
     # EXP-001b: coherencia PRECOMP / ALPHA / BOUNDED (el worker también rechaza).
@@ -274,6 +286,8 @@ def encode_request(encode, environ=None):
         raise PipelineError('CDNG_INJECT_AT debe ser camera|pre_map (got %s)' % inject_at)
     if env.get('CDNG_INJECT_AT') and not env.get('CDNG_INJECT_RGB'):
         raise PipelineError('CDNG_INJECT_AT requiere CDNG_INJECT_RGB')
+    if env.get('CDNG_INJECT_PLANES') and env.get('CDNG_INJECT_RGB'):
+        raise PipelineError('CDNG_INJECT_PLANES y CDNG_INJECT_RGB son mutuamente excluyentes')
     chroma_mode = (env.get('CDNG_OG_CHROMA_MODE') or '').strip().lower()
     chroma_kernel = (env.get('CDNG_OG_CHROMA_KERNEL') or '').strip().lower()
     chroma_phase = (env.get('CDNG_OG_CHROMA_PHASE') or '').strip().lower()

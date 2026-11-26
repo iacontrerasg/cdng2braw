@@ -97,6 +97,26 @@ void dumpBuffer(const char *stage, const char *plane, const void *data, std::siz
     gWritten.push_back(stem);
 }
 
+Planes loadBrwp(const std::filesystem::path &path) {
+    std::ifstream in(path, std::ios::binary);
+    if (!in) throw Error("CDNG_INJECT_PLANES: cannot read " + path.string());
+    char mag[4];
+    in.read(mag, 4);
+    if (!in || std::memcmp(mag, "BRWP", 4) != 0)
+        throw Error("CDNG_INJECT_PLANES: not BRWP " + path.string());
+    uint32_t w = 0, h = 0;
+    in.read(reinterpret_cast<char *>(&w), 4);
+    in.read(reinterpret_cast<char *>(&h), 4);
+    if (!in || w == 0 || h == 0 || (w % 2) || (h % 2))
+        throw Error("CDNG_INJECT_PLANES: bad header " + path.string());
+    Planes planes{int(w), int(h)};
+    in.read(reinterpret_cast<char *>(planes.y.data()), std::streamsize(planes.y.size() * 4));
+    in.read(reinterpret_cast<char *>(planes.cb.data()), std::streamsize(planes.cb.size() * 4));
+    in.read(reinterpret_cast<char *>(planes.cr.data()), std::streamsize(planes.cr.size() * 4));
+    if (!in) throw Error("CDNG_INJECT_PLANES: truncated " + path.string());
+    return planes;
+}
+
 RgbImage loadBrwd(const std::filesystem::path &path) {
     std::ifstream in(path, std::ios::binary);
     if (!in) throw Error("CDNG_INJECT_RGB: cannot read " + path.string());
@@ -156,6 +176,12 @@ std::string stageInjectAt() {
     throw Error("CDNG_INJECT_AT: unsupported value '" + s + "' (use camera|pre_map)");
 }
 
+std::optional<Planes> stageInjectPlanes() {
+    const char *p = std::getenv("CDNG_INJECT_PLANES");
+    if (!p || !*p) return std::nullopt;
+    return loadBrwp(p);
+}
+
 void stageDumpBayer(const BayerImage &bayer, const char *note) {
     dumpBuffer("S0", "samples", bayer.samples.data(), bayer.samples.size() * sizeof(float),
                "float32", bayer.width, bayer.height, 1, "HxW",
@@ -202,6 +228,7 @@ void stageDumpWriteIndex(int q, int width, int height, const char *chroma_mode,
     const char *label = std::getenv("CDNG_STATS_LABEL");
     const char *inject = std::getenv("CDNG_INJECT_RGB");
     const char *injectAt = std::getenv("CDNG_INJECT_AT");
+    const char *injectPlanes = std::getenv("CDNG_INJECT_PLANES");
     const char *debayer = std::getenv("CDNG_OG_DEBAYER");
     auto has = [](const char *stem) {
         for (const auto &s : gWritten) if (s == stem) return true;
@@ -225,6 +252,7 @@ void stageDumpWriteIndex(int q, int width, int height, const char *chroma_mode,
        << "  \"stats_label\": \"" << jsonEscape(label ? label : "") << "\",\n"
        << "  \"inject_rgb\": \"" << jsonEscape(inject ? inject : "") << "\",\n"
        << "  \"inject_at\": \"" << jsonEscape(injectAt ? injectAt : "") << "\",\n"
+       << "  \"inject_planes\": \"" << jsonEscape(injectPlanes ? injectPlanes : "") << "\",\n"
        << "  \"og_debayer\": \"" << jsonEscape(debayer && *debayer ? debayer : "ahd") << "\",\n"
        << "  \"stages_written\": [";
     for (std::size_t i = 0; i < gWritten.size(); ++i) {
