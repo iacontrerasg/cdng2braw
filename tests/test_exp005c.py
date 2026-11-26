@@ -1,9 +1,14 @@
-"""EXP-005c: env Bayer OG, identidad de caché, tags DNG."""
+"""EXP-005c: env Bayer OG, identidad de caché, tags DNG, métricas F, Camera Support."""
 import os
 import tempfile
 import unittest
 
+import numpy as np
+
 from tools.exp005c_audit import read_tags
+from tools.exp005c_camera_support import og_channelcodec_profile_feasibility, what_determines
+from tools.exp005c_chroma import codes_from_ycc, ycc_from_codes
+from tools.exp005c_metrics import match_luma, split_psnr
 from tools.fidelity import pipeline as P
 from tools.fidelity import rd as RD
 
@@ -41,6 +46,42 @@ class DngTagTests(unittest.TestCase):
             self.assertIsInstance(tags, dict)
         finally:
             os.unlink(path)
+
+
+class MetricsAndChromaTests(unittest.TestCase):
+    def test_minus3_raw_invalid_matched_ok(self):
+        rng = np.random.RandomState(0)
+        cand = rng.rand(16, 16, 3).astype(np.float64) * 0.4 + 0.1
+        ref = cand / 8.0
+        s = split_psnr(ref, cand, 'DNG1600MINUS3_00086731.exr')
+        self.assertTrue(s['minus3_exr'])
+        self.assertFalse(s['raw_comparison_valid'])
+        self.assertGreater(s['ev_offset_cand_over_exr'], 2.9)
+        def db(x):
+            return float('inf') if x == 'inf' else float(x)
+        self.assertGreater(db(s['psnr_exposure_matched']), 40)
+        self.assertGreater(db(s['psnr_exr_times_8']), 40)
+
+    def test_match_luma_gain(self):
+        ref = np.ones((4, 4, 3))
+        cand = np.ones((4, 4, 3)) * 4
+        matched, g = match_luma(ref, cand)
+        self.assertAlmostEqual(g, 4.0)
+        self.assertAlmostEqual(float(matched.mean()), 4.0)
+
+    def test_ycc_roundtrip(self):
+        r, g, b = codes_from_ycc(800.0, 12.0, -7.0)
+        y, cb, cr = ycc_from_codes(r, g, b)
+        self.assertAlmostEqual(y, 800.0)
+        self.assertAlmostEqual(cb, 12.0)
+        self.assertAlmostEqual(cr, -7.0)
+
+    def test_camera_support_no_sigma_reuse(self):
+        d = og_channelcodec_profile_feasibility()
+        self.assertFalse(d['reuse_sigma_identity'])
+        self.assertEqual(d['classification'], 'potencialmente_viable_requiere_informacion')
+        self.assertIn('channel_codec', what_determines())
+        self.assertTrue(d['no_experimental_path_this_phase'])
 
 
 if __name__ == '__main__':

@@ -240,16 +240,19 @@ def write_doc(p):
     if smoke.get('status') == 'measured':
         lines.append('Campaña: **measured**. q=2, NR/síntesis/RDOQ OFF.')
         lines.append('')
-        lines.append('| frame | halo p99 C0 | halo p99 Bayer | red. p99 | ruler left p99 C0 | Bayer | PSNR |')
-        lines.append('|-------|-------------|---------------|----------|-------------------|-------|------|')
+        lines.append('| frame | halo p99 C0 | Bayer | red. | ruler C0 | Bayer | PSNR raw | PSNR matched | raw válido |')
+        lines.append('|-------|-------------|-------|------|----------|-------|----------|--------------|------------|')
         for r in smoke.get('frames') or []:
-            lines.append('| %s | %s | %s | %.1f %% | %s | %s | %s |' % (
+            lines.append('| %s | %s | %s | %.1f %% | %s | %s | %s | %s | %s |' % (
                 r.get('id'), r.get('c0_halo_p99'), r.get('bayer_halo_p99'),
                 100 * float(r.get('halo_p99_reduction') or 0),
                 r.get('c0_ruler_left_p99'), r.get('bayer_ruler_left_p99'),
-                r.get('psnr')))
+                r.get('psnr_raw', r.get('psnr')), r.get('psnr_exposure_matched'),
+                r.get('raw_comparison_valid')))
         lines.append('')
         lines.append(smoke.get('note') or '')
+        lines.append('')
+        lines.append(smoke.get('benchmark_correction') or '')
     else:
         lines.append('Campaña no medida en este informe. %s' % (smoke.get('reason') or ''))
     lines += [
@@ -258,19 +261,124 @@ def write_doc(p):
         '',
         '---',
         '',
-        '## E — Cierre',
+        '## E — Cierre del prototipo mosaico→RGB',
         '',
         'Clase **%s**. %s' % (d['class'], d['reason']),
         '',
-        'Si A/B: siguiente paso acotado sería afinar interpolación de G/R/B **sin** AHD y **sin** VA finishPlanes, con los mismos ROI. No iniciado más allá del prototipo.',
-        '',
-        'BUG-002 sigue P0. Defaults intactos.',
+        'No se desarrollan más algoritmos de demosaic. BUG-002 sigue P0. Defaults intactos.',
         '',
     ]
+    lines += _sections_fgi(p)
     os.makedirs(os.path.dirname(DOC), exist_ok=True)
     with open(DOC, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines) + '\n')
     return DOC
+
+
+def _sections_fgi(p):
+    ch = p.get('chroma_audit') or {}
+    cam = p.get('camera_support_audit') or {}
+    dec = p.get('architectural_decision') or {}
+    cc = (cam.get('og_channelcodec') or {})
+    tr = ch.get('trace') or {}
+    lines = [
+        '---',
+        '',
+        '## F — Corrección del benchmark',
+        '',
+        'A04_f044 usa `DNG1600MINUS3_00086731.exr` (**−3 EV**). C0 y Bayer tienen luma ~8× el EXR '
+        '(`s9_exposure_rel` ≈ 7 ⇒ +3 EV). El PSNR raw **−0.98 dB** (Bayer) / **−1.03 dB** (C0) es una '
+        'comparación inválida, no un fallo de exposición de la ruta Bayer (`luma_bayer_over_c0` ≈ 1).',
+        '',
+        'A04_f049 / A01_f052 usan EXR de exposición nominal. PSNR raw **22.54 dB** (f049) y **41.14 dB** (f052) '
+        'son comparaciones de dominio válido; Bayer queda ~2 dB por debajo de C0, coherente con interpolación más simple.',
+        '',
+        'Métricas separadas: `psnr_raw` vs S9 tal cual; `psnr_exposure_matched` escala el EXR a la luma del candidato. '
+        'No se reejecutó la campaña de encode.',
+        '',
+        '---',
+        '',
+        '## G — Representación cromática',
+        '',
+        'Hasta el bitstream, **mismo álgebra YCC** (`code_from_ycc`):',
+        '',
+        '```',
+        'Y  = (R + 2G + B) / 4',
+        'Cb = (B − G) / 2',
+        'Cr = (R − G) / 2',
+        '```',
+        '',
+        'sobre **códigos de curva**, no BT.601. NativeSensor aplica eso **después** de RGB completo. '
+        'ChannelCodec VA estima **proporciones** en `signal(code)=code−vertex` (∝ √lineal) y `finishPlanes` '
+        'las convierte otra vez a Cb/Cr absolutos.',
+        '',
+        '**NativeSensor:**',
+    ]
+    for x in tr.get('native_sensor') or []:
+        lines.append('- ' + x)
+    lines += ['', '**ChannelCodec VA:**']
+    for x in tr.get('channel_codec_va') or []:
+        lines.append('- ' + x)
+    lines += [
+        '',
+        tr.get('intensity_edge_constant_chromaticity') or '',
+        '',
+        tr.get('high_frequency_periodic') or '',
+        '',
+        '**¿Sobreviven a finishPlanes?** ' + (tr.get('survives_finishPlanes') or ''),
+        '',
+        'No se asume equivalencia con el demosaico parcial propietario de Blackmagic.',
+        '',
+        '---',
+        '',
+        '## H — Camera Support',
+        '',
+        cam.get('generator') or '',
+        '',
+        'Elementos que determinan el revelado:',
+    ]
+    for k, v in (cam.get('determines') or {}).items():
+        lines.append('- **%s:** %s' % (k, v))
+    og = (cam.get('profiles') or {}).get('og_iso') or {}
+    lines += [
+        '',
+        'Perfil OG ISO (lectura): `revision` %s, `chroma_alignment` %s, `native_iso` %s, '
+        'CSC keys %s, `inv_sqrt` %s. **No** hay campo ChannelCodec ni modo de proporciones.' % (
+            og.get('revision'), og.get('chroma_alignment'), og.get('native_iso'),
+            og.get('csc_keys'), og.get('inv_sqrt_keys')),
+        '',
+        cc.get('reason_no_new_profile_for_bitstream') or '',
+        '',
+        cc.get('cannot_reuse_sigma_fp') or '',
+        '',
+        'No se modifican perfiles instalados ni defaults. No se implementa otra ruta experimental aquí.',
+        '',
+        '---',
+        '',
+        '## I — Decisión arquitectónica ChannelCodec OG',
+        '',
+        '**Clasificación:** `%s`.' % (dec.get('channelcodec_og') or cc.get('classification')),
+        '',
+        'El prototipo mosaico→RGB→NativeSensor permanece **clase C**. ChannelCodec específico OG es '
+        '**potencialmente viable** con las herramientas actuales (misma YCC tras finishPlanes, perfil OG ya legítimo), '
+        'pero **falta información** para demostrarlo:',
+        '',
+    ]
+    for g in dec.get('missing_to_prove_viability') or cc.get('gaps') or []:
+        lines.append('- ' + g)
+    smoke = dec.get('proposed_smoke_if_implemented') or {}
+    lines += [
+        '',
+        '**Smoke mínimo:** no procede ahora (%s).' % (smoke.get('why_not_now') or 'sin codec OG'),
+        '',
+        smoke.get('if_later') or '',
+        '',
+        'No EXP-006/007/008. No investigación de compresión. Sin merge.',
+        '',
+        'BUG-002 sigue P0.',
+        '',
+    ]
+    return lines
 
 
 def build_payload(extra=None):
@@ -285,6 +393,12 @@ def build_payload(extra=None):
         'uses_native_sensor': True,
     }
     p['feasibility'] = classify(p['smoke'])
+    if extra.get('chroma_audit'):
+        p['chroma_audit'] = extra['chroma_audit']
+    if extra.get('camera_support_audit'):
+        p['camera_support_audit'] = extra['camera_support_audit']
+    if extra.get('architectural_decision'):
+        p['architectural_decision'] = extra['architectural_decision']
     return p
 
 
