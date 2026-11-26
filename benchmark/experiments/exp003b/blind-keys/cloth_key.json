@@ -1,0 +1,102 @@
+{
+  "seed": 303,
+  "png_key": "zoom_cloth_black_mesh",
+  "items": [
+    {
+      "id": "V001",
+      "run": "exp003b-g1-a75-dz50",
+      "result": "A04_f044",
+      "sha256": "512f14fc1c31bc6ec76f38a3d81d21fe36d978d96a189e1a441e3df7bb72c709"
+    },
+    {
+      "id": "V002",
+      "run": "exp003b-i-ctrl-q18-dz50",
+      "result": "A04_f044",
+      "sha256": "48f5a49345fa966c3c5e30d8104c9ae893273aab2070b2019866483f450eca22"
+    },
+    {
+      "id": "V003",
+      "run": "exp003b-g3-maxfid-q2",
+      "result": "A04_f049",
+      "sha256": "75f29a6d6df5eb73817d1842c35dffea1fbfa6ae448e656ac79b1983b8b35230"
+    },
+    {
+      "id": "V004",
+      "run": "exp003b-g0-legacy",
+      "result": "A04_f044",
+      "sha256": "1fe7aa9357bd74ff04d58e7aa7034be4c58948a3cee81e333ad71b0c5a5a8a72"
+    },
+    {
+      "id": "V005",
+      "run": "exp003b-g2-plane-y40-c50",
+      "result": "A04_f049",
+      "sha256": "24c9186c4775475706372204570b0205df9f88874ee0f2eeb0418f7190f9caea"
+    },
+    {
+      "id": "V006",
+      "run": "exp003b-h-q24-l100",
+      "result": "A04_f044",
+      "sha256": "9fc75edfca7d30d0070e5354f6cd819eacf1e6ce65fd76442c2e1ece3241ab3c"
+    },
+    {
+      "id": "V007",
+      "run": "exp003b-h-q24-l100",
+      "result": "A04_f049",
+      "sha256": "208b648f0f5884a1d2b5f2e0914774d4c6a607ef4a15c82343d9c9d660c94d85"
+    },
+    {
+      "id": "V008",
+      "run": "exp003b-g3-maxfid-q2",
+      "result": "A04_f044",
+      "sha256": "13980a6327ae8ccfededf36d3bd1f9e99987506a40cb1908b7eec08e080f51fa"
+    },
+    {
+      "id": "V009",
+      "run": "exp003b-g2-plane-y40-c50",
+      "result": "A04_f044",
+      "sha256": "8f9dd20a6d166e531f8faed4c1fdae106866aba0b9f0c7fb814bae2244d53f5d"
+    },
+    {
+      "id": "V010",
+      "run": "exp003b-i-rdoq-q18-l0",
+      "result": "A04_f044",
+      "sha256": "5e75f362cf6dc85472211fb1b01ac49606c64e358f6f2a27e3abfca55c3668ed"
+    },
+    {
+      "id": "V011",
+      "run": "exp003b-i-ctrl-q18-dz50",
+      "result": "A04_f049",
+      "sha256": "3a2ee184a06d2eae66b1e3fb4bf8e79d1cd045a92ac10fa078002e4f08ef74cb"
+    },
+    {
+      "id": "V012",
+      "run": "exp003b-i-rdoq-q24-l130",
+      "result": "A04_f049",
+      "sha256": "14d843c9947ea70bbe966ab669a8aceeb5c62892ebace2b65a0da5ee50b532b5"
+    },
+    {
+      "id": "V013",
+      "run": "exp003b-i-rdoq-q24-l130",
+      "result": "A04_f044",
+      "sha256": "00893755c78c9ce9f8784da415ef9c8cdc66d45cb9648cb4d3e07e65b118233d"
+    },
+    {
+      "id": "V014",
+      "run": "exp003b-i-rdoq-q18-l0",
+      "result": "A04_f049",
+      "sha256": "29244bb5b07b59d14be7037bda9d468bc5343b1784c838d21c30b139b67b0524"
+    },
+    {
+      "id": "V015",
+      "run": "exp003b-g1-a75-dz50",
+      "result": "A04_f049",
+      "sha256": "8082ed0259e1dbe6124e9def3ca4971f24a7456a86fbb76436f3bb2ea4cbb916"
+    },
+    {
+      "id": "V016",
+      "run": "exp003b-g0-legacy",
+      "result": "A04_f049",
+      "sha256": "e438162d22f59e23fa9952f655fa11f0032eaec21eb489091de469b2478bbc40"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "base": "../../manifest.json",
+  "encode": {
+    "compression": "quality",
+    "q": 0,
+    "ratio": null,
+    "rate_search": false,
+    "noise_synthesis": false,
+    "nr_luma": 0,
+    "nr_chroma": 0,
+    "workers": 1,
+    "experimental_env": {
+      "CDNG_OG_DEBLOCK_PRECOMP": "1",
+      "CDNG_DEADZONE": "0",
+      "CDNG_RDOQ": "1",
+      "CDNG_RDOQ_LAMBDA": "0"
+    },
+    "notes": [
+      "EXP-003b L maxfid"
+    ],
+    "diagnostic_env": {
+      "CDNG_BIT_BUDGET": "1",
+      "CDNG_COEFF_STATS": "1",
+      "CDNG_STATS_DIR": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp003b/stats/exp003b-l-q0-l0",
+      "CDNG_ALIGN_SOFT": "1"
+    }
+  }
+}

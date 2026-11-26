@@ -1,0 +1,90 @@
+{
+  "seed": 303,
+  "png_key": "zoom_edge_wall_to_cloth",
+  "items": [
+    {
+      "id": "V001",
+      "run": "exp003b-g1-a75-dz50",
+      "result": "A04_f044",
+      "sha256": "609ee2f64de0145bb0b3202244bc2510503a44dd7f835e88ac376f827aa21a5e"
+    },
+    {
+      "id": "V002",
+      "run": "exp003b-i-ctrl-q18-dz50",
+      "result": "A04_f044",
+      "sha256": "99cdcbd1f76a606503e088df451a330ea65e69204a8b2a1fb9b4feab84f54f79"
+    },
+    {
+      "id": "V003",
+      "run": "exp003b-g3-maxfid-q2",
+      "result": "A04_f049",
+      "sha256": "12295597141b1a0cb8b795fa5e2072de505e5ac88ef555ac51a67b1fff47caa8"
+    },
+    {
+      "id": "V004",
+      "run": "exp003b-i-rdoq-q24-l130",
+      "result": "A04_f049",
+      "sha256": "f517d130858d63d7cc1bfa5c59008f0e126e42844fbf6980269ca4e816dacd74"
+    },
+    {
+      "id": "V005",
+      "run": "exp003b-g2-plane-y40-c50",
+      "result": "A04_f049",
+      "sha256": "2efee0c7eb00e68a97c4a2be730f49d4716e4e994c2c88332ceaf5fd2e085047"
+    },
+    {
+      "id": "V006",
+      "run": "exp003b-h-q18-l70",
+      "result": "A04_f044",
+      "sha256": "6c7fc0419d574f537c84820a7c728baf93237156bc8ce5081ff70cfe0a855fb2"
+    },
+    {
+      "id": "V007",
+      "run": "exp003b-i-ctrl-q18-dz50",
+      "result": "A04_f049",
+      "sha256": "5b591db7539400aa16d810281e5ba53383106ad3330b5c62fba2cde9a9c085bd"
+    },
+    {
+      "id": "V008",
+      "run": "exp003b-g3-maxfid-q2",
+      "result": "A04_f044",
+      "sha256": "a6b321b90f6c48bd19703e22e04c8a4695dd8bbc772426795f98e7758eac599d"
+    },
+    {
+      "id": "V009",
+      "run": "exp003b-g2-plane-y40-c50",
+      "result": "A04_f044",
+      "sha256": "c779dd0453745f60d74ff494c4c21eb10d6363ea39545e5fed60453476fc65a8"
+    },
+    {
+      "id": "V010",
+      "run": "exp003b-g0-legacy",
+      "result": "A04_f049",
+      "sha256": "bcb2f255c750ed2d5c98acb82a23d8da6e453bc53cd4feb53cb168b25240601b"
+    },
+    {
+      "id": "V011",
+      "run": "exp003b-i-rdoq-q24-l130",
+      "result": "A04_f044",
+      "sha256": "aadf8278f538f030fcd23bb4cd8d6364ffcb3626ab6b72bd76dbad8582583873"
+    },
+    {
+      "id": "V012",
+      "run": "exp003b-h-q18-l70",
+      "result": "A04_f049",
+      "sha256": "a073de2e23a674bbb88d5a2b1e2a3b7710d91164df716855ad446d765496ec69"
+    },
+    {
+      "id": "V013",
+      "run": "exp003b-g1-a75-dz50",
+      "result": "A04_f049",
+      "sha256": "8039e641e96f035e973e12fb197a5ba59d1961d99fbe444008e9c3f3a833e164"
+    },
+    {
+      "id": "V014",
+      "run": "exp003b-g0-legacy",
+      "result": "A04_f044",
+      "sha256": "229276c833720d4b73601c840a97c42165ccd013b3fa6dcff7c888ca9e02be01"
+    }
+  ]
+}

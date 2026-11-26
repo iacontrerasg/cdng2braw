@@ -219,9 +219,60 @@ Hallazgos preliminares (medias A04, `sample_bytes`):
 
 Overhead ≈ **2.3×** a 1 worker; 2 workers mitigan parcialmente. Cuello: trellis por bloque en el hot path de encode.
 
-### Pendiente
+## Fases I–N — Campaña final y cierre
 
-- Serie A completa / Pareto final / clasificación hipótesis
-- Perfiles P0 / BUG-002
+### I — Igual tasa (±2 % sample bytes)
 
-SHA base: `benchmark/experiments/exp003b-base-sha.txt`.
+| Par | Tasa | Veredicto |
+|-----|------|-----------|
+| RDOQ λ=70 @q18 vs ctrl α0.75 DZ0.5 @q18 | ~igual | **cand_worse** (PSNR/detail) |
+| RDOQ λ=130 @q24 vs G1 | ~igual (1.4 %) | **cand_worse** |
+| RDOQ λ=0 @q2 vs G3 | igual | **equivalent** (identidad práctica) |
+
+No atribuible a precomp distinta: mismos α/DZ en pares 3:1/5:1.
+
+### J — Límites
+
+- λ∈{130,160,200,250,300}: más compresión degradando detalle; sin mejora útil de frontera vs G1.
+- Rate search 3/5/6/8/12: DZ uniforme satura ~**5.06:1** (QMax); RDOQ λ=100 ~**4.84:1**. **No 6:1 ni 8:1** efectivos.
+
+### K — Serie A (cobertura estricta)
+
+| Config | `series_approved` | Ratio | Notas |
+|--------|-------------------|-------|-------|
+| G0 | sí | 3.49 | |
+| G1 | **no** | 5.09 | A01 `quality_rejected` |
+| G2 | sí | 4.87 | |
+| G3 | sí | 1.75 | |
+| RDOQ ~3:1 | sí | 3.10 | |
+| RDOQ ~5:1 (λ130) | **sí** | 5.16 | Pasa A01; PSNR&lt;G1 |
+| RDOQ hi (λ250) | no | 6.13 | 6/6 detail rejected |
+
+### L — Maximum Fidelity
+
+RDOQ λ=0 @ q0/q2 ≡ control sin RDOQ. Deltas a λ&gt;0 &lt; umbral práctico (0.05 dB / 0.005 detail). **Sin mejora real frente a G3.**
+
+### M — Visual
+
+Hojas a ciegas: `out/benchmark/experiments/exp003b/blind-sheets/` (claves en `benchmark/experiments/exp003b/blind-keys/`). ColorChecker, tela, metal, bordes, card.
+
+### N — Clasificación final
+
+**C — Mejora localizada.**  
+RDOQ no gana 3:1 ni 5:1 a igual `sample_bytes` frente a controles pareados; no justifica el overhead ~2.3× para frontera RD. Efecto local: en Serie A, λ≈130 pasa el gate 0.74 en A01 donde G1 falla, a costa de PSNR. Max-fid sin ganancia práctica. **No se amplía la arquitectura del trellis.** Defaults / VLC / DCT / QMax intactos.
+
+| Pregunta | Respuesta |
+|----------|-----------|
+| ¿Justifica su complejidad? | **No** (para adopción general) |
+| ¿Mejora 3:1 o 5:1 a igual tasa? | **No** |
+| ¿Alcanza 6:1 / 8:1? | **No** (rate search satura ~5:1) |
+
+### Recomendaciones EXP-004
+
+1. **BUG-002** halos cromáticos: bloqueante P0.  
+2. Mantener G1 (α0.75 z=0.5) como referencia ~5:1; G2 si se prioriza gate Serie A.  
+3. No basar perfiles Maximum Fidelity / Production 3:1 en RDOQ sin nueva evidencia.  
+4. Validación perceptual + grading + estabilidad temporal.
+
+SHA base: `benchmark/experiments/exp003b-base-sha.txt`.  
+Resumen: `benchmark/experiments/exp003b-results-summary.json` (schema 2).

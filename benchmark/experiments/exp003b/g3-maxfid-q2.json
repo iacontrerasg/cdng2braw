@@ -14,7 +14,7 @@
       "CDNG_DEADZONE": "0"
     },
     "notes": [
-      "EXP-003b G3 max-fid q2"
+      "G3"
     ],
     "diagnostic_env": {
       "CDNG_BIT_BUDGET": "1",

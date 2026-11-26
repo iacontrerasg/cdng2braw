@@ -15,7 +15,7 @@
       "CDNG_DEADZONE": "0.5"
     },
     "notes": [
-      "EXP-003b G1 DZ uniforme"
+      "EXP-003b G1"
     ],
     "diagnostic_env": {
       "CDNG_BIT_BUDGET": "1",
