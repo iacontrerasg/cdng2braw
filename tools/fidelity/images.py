@@ -122,10 +122,26 @@ def alignment(reference, candidate, search=8):
 
 
 def check_alignment(reference, candidate, min_correlation):
-    """La candidata debe coincidir con la referencia sin desplazamiento y con detalle correlado."""
+    """La candidata debe coincidir con la referencia sin desplazamiento y con detalle correlado.
+
+    CDNG_ALIGN_SOFT=1 (diagnóstico): no lanza; marca gate_failed. El umbral de aceptación no cambia.
+    """
+    import os
     shift, cc = alignment(reference, candidate)
+    out = {'shift': list(shift), 'detail_correlation': float(cc),
+           'gate_min_correlation': float(min_correlation)}
+    soft = os.environ.get('CDNG_ALIGN_SOFT') not in (None, '', '0')
     if shift != (0, 0):
+        out['gate_failed'] = True
+        out['gate_reason'] = 'shift'
+        if soft:
+            return out
         raise ImageError('imágenes desalineadas: desplazamiento (dy, dx) = %s' % (shift,))
     if not cc >= min_correlation:
+        out['gate_failed'] = True
+        out['gate_reason'] = 'detail_correlation'
+        if soft:
+            return out
         raise ImageError('el detalle no se corresponde (correlación %.3f < %.3f): ¿otro fotograma u otra escena?' % (cc, min_correlation))
-    return {'shift': list(shift), 'detail_correlation': cc}
+    out['gate_failed'] = False
+    return out

@@ -13,6 +13,7 @@
 #include "geometry.hpp"
 
 #include <memory>
+#include <string>
 
 namespace cdng {
 
@@ -27,6 +28,19 @@ struct EncodeStats {
     int attempts = 0;
 };
 
+// Diagnóstico opcional (CDNG_BIT_BUDGET / CDNG_COEFF_STATS). No forma parte del bitstream.
+struct EncodeDiagnostics {
+    bool present = false;
+    int q_tried = 0;
+    int attempt_index = 0;
+    bool strict = true;
+    double qY = 0, qC = 0;
+    std::size_t slices_payload_bytes = 0;
+    std::string budget_json;
+    std::string coeff_json;       // campos planos sin llaves exteriores: "ac_total":...
+    std::string payload_sha256;
+};
+
 struct EncodedFrame {
     std::vector<std::vector<uint8_t>> slices;   // en el orden de la tabla, rellenos a 8 bytes
     int q = 0;
@@ -37,6 +51,7 @@ struct EncodedFrame {
     double noiseLevelY = 0, noiseLevelC = 0;
     std::size_t size = 0;   // FirstSlice + suma de los slices, como en encode_rate_controlled
     EncodeStats stats;
+    EncodeDiagnostics diag;
 };
 
 // Campos de síntesis de ruido que escribiría el Video Assist a ese q (ver codec.cpp): los que se escriben por defecto.

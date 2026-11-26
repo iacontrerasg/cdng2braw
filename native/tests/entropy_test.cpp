@@ -1,13 +1,17 @@
 #include "cdng_native.h"
+#include "cdng_bit_budget.h"
 #include <array>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
+#include <string>
 
 void require(bool value) {
     if (!value) { std::cerr << "native entropy test failed\n"; std::exit(1); }
 }
 int main() {
+    // Antes de cualquier encode: el flag se memoíza en el primer getenv.
+    setenv("CDNG_BIT_BUDGET", "1", 1);
     require(cdng_native_abi() == 3);
     CdngBuffer buffer{};
     const uint64_t values[] = {5, 0, 3, 0x123456789abcdef0ULL};
@@ -70,5 +74,29 @@ int main() {
     }
     y.blocks = 1;
     require(cdng_encode_slice(&y, &cb, &cb, &tables, &buffer, &stats) == 1);
+
+    // Presupuesto de bits: reconciliación payload_bytes×8 == attributed.
+    require(cdng_bit_budget_enabled() == 1);
+    cdng_bit_budget_reset();
+    y.blocks = 2;
+    yac.fill(0); cac.fill(0);
+    require(cdng_encode_slice(&y, &cb, &cb, &tables, &buffer, &stats) == 0);
+    CdngBitBudget bud{};
+    cdng_bit_budget_get(&bud);
+    require(bud.payload_bytes == buffer.size);
+    require(bud.payload_bytes % 8 == 0);
+    const uint64_t attributed = bud.dc_bits[0] + bud.dc_bits[1] + bud.dc_bits[2] +
+        bud.ac_prefix_bits[0] + bud.ac_prefix_bits[1] + bud.ac_prefix_bits[2] +
+        bud.ac_final_bits[0] + bud.ac_final_bits[1] + bud.ac_final_bits[2] +
+        bud.ac_magnitude_bits[0] + bud.ac_magnitude_bits[1] + bud.ac_magnitude_bits[2] +
+        bud.eob_bits[0] + bud.eob_bits[1] + bud.eob_bits[2] +
+        bud.marker_bits + bud.padding_bits;
+    require(attributed == bud.payload_bytes * 8ull);
+    require(bud.coded_bits + bud.padding_bits == bud.payload_bytes * 8ull);
+    char json[2048];
+    require(cdng_bit_budget_json(json, sizeof json) > 0);
+    require(std::string(json).find("\"dc_bits\"") != std::string::npos);
+    cdng_buffer_free(&buffer);
+
     std::cout << "native entropy tests passed\n";
 }

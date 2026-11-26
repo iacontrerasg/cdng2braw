@@ -1,0 +1,20 @@
+{
+  "base": "../../manifest.json",
+  "encode": {
+    "compression": "quality",
+    "q": 24,
+    "ratio": null,
+    "rate_search": false,
+    "noise_synthesis": false,
+    "nr_luma": 1,
+    "nr_chroma": 1,
+    "workers": 2,
+    "experimental_env": {
+      "CDNG_OG_DEBLOCK_PRECOMP": "1",
+      "CDNG_DEADZONE": "0"
+    },
+    "notes": [
+      "EXP-002a Fase H nr1-syn0"
+    ]
+  }
+}

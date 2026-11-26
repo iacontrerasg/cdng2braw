@@ -3,13 +3,17 @@
 // frente al prototipo.
 #include "../codec.hpp"
 #include "../codec_tables.hpp"
+#include "../encode_stats.hpp"
 #include "check.hpp"
 
 #include <chrono>
 #include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <functional>
 #include <future>
 #include <string>
+#include <vector>
 
 using namespace cdng;
 
@@ -155,6 +159,75 @@ void autonomous(const Codec &codec, const CodecTables &t) {
     CHECK(lastRc.q == QMax && lastRc.stats.clamped > 0);
     const auto lastFixed = codec.encodeFixed(p, g, 4);
     CHECK(lastFixed.q == QMax && lastFixed.stats.clamped == lastRc.stats.clamped && lastFixed.size == lastRc.size);
+
+    // EXP-002a: estadísticas del intento seleccionado (no de los descartados).
+    {
+        namespace fs = std::filesystem;
+        const auto dir = fs::temp_directory_path() / ("cdng-stats-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+        fs::create_directories(dir);
+        setenv("CDNG_BIT_BUDGET", "1", 1);
+        setenv("CDNG_STATS_DIR", dir.string().c_str(), 1);
+        unsetenv("CDNG_COEFF_STATS");
+        auto countLines = [](const fs::path &path) {
+            if (!fs::exists(path)) return 0;
+            std::ifstream in(path);
+            int n = 0;
+            for (std::string line; std::getline(in, line);) if (!line.empty()) ++n;
+            return n;
+        };
+        auto clear = [&] {
+            for (const char *name : {"bit-budget.jsonl", "encode-attempts.jsonl", "coeff-stats.jsonl"})
+                fs::remove(dir / name);
+        };
+        // Calidad fija sin fallback: 1 selected, 0 discarded.
+        clear();
+        p = canvas(g);
+        EncodeStatsContext ctx;
+        ctx.clip = "test"; ctx.frame_index = 0; ctx.q_requested = 8; ctx.mode = "quality";
+        encodeStatsSetContext(ctx);
+        auto easy = codec.encodeFixed(p, g, 8);
+        CHECK(easy.q == 8 && easy.diag.present);
+        encodeStatsPublish(easy, true, "selected");
+        encodeStatsClearContext();
+        CHECK(countLines(dir / "bit-budget.jsonl") == 1);
+        CHECK(countLines(dir / "encode-attempts.jsonl") == 0);
+        // Calidad fija con fallback DC: intentos descartados + selected a q mayor.
+        clear();
+        for (int y = 0; y < g.hs; ++y)
+            for (int x = 0; x < g.ws; ++x) p.y[std::size_t(y) * g.ws + x] = ((y / 8 + x / 8) % 2) ? 4095 : 0;
+        ctx.frame_index = 1; ctx.q_requested = 0;
+        encodeStatsSetContext(ctx);
+        auto bumped = codec.encodeFixed(p, g, 0);
+        encodeStatsPublish(bumped, true, "selected");
+        encodeStatsClearContext();
+        CHECK(bumped.q > 0);
+        CHECK(countLines(dir / "bit-budget.jsonl") == 1);
+        CHECK(countLines(dir / "encode-attempts.jsonl") >= 1);
+        CHECK(bumped.stats.attempts >= 2);
+        // Rate search con objetivo imposible → QMax non-strict / saturación.
+        clear();
+        ctx.frame_index = 2; ctx.q_requested = -1; ctx.ratio_requested = 12; ctx.mode = "ratio";
+        encodeStatsSetContext(ctx);
+        auto sat = codec.encodeRateControlled(p, g, 1, 4);
+        encodeStatsPublish(sat, true, "selected");
+        encodeStatsClearContext();
+        CHECK(sat.q == QMax);
+        CHECK(countLines(dir / "bit-budget.jsonl") == 1);
+        CHECK(countLines(dir / "encode-attempts.jsonl") >= 1);
+        // Payload del selected coincide con slices del frame.
+        {
+            std::ifstream in(dir / "bit-budget.jsonl");
+            std::string line;
+            std::getline(in, line);
+            CHECK(line.find("\"selected\":true") != std::string::npos);
+            CHECK(line.find("\"payload_sha256\"") != std::string::npos);
+            const auto want = sat.size >= FirstSlice ? sat.size - FirstSlice : 0;
+            CHECK(line.find("\"slices_payload_bytes\":" + std::to_string(want)) != std::string::npos);
+        }
+        unsetenv("CDNG_BIT_BUDGET");
+        unsetenv("CDNG_STATS_DIR");
+        fs::remove_all(dir);
+    }
 
     // Hilos: el mismo Codec desde varios hilos a la vez da lo mismo que en serie.
     p = canvas(g);

@@ -806,6 +806,112 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
 
 
 @unittest.skipUnless(np is not None, 'numpy es necesario (make venv)')
+class Exp002aInstrumentationTests(unittest.TestCase):
+    """Banco EXP-002a: deadzone, diagnóstico y agregación de presupuesto."""
+
+    def _encode(self, **kw):
+        enc = {
+            'compression': 'quality', 'q': 18, 'ratio': None, 'rate_search': False,
+            'noise_synthesis': False, 'nr_luma': 0, 'nr_chroma': 0, 'workers': 1,
+            'experimental_env': {'CDNG_OG_DEBLOCK_PRECOMP': '1'},
+        }
+        enc.update(kw)
+        return enc
+
+    def test_deadzone_accepted_in_range(self):
+        from tools.fidelity import pipeline as P
+        for z in ('0', '0.25', '0.5'):
+            req, effective, env, diag = P.encode_request(self._encode(experimental_env={
+                'CDNG_OG_DEBLOCK_PRECOMP': '1', 'CDNG_DEADZONE': z}), environ={})
+            self.assertEqual(env['CDNG_DEADZONE'], z)
+
+    def test_deadzone_rejects_out_of_range(self):
+        from tools.fidelity import pipeline as P
+        with self.assertRaises(P.PipelineError) as cm:
+            P.encode_request(self._encode(experimental_env={
+                'CDNG_OG_DEBLOCK_PRECOMP': '1', 'CDNG_DEADZONE': '0.6'}), environ={})
+        self.assertIn('CDNG_DEADZONE', str(cm.exception))
+        with self.assertRaises(P.PipelineError):
+            P.encode_request(self._encode(experimental_env={
+                'CDNG_OG_DEBLOCK_PRECOMP': '1', 'CDNG_DEADZONE': '-0.1'}), environ={})
+        with self.assertRaises(P.PipelineError):
+            P.encode_request(self._encode(experimental_env={
+                'CDNG_OG_DEBLOCK_PRECOMP': '1', 'CDNG_DEADZONE': 'nope'}), environ={})
+
+    def test_diagnostic_env_rejected_in_experimental(self):
+        from tools.fidelity import pipeline as P
+        with self.assertRaises(P.PipelineError) as cm:
+            P.encode_request(self._encode(experimental_env={
+                'CDNG_OG_DEBLOCK_PRECOMP': '1', 'CDNG_BIT_BUDGET': '1'}), environ={})
+        self.assertIn('diagnostic', str(cm.exception).lower())
+
+    def test_diagnostic_env_accepted_separately(self):
+        from tools.fidelity import pipeline as P
+        req, effective, env, diag = P.encode_request(
+            self._encode(diagnostic_env={'CDNG_BIT_BUDGET': '1', 'CDNG_COEFF_STATS': '1',
+                                         'CDNG_STATS_DIR': '/tmp/x'}),
+            environ={})
+        self.assertNotIn('CDNG_BIT_BUDGET', env)
+        self.assertEqual(diag.get('CDNG_BIT_BUDGET'), '1')
+        self.assertEqual(env.get('CDNG_OG_DEBLOCK_PRECOMP'), '1')
+
+    def test_bit_budget_reconcile_helper(self):
+        from tools.exp002a_report import load_budget
+        with tempfile.TemporaryDirectory() as d:
+            # payload 16 B → 128 bits; DC Y 100 + pad 28 + marker 0
+            line = {
+                'q': 24,
+                'slices_payload_bytes': 16,
+                'budget': {
+                    'dc_bits': [100, 0, 0],
+                    'ac_prefix_bits': [0, 0, 0],
+                    'ac_final_bits': [0, 0, 0],
+                    'ac_magnitude_bits': [0, 0, 0],
+                    'eob_bits': [0, 0, 0],
+                    'marker_bits': 0,
+                    'padding_bits': 28,
+                    'coded_bits': 100,
+                    'payload_bytes': 16,
+                    'attributed_bits': 128,
+                },
+            }
+            with open(os.path.join(d, 'bit-budget.jsonl'), 'w') as f:
+                f.write(json.dumps(line) + '\n')
+            bud = load_budget(d)
+            self.assertTrue(bud['reconcile_ok'])
+            self.assertEqual(bud['payload_bytes_mean'], 16)
+            self.assertAlmostEqual(bud['pct_payload']['Y'], 100.0 * 100 / 128)
+
+    def test_default_encode_has_no_deadzone(self):
+        from tools.fidelity import pipeline as P
+        _, _, env, _ = P.encode_request(self._encode(), environ={})
+        self.assertIsNone(env.get('CDNG_DEADZONE'))
+
+    def test_align_soft_records_without_raising(self):
+        from tools.fidelity import images as IMG
+        yy, xx = np.mgrid[0:64, 0:64]
+        base = 0.2 + 0.3 * (xx / 63.0)
+        ref = np.stack([base, base, base], -1)
+        # Misma geometría de baja frecuencia; detalle distinto (ruido) → baja correlación highpass.
+        rng = np.random.default_rng(0)
+        cand = ref + rng.normal(0, 0.08, ref.shape)
+        cand = np.clip(cand, 1e-4, None)
+        old = os.environ.get('CDNG_ALIGN_SOFT')
+        os.environ['CDNG_ALIGN_SOFT'] = '1'
+        try:
+            out = IMG.check_alignment(ref, cand, 0.99)
+            self.assertTrue(out.get('gate_failed'))
+            self.assertIn(out.get('gate_reason'), ('detail_correlation', 'shift'))
+        finally:
+            if old is None:
+                os.environ.pop('CDNG_ALIGN_SOFT', None)
+            else:
+                os.environ['CDNG_ALIGN_SOFT'] = old
+        with self.assertRaises(IMG.ImageError):
+            IMG.check_alignment(ref, cand, 0.99)
+
+
+@unittest.skipUnless(np is not None, 'numpy es necesario (make venv)')
 class ManifestTests(unittest.TestCase):
     def test_manifest_loads_and_selects_series_a(self):
         from tools.fidelity import manifest as MF
