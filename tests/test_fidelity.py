@@ -465,6 +465,12 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
         meta2 = RD.parse_exp002_id('exp002-a04-a1-r03')
         self.assertEqual(meta2['ratio'], 3)
         self.assertEqual(meta2['alpha'], 1.0)
+        bd = RD.parse_exp002_id('exp002-a04-bd-q18')
+        self.assertEqual(bd['tag'], 'bounded')
+        self.assertIsNone(bd['alpha'])
+        self.assertEqual(bd['q'], 18)
+        # No confundir «bd» con un patrón «abd»
+        self.assertNotEqual(RD.parse_exp002_id('exp002-a04-a0-q04')['tag'], 'bounded')
         # 1 MB/frame → 24 MB/s → 86.4 GB/h; 500 GB ≈ 5.79 h
         rows = [{'alpha': 1.0, 'q': 18, 'mode': 'quality', 'tag': None, 'ratio': None,
                  'frame_bytes': 1_000_000, 'psnr': 40.0, 'duv_edges': 0.01, 'grad': 1.0,
@@ -479,6 +485,115 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
         self.assertAlmostEqual(agg[0]['gb_h_24fps'], 86.4, places=3)
         hours_500 = 500 / agg[0]['gb_h_24fps']
         self.assertAlmostEqual(hours_500, 500 / 86.4, places=3)
+
+    def test_rd_config_from_setup_not_name(self):
+        from tools.fidelity import rd as RD
+        result = {
+            'frame': 44,
+            'setup': {
+                'clip': 'A04', 'frame': 44, 'iso': 1600, 'range': [44, 2],
+                'inputs': [{'index': 44, 'sha256': 'abc'}],
+                'decode': {'exposure': -3}, 'reference': {'path': 'x.exr'},
+                'dng_sha256': 'abc',
+                'encode': {
+                    'request': {'compression': 'quality', 'q': 0, 'ratio': None,
+                                'noise_synthesis': False, 'nr_luma': 0, 'nr_chroma': 0},
+                    'experimental_env': {
+                        'CDNG_OG_DEBLOCK_PRECOMP': '1', 'CDNG_OG_DEBLOCK_ALPHA': None,
+                        'CDNG_OG_DEBLOCK_BOUNDED': '1', 'CDNG_RATE': None,
+                    },
+                },
+            },
+            'compression': {'q_min': 1, 'q_max': 1, 'frame_bytes': 100, 'braw_bytes': 200},
+        }
+        cfg = RD.config_from_result(result)
+        self.assertTrue(cfg['bounded'])
+        self.assertEqual(cfg['tag'], 'bounded')
+        self.assertEqual(cfg['q_requested'], 0)
+        label = RD.parse_exp002_id('exp002-a04-bd-q00')
+        self.assertEqual(RD.label_matches_config(label, cfg), [])
+        bad = RD.parse_exp002_id('exp002-a04-a1-q00')
+        self.assertTrue(RD.label_matches_config(bad, cfg))  # a1 ≠ bd
+
+    def test_rd_html_omits_missing_as_zero_and_is_self_contained(self):
+        from tools.fidelity import rd as RD
+        with tempfile.TemporaryDirectory() as d:
+            agg = [
+                {'alpha': 1.0, 'mode': 'quality', 'q': 0, 'q_requested': 0, 'ratio_requested': None,
+                 'tag': 'control', 'psnr': 40.0, 'duv_edges': 0.01, 'grad': 1.0, 'lap': 0.9,
+                 'block_bmi': 0.001, 'bits_per_site': 4.0, 'sample_bytes': 1e6,
+                 'ratio_sample_12bit': 3.0, 'gb_h_24fps': 80.0, 'q_eff': 1.0,
+                 'n_codec_range_fallback': 1},
+                {'alpha': 1.0, 'mode': 'quality', 'q': 4, 'q_requested': 4, 'ratio_requested': None,
+                 'tag': 'control', 'psnr': 39.5, 'duv_edges': 0.012, 'grad': 0.99, 'lap': 0.88,
+                 'block_bmi': 0.002, 'bits_per_site': 3.5, 'sample_bytes': 9e5,
+                 'ratio_sample_12bit': 3.4, 'gb_h_24fps': 70.0, 'q_eff': 4.0,
+                 'n_codec_range_fallback': 0},
+                {'alpha': 1.0, 'mode': 'quality', 'q': 1, 'q_requested': 1, 'ratio_requested': None,
+                 'tag': 'control', 'psnr': None, 'duv_edges': None, 'grad': None, 'lap': None,
+                 'block_bmi': None, 'bits_per_site': None, 'sample_bytes': None,
+                 'ratio_sample_12bit': None, 'gb_h_24fps': None, 'q_eff': None,
+                 'n_codec_range_fallback': 0},
+            ]
+            path = os.path.join(d, 'rd.html')
+            RD.write_html(path, 'test', agg)
+            html = open(path, encoding='utf-8').read()
+            self.assertNotIn('cdn.jsdelivr', html.lower())
+            self.assertNotIn('chart.js', html.lower())
+            self.assertIn('<svg', html)
+            self.assertIn('—', html)
+            # No cell should invent PSNR 0.000 for the missing row
+            self.assertNotIn('>0.000</td>', html)
+
+    def test_rd_incremental_rejects_missing_frame(self):
+        from tools.fidelity import rd_incremental as RI
+        with tempfile.TemporaryDirectory() as d:
+            base = os.path.join(d, 'base')
+            cand = os.path.join(d, 'cand')
+            for name, results in (
+                (base, {'A04_f044': self._inc_result(q=0)}),
+                (cand, {'A04_f044': self._inc_result(q=4), 'A04_f049': self._inc_result(q=4, frame=49)}),
+            ):
+                os.makedirs(os.path.join(name, 'frames'))
+                open(os.path.join(name, 'metrics.json'), 'w').write(json.dumps({
+                    'results': results}))
+                open(os.path.join(name, 'run.json'), 'w').write(json.dumps({
+                    'converter': {'cdng_convert_sha256': 'w'}, 'dataset': '/d', 'references': '/r',
+                    'timing': {'conversions': [], 'total_seconds': 1}, 'cache': []}))
+            with self.assertRaises(RI.IncrementalError) as cm:
+                RI.analyze_pair(base, cand, {'normalize_to_iso': 200, 'psnr_peak': 1.0,
+                                             'error_percentiles': [50], 'luminance_bins': [0, 1e9],
+                                             'chroma_min_luminance': 0.005,
+                                             'edge_mask': {'percentile': 90, 'dilate': 0, 'min_luminance': 0},
+                                             'neutral_mask': {'max_duv': 0.01, 'min_luminance': 0},
+                                             'ceiling_margin': 0.9999})
+            self.assertIn('fotogramas no coinciden', str(cm.exception))
+
+    def _inc_result(self, q=0, frame=44):
+        return {
+            'frame': frame, 'candidate_sha256': None,
+            'setup': {
+                'clip': 'A04', 'frame': frame, 'iso': 1600, 'range': [44, 2],
+                'inputs': [{'index': 44, 'sha256': 'a'}, {'index': 49, 'sha256': 'b'}],
+                'decode': {'exposure': -3}, 'reference': {'id': 'r'},
+                'dng_sha256': 'a' if frame == 44 else 'b',
+                'encode': {
+                    'request': {'compression': 'quality', 'q': q, 'ratio': None,
+                                'noise_synthesis': False, 'nr_luma': 0, 'nr_chroma': 0},
+                    'experimental_env': {'CDNG_OG_DEBLOCK_PRECOMP': '1',
+                                         'CDNG_OG_DEBLOCK_ALPHA': None,
+                                         'CDNG_OG_DEBLOCK_BOUNDED': None},
+                },
+            },
+            'reference_fidelity': {'normalized': {'psnr_db': 40.0}, 'raw': {'psnr_db': 30.0}},
+        }
+
+    def test_rd_size_fields_distinct(self):
+        from tools.fidelity import rd as RD
+        self.assertGreater(RD.RAW_BYTES_12BIT, 0)
+        # sample ratio y payload ratio no deben compartir denominador distinto silenciosamente
+        sample, payload = 1_000_000, 900_000
+        self.assertNotAlmostEqual(RD.RAW_BYTES_12BIT / sample, RD.RAW_BYTES_12BIT / payload)
 
     def test_og_deblock_alpha_and_bounded_validation(self):
         from tools.fidelity import pipeline as P, identity

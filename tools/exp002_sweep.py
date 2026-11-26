@@ -9,6 +9,11 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PYTHON = os.environ.get('PYTHON') or sys.executable
 
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from tools.fidelity import rd as RD
+
 
 def write_manifest(path, *, q=None, ratio=None, alpha=None, bounded=False, ablation=False, notes=''):
     env = {'CDNG_OG_DEBLOCK_PRECOMP': '0' if ablation else '1'}
@@ -72,6 +77,31 @@ def alpha_tag(a):
     return 'a' + str(a).replace('.', '')
 
 
+def maybe_skip(args, run_id, *, q=None, ratio=None, alpha=None, bounded=False, ablation=False):
+    """Reutiliza corrida solo si identidad e integridad coinciden con lo solicitado.
+
+    Si metrics.json existe pero no corresponde → aborta (o, con --remediate-mismatch,
+    lanza una corrida nueva con sufijo -rerun).
+    """
+    run_dir = os.path.join(args.out, 'runs', run_id)
+    metrics = os.path.join(run_dir, 'metrics.json')
+    if not (args.skip_existing and os.path.isfile(metrics)):
+        return None
+    try:
+        RD.verify_run_matches_request(
+            run_dir, q=q, ratio=ratio, alpha=alpha, bounded=bounded, ablation=ablation)
+    except RD.RdError as e:
+        msg = 'skip-existing rechazado para %s: %s' % (run_id, e)
+        if getattr(args, 'remediate_mismatch', False):
+            new_id = run_id + '-rerun'
+            print('AVISO:', msg, '→ nueva corrida', new_id, flush=True)
+            return ('rerun', new_id)
+        print('ERROR:', msg, file=sys.stderr)
+        raise SystemExit(2)
+    print('skip', run_id, '(identidad verificada)', flush=True)
+    return ('skip', run_dir)
+
+
 def phase_a04_grid(args):
     """25 q × {1, 0.5, 0.75} sobre A04."""
     qs = list(range(0, 25)) if args.q_max is None else list(range(0, args.q_max + 1))
@@ -88,10 +118,12 @@ def phase_a04_grid(args):
             if args.dry_run:
                 print('dry', run_id, man)
                 continue
-            if args.skip_existing and os.path.isfile(os.path.join(args.out, 'runs', run_id, 'metrics.json')):
-                print('skip', run_id)
-                runs.append(os.path.join(args.out, 'runs', run_id))
+            decision = maybe_skip(args, run_id, q=q, alpha=a)
+            if decision and decision[0] == 'skip':
+                runs.append(decision[1])
                 continue
+            if decision and decision[0] == 'rerun':
+                run_id = decision[1]
             runs.append(run_bench(args, run_id, man))
     return runs
 
@@ -99,7 +131,6 @@ def phase_a04_grid(args):
 def phase_a04_special(args):
     """Ablación y bounded en q representativos + anclas de ratio."""
     qs = [0, 4, 9, 18, 20, 24]
-    # Mapear ratios nominales ≈ q del barrido α=1 se hará post-hoc; aquí niveles fijos.
     runs = []
     for kind, kw in [('a0', {'ablation': True, 'alpha': 0.0}),
                      ('bd', {'bounded': True})]:
@@ -110,9 +141,12 @@ def phase_a04_special(args):
             if args.dry_run:
                 print('dry', run_id)
                 continue
-            if args.skip_existing and os.path.isfile(os.path.join(args.out, 'runs', run_id, 'metrics.json')):
-                runs.append(os.path.join(args.out, 'runs', run_id))
+            decision = maybe_skip(args, run_id, q=q, **kw)
+            if decision and decision[0] == 'skip':
+                runs.append(decision[1])
                 continue
+            if decision and decision[0] == 'rerun':
+                run_id = decision[1]
             runs.append(run_bench(args, run_id, man))
     return runs
 
@@ -130,9 +164,12 @@ def phase_ratios(args):
             if args.dry_run:
                 print('dry', run_id)
                 continue
-            if args.skip_existing and os.path.isfile(os.path.join(args.out, 'runs', run_id, 'metrics.json')):
-                runs.append(os.path.join(args.out, 'runs', run_id))
+            decision = maybe_skip(args, run_id, ratio=ratio, alpha=a)
+            if decision and decision[0] == 'skip':
+                runs.append(decision[1])
                 continue
+            if decision and decision[0] == 'rerun':
+                run_id = decision[1]
             runs.append(run_bench(args, run_id, man))
     return runs
 
@@ -152,16 +189,21 @@ def phase_series_a(args):
             run_id = 'exp002-sa-%s-q%02d' % (tag, val)
             man = os.path.join(ROOT, 'benchmark', 'experiments', 'exp002', 'sa-%s-q%02d.json' % (tag, val))
             write_manifest(man, q=val, alpha=a, notes='EXP-002 serie A q=%d alpha=%g' % (val, a))
+            skip_kw = {'q': val, 'alpha': a}
         else:
             run_id = 'exp002-sa-%s-r%02d' % (tag, val)
             man = os.path.join(ROOT, 'benchmark', 'experiments', 'exp002', 'sa-%s-r%02d.json' % (tag, val))
             write_manifest(man, ratio=val, alpha=a, notes='EXP-002 serie A %d:1 alpha=%g' % (val, a))
+            skip_kw = {'ratio': val, 'alpha': a}
         if args.dry_run:
             print('dry', run_id)
             continue
-        if args.skip_existing and os.path.isfile(os.path.join(args.out, 'runs', run_id, 'metrics.json')):
-            runs.append(os.path.join(args.out, 'runs', run_id))
+        decision = maybe_skip(args, run_id, **skip_kw)
+        if decision and decision[0] == 'skip':
+            runs.append(decision[1])
             continue
+        if decision and decision[0] == 'rerun':
+            run_id = decision[1]
         runs.append(run_bench(args, run_id, man, test=None, series='A'))
     return runs
 
@@ -177,6 +219,8 @@ def main():
     ap.add_argument('--brawdec', default=os.path.join(ROOT, 'tools', 'brawdec', 'brawdec'))
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--skip-existing', action='store_true')
+    ap.add_argument('--remediate-mismatch', action='store_true',
+                    help='si una corrida existente no coincide, crear <id>-rerun en lugar de abortar')
     ap.add_argument('--no-cache', action='store_true')
     ap.add_argument('--q-max', type=int, default=None, help='limitar barrido (pruebas)')
     ap.add_argument('--alphas', help='lista p.ej. 1,0.5,0.75')
