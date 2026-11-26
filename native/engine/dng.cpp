@@ -3,6 +3,7 @@
 // aparición de un tag usa (primera o última) y cómo interpreta tipo y offset.
 #include "dng.hpp"
 #include "dng_math.hpp"
+#include "og_debayer.hpp"
 
 #include <libraw.h>
 
@@ -548,7 +549,8 @@ RgbImage Dng::cameraRgb() const {
     // rawpy.Params(...) + RawPy.apply_params con los argumentos de dng_camera_rgb; el resto, valores por defecto de
     // rawpy (no los de LibRaw).
     libraw_output_params_t &o = p.imgdata.params;
-    o.user_qual = 3;   // DemosaicAlgorithm.AHD
+    const OgDebayerConfig debayer = ogDebayerFromEnv();
+    o.user_qual = debayer.userQual;   // default 3 = AHD; CDNG_OG_DEBAYER otherwise
     o.half_size = 0;
     o.four_color_rgb = 0;
     o.dcb_iterations = 0;
@@ -580,6 +582,10 @@ RgbImage Dng::cameraRgb() const {
     o.aber[2] = 1.0;
 
     h.check(p.dcraw_process());
+    if (debayer.userQual != 3 && (p.imgdata.process_warnings & LIBRAW_WARN_FALLBACK_TO_AHD)) {
+        throw Error("CDNG_OG_DEBAYER=" + debayer.name +
+                    " is not available in this LibRaw build (fell back to AHD; refusing silent substitute)");
+    }
     int err = 0;
     libraw_processed_image_t *img = p.dcraw_make_mem_image(&err);
     h.check(err);
@@ -673,6 +679,13 @@ Mat3 cameraTo709(const DngColor &color, const Vec3 &neutral) {
     const Vec3 whiteXyz = math::mul(camToXyz, neutral);
     const Mat3 adapt = bradford(whiteXyz, math::D65);
     return math::mul(math::mul(math::XyzTo709, adapt), camToXyz);
+}
+
+Mat3 cameraToP3(const DngColor &color, const Vec3 &neutral) {
+    const Mat3 camToXyz = math::inv(matrixForNeutral(color, neutral).first);
+    const Vec3 whiteXyz = math::mul(camToXyz, neutral);
+    const Mat3 adapt = bradford(whiteXyz, math::D65);
+    return math::mul(math::mul(math::XyzToP3, adapt), camToXyz);
 }
 
 namespace {

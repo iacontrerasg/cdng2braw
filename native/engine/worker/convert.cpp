@@ -5,6 +5,7 @@
 #include "rdoq.hpp"
 #include "signal_internal.hpp"
 #include "og_chroma.hpp"
+#include "og_debayer.hpp"
 #include "stage_dump.hpp"
 
 #include <simdjson.h>
@@ -433,6 +434,8 @@ int convert(const std::filesystem::path &requestPath) {
     const OgChromaConfig ogChroma = ogChromaConfigFromEnv();
     if (ogChroma.mode != OgChromaMode::C0 && route != Route::Og)
         throw Error("CDNG_OG_CHROMA_MODE is only supported on Pocket OG");
+    const OgDebayerConfig ogDebayer = ogDebayerFromEnv();
+    ogDebayerRejectIfNotOg(route);
     // Carga una sola vez antes de los workers: tablas inmutables, sin mutex por coeficiente.
     deadzonePolicyEnsureLoaded();
     const auto &dzPol = deadzonePolicy();
@@ -455,6 +458,8 @@ int convert(const std::filesystem::path &requestPath) {
         .str("og_chroma_mode", ogChromaModeName(ogChroma.mode))
         .str("og_chroma_kernel", ogChromaKernelName(ogChroma.kernel))
         .str("og_chroma_phase", ogChromaPhaseName(ogChroma.phase))
+        .str("og_debayer", ogDebayer.name)
+        .boolean("og_debayer_from_env", ogDebayer.fromEnv)
         .str("build", trace::buildId()).str("trace", trace::path().string()));
     const auto start = std::chrono::steady_clock::now();
     auto seconds = [&] { return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count(); };

@@ -202,6 +202,7 @@ void stageDumpWriteIndex(int q, int width, int height, const char *chroma_mode,
     const char *label = std::getenv("CDNG_STATS_LABEL");
     const char *inject = std::getenv("CDNG_INJECT_RGB");
     const char *injectAt = std::getenv("CDNG_INJECT_AT");
+    const char *debayer = std::getenv("CDNG_OG_DEBAYER");
     auto has = [](const char *stem) {
         for (const auto &s : gWritten) if (s == stem) return true;
         return false;
@@ -224,6 +225,7 @@ void stageDumpWriteIndex(int q, int width, int height, const char *chroma_mode,
        << "  \"stats_label\": \"" << jsonEscape(label ? label : "") << "\",\n"
        << "  \"inject_rgb\": \"" << jsonEscape(inject ? inject : "") << "\",\n"
        << "  \"inject_at\": \"" << jsonEscape(injectAt ? injectAt : "") << "\",\n"
+       << "  \"og_debayer\": \"" << jsonEscape(debayer && *debayer ? debayer : "ahd") << "\",\n"
        << "  \"stages_written\": [";
     for (std::size_t i = 0; i < gWritten.size(); ++i) {
         if (i) js << ", ";

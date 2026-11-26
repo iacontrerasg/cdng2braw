@@ -461,6 +461,7 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
         from tools.fidelity import pipeline as P, identity
         self.assertIn('CDNG_RDOQ', P.OUTPUT_ENV)
         self.assertIn('CDNG_RDOQ_LAMBDA', P.OUTPUT_ENV)
+        self.assertIn('CDNG_OG_DEBAYER', P.OUTPUT_ENV)
         # Default: RDOQ ausente → None (encoder legacy).
         _, eff0, env0, _ = P.encode_request(self._encode(), environ={})
         self.assertIsNone(eff0['CDNG_RDOQ'])

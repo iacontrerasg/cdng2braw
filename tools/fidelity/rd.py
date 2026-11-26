@@ -24,6 +24,7 @@ AUTHORIZED_EXP_ENV = frozenset({
     'CDNG_OG_CHROMA_MODE',
     'CDNG_OG_CHROMA_KERNEL',
     'CDNG_OG_CHROMA_PHASE',
+    'CDNG_OG_DEBAYER',
 })
 
 # Campos de encode (request o config.encode) que pueden diferir entre puntos RD.

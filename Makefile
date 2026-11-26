@@ -142,7 +142,7 @@ benchmark-freeze:
 	$(PYTHON) -m tools.fidelity freeze "$(BENCH_OUT)/runs/$(RUN)" "$(NAME)" --out "$(BENCH_OUT)"
 
 fidelity-test:
-	$(PYTHON) -m unittest tests.test_fidelity -v
+	$(PYTHON) -m unittest tests.test_fidelity tests.test_exp005 -v
 
 # ---- limpieza ----------------------------------------------------------------------------------
 clean:

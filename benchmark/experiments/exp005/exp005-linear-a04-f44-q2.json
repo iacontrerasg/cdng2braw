@@ -1,0 +1,32 @@
+{
+  "base": "../../manifest.json",
+  "encode": {
+    "compression": "quality",
+    "q": 2,
+    "ratio": null,
+    "rate_search": false,
+    "noise_synthesis": false,
+    "nr_luma": 0,
+    "nr_chroma": 0,
+    "workers": 1,
+    "experimental_env": {
+      "CDNG_OG_DEBLOCK_PRECOMP": "1",
+      "CDNG_OG_DEBLOCK_ALPHA": "1",
+      "CDNG_DEADZONE": "0",
+      "CDNG_OG_CHROMA_MODE": "c0",
+      "CDNG_OG_DEBAYER": "linear"
+    },
+    "notes": [
+      "EXP-005 linear q2 C0"
+    ],
+    "diagnostic_env": {
+      "CDNG_DUMP_STAGES": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp005/stages/exp005-linear-a04-f44-q2",
+      "CDNG_DUMP_FRAME": "0",
+      "CDNG_BIT_BUDGET": "1",
+      "CDNG_COEFF_STATS": "1",
+      "CDNG_STATS_DIR": "/Users/isaac/Development/blackmagic/cdng2braw/out/benchmark/experiments/exp005/stats/exp005-linear-a04-f44-q2",
+      "CDNG_STATS_LABEL": "exp005-linear-a04-f44-q2",
+      "CDNG_ALIGN_SOFT": "1"
+    }
+  }
+}
