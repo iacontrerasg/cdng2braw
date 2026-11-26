@@ -1,0 +1,560 @@
+{
+  "experiment": "EXP-005b",
+  "title": "Decoder-aware Chroma Reconstruction: Feasibility",
+  "branch": "experiment/pocket-og-decoder-aware-chroma",
+  "base": "main@81cc49a (PR #10 merged)",
+  "generated_utc": "2026-11-26T20:05:25Z",
+  "defaults_intact": true,
+  "aahd_experimental_only": true,
+  "ahd_default": true,
+  "no_sdk_or_format_change": true,
+  "no_exp006_007_008": true,
+  "hypothesis_a": {
+    "asn": [
+      0.6306,
+      1.0,
+      0.7728
+    ],
+    "levels": [
+      {
+        "g": 0.02,
+        "camera_equal": {
+          "rgb": [
+            0.02,
+            0.02,
+            0.02
+          ],
+          "ycc": [
+            704.7152122445826,
+            0.0,
+            0.0
+          ],
+          "p3": [
+            0.0346833724487336,
+            0.017475175729353053,
+            0.028895524531967916
+          ],
+          "p3_chroma": 0.02065299980889668,
+          "cb": 0.0,
+          "cr": 0.0,
+          "chroma_code": 0.0
+        },
+        "camera_asn": {
+          "rgb": [
+            0.012612000000000002,
+            0.02,
+            0.015456000000000001
+          ],
+          "ycc": [
+            667.4806938267986,
+            -27.868500573833728,
+            -46.60053626173408
+          ],
+          "p3": [
+            0.020002536175570133,
+            0.01999965891768726,
+            0.01999565146500273
+          ],
+          "p3_chroma": 4.933385241727508e-06,
+          "cb": -27.868500573833728,
+          "cr": -46.60053626173408,
+          "chroma_code": 54.29791252078632
+        },
+        "p3_grey_inv": {
+          "rgb": [
+            0.012611283040207932,
+            0.020000511322897197,
+            0.015458084094340917
+          ],
+          "ycc": [
+            667.4879374940547,
+            -27.8581820837544,
+            -46.608415150270446
+          ],
+          "p3": [
+            0.02,
+            0.020000000000000004,
+            0.019999999999999997
+          ],
+          "p3_chroma": 7.757919228897728e-18,
+          "cb": -27.8581820837544,
+          "cr": -46.608415150270446,
+          "chroma_code": 54.2993800317423
+        },
+        "asn_vs_p3_rgb_max": 8.444504136395636e-05
+      },
+      {
+        "g": 0.08,
+        "camera_equal": {
+          "rgb": [
+            0.08,
+            0.08,
+            0.08
+          ],
+          "ycc": [
+            1221.8400278143204,
+            0.0,
+            0.0
+          ],
+          "p3": [
+            0.1387334897949344,
+            0.06990070291741221,
+            0.11558209812787167
+          ],
+          "p3_chroma": 0.08261199923558672,
+          "cb": 0.0,
+          "cr": 0.0,
+          "chroma_code": 0.0
+        },
+        "camera_asn": {
+          "rgb": [
+            0.05044800000000001,
+            0.08,
+            0.061824000000000004
+          ],
+          "ycc": [
+            1134.0371535009026,
+            -65.23470944867461,
+            -110.37103917816091
+          ],
+          "p3": [
+            0.08001014470228053,
+            0.07999863567074904,
+            0.07998260586001092
+          ],
+          "p3_chroma": 1.9733540966910033e-05,
+          "cb": -65.23470944867461,
+          "cr": -110.37103917816091,
+          "chroma_code": 128.20816513046321
+        },
+        "p3_grey_inv": {
+          "rgb": [
+            0.05044513216083173,
+            0.08000204529158879,
+            0.06183233637736367
+          ],
+          "ycc": [
+            1134.0540098967253,
+            -65.20995094092643,
+            -110.38987972339163
+          ],
+          "p3": [
+            0.08,
+            0.08000000000000002,
+            0.07999999999999999
+          ],
+          "p3_chroma": 3.1031676915590914e-17,
+          "cb": -65.20995094092643,
+          "cr": -110.38987972339163,
+          "chroma_code": 128.2117905929985
+        },
+        "asn_vs_p3_rgb_max": 8.444504136395636e-05
+      },
+      {
+        "g": 0.18,
+        "camera_equal": {
+          "rgb": [
+            0.18,
+            0.18,
+            0.18
+          ],
+          "ycc": [
+            1775.765260078948,
+            0.0,
+            0.0
+          ],
+          "p3": [
+            0.31215035203860236,
+            0.1572765815641775,
+            0.2600597207877112
+          ],
+          "p3_chroma": 0.18587699828007,
+          "cb": 0.0,
+          "cr": 0.0,
+          "chroma_code": 0.0
+        },
+        "camera_asn": {
+          "rgb": [
+            0.113508,
+            0.18,
+            0.139104
+          ],
+          "ycc": [
+            1639.0114753512505,
+            -101.38963072386025,
+            -172.11793873153442
+          ],
+          "p3": [
+            0.18002282558013114,
+            0.17999693025918534,
+            0.17996086318502452
+          ],
+          "p3_chroma": 4.4400467175556244e-05,
+          "cb": -101.38963072386025,
+          "cr": -172.11793873153442,
+          "chroma_code": 199.76096228120494
+        },
+        "p3_grey_inv": {
+          "rgb": [
+            0.11350154736187139,
+            0.18000460190607476,
+            0.13912275684906825
+          ],
+          "ycc": [
+            1639.0376261625738,
+            -101.3508903966084,
+            -172.14740781389457
+          ],
+          "p3": [
+            0.18000000000000002,
+            0.18,
+            0.17999999999999997
+          ],
+          "p3_chroma": 3.925231146709438e-17,
+          "cb": -101.3508903966084,
+          "cr": -172.14740781389457,
+          "chroma_code": 199.76669642667835
+        },
+        "asn_vs_p3_rgb_max": 8.444504136395636e-05
+      },
+      {
+        "g": 0.35,
+        "camera_equal": {
+          "rgb": [
+            0.35,
+            0.35,
+            0.35
+          ],
+          "ycc": [
+            2444.607516140571,
+            0.0,
+            0.0
+          ],
+          "p3": [
+            0.6069590178528379,
+            0.3058155752636784,
+            0.5056716793094385
+          ],
+          "p3_chroma": 0.36142749665569174,
+          "cb": 0.0,
+          "cr": 0.0,
+          "chroma_code": 0.0
+        },
+        "camera_asn": {
+          "rgb": [
+            0.22071,
+            0.35,
+            0.27048
+          ],
+          "ycc": [
+            2250.947147915964,
+            -143.4482649794113,
+            -243.8724714698027
+          ],
+          "p3": [
+            0.35004438307247726,
+            0.34999403105952703,
+            0.34992390063754764
+          ],
+          "p3_chroma": 8.633424173031378e-05,
+          "cb": -143.4482649794113,
+          "cr": -243.8724714698027,
+          "chroma_code": 282.93318480940536
+        },
+        "p3_grey_inv": {
+          "rgb": [
+            0.22069745320363882,
+            0.35000894815070094,
+            0.27051647165096604
+          ],
+          "ycc": [
+            2250.9841163429,
+            -143.3932956161632,
+            -243.91428206839464
+          ],
+          "p3": [
+            0.35000000000000003,
+            0.3500000000000001,
+            0.35
+          ],
+          "p3_chroma": 1.2412670766236366e-16,
+          "cb": -143.3932956161632,
+          "cr": -243.91428206839464,
+          "chroma_code": 282.9413618130173
+        },
+        "asn_vs_p3_rgb_max": 8.444504136395636e-05
+      },
+      {
+        "g": 0.55,
+        "camera_equal": {
+          "rgb": [
+            0.55,
+            0.55,
+            0.55
+          ],
+          "ycc": [
+            3049.0989355281476,
+            0.0,
+            0.0
+          ],
+          "p3": [
+            0.9537927423401742,
+            0.48056733255720907,
+            0.7946269246291177
+          ],
+          "p3_chroma": 0.5679574947446586,
+          "cb": 0.0,
+          "cr": 0.0,
+          "chroma_code": 0.0
+        },
+        "camera_asn": {
+          "rgb": [
+            0.3468300000000001,
+            0.55,
+            0.4250400000000001
+          ],
+          "ycc": [
+            2804.853400401581,
+            -180.85056253515563,
+            -307.64050771797747
+          ],
+          "p3": [
+            0.5500697448281786,
+            0.5499906202363998,
+            0.5498804152875751
+          ],
+          "p3_chroma": 0.00013566809414747094,
+          "cb": -180.85056253515563,
+          "cr": -307.64050771797747,
+          "chroma_code": 356.8607683092346
+        },
+        "p3_grey_inv": {
+          "rgb": [
+            0.3468102836057182,
+            0.5500140613796729,
+            0.4250973125943752
+          ],
+          "ycc": [
+            2804.899992278902,
+            -180.78118023734578,
+            -307.6932799001431
+          ],
+          "p3": [
+            0.5500000000000002,
+            0.55,
+            0.5499999999999998
+          ],
+          "p3_chroma": 2.482534153247273e-16,
+          "cb": -180.78118023734578,
+          "cr": -307.6932799001431,
+          "chroma_code": 356.871110660019
+        },
+        "asn_vs_p3_rgb_max": 8.444504136395636e-05
+      }
+    ],
+    "asn_matches_p3_inverse_chromaticity_max": 8.444504136395636e-05,
+    "p3_grey_code_chroma_range": 261.0848647498727,
+    "camera_equal_code_chroma_max": 0.0,
+    "hypothesis": {
+      "p3_achromatic_is_camera_asn_up_to_scale": false,
+      "p3_achromatic_approx_asn": true,
+      "camera_equal_is_codec_achromatic": true,
+      "p3_grey_has_intensity_dependent_codec_chroma": true,
+      "not_assumed_a_priori": true,
+      "note": "cameraToP3(AsShotNeutral) is only approximately P3-grey (Bradford/McCamy); inv(cameraToP3)\u00b7[g,g,g] is close to \u221d AsShotNeutral, not identical."
+    },
+    "c0_edge_p3_grey": {
+      "nn_chroma_mae": 0.0,
+      "nn_chroma_max": 0.0,
+      "bilinear_chroma_mae": 1.8500062939412398,
+      "bilinear_chroma_max": 59.20020140611968,
+      "full_cb_range": 119.65364616108502,
+      "full_cr_range": 204.3468289569476
+    },
+    "camera_equal_edge": {
+      "code_chroma_max": 0.0,
+      "p3_chroma_max": 0.4646924957001753
+    }
+  },
+  "decoder_characterization": {
+    "s7_nn": {
+      "peak": [
+        12,
+        12
+      ],
+      "peak_value": 1.0,
+      "min_lobe": 0.0,
+      "overshoot": 0.0,
+      "undershoot": 0.0,
+      "support_px": 4,
+      "svd_s0_frac": 1.0,
+      "separable_fro_err": 1.0235750533041806e-15,
+      "linear_separable": true,
+      "linear_nonseparable": false,
+      "has_negative_lobes": false,
+      "cross_channel_max": 0.0,
+      "held_out_phase_l1": 0.013888888888888888,
+      "amplitude_rel_err": 0.0,
+      "notes": "S7 es repetici\u00f3n 2\u00d72 (no es el SDK). bilinear_420 es un candidato lineal separable, no la respuesta medida del Blackmagic RAW SDK."
+    },
+    "bilinear_420": {
+      "peak": [
+        12,
+        12
+      ],
+      "peak_value": 0.5625,
+      "min_lobe": 0.0,
+      "overshoot": 0.0,
+      "undershoot": 0.0,
+      "support_px": 16,
+      "svd_s0_frac": 1.0,
+      "separable_fro_err": 3.7904402627041597e-16,
+      "linear_separable": true,
+      "linear_nonseparable": false,
+      "has_negative_lobes": false,
+      "cross_channel_max": 0.0,
+      "held_out_phase_l1": 0.012152777777777778,
+      "amplitude_rel_err": 0.0,
+      "notes": "S7 es repetici\u00f3n 2\u00d72 (no es el SDK). bilinear_420 es un candidato lineal separable, no la respuesta medida del Blackmagic RAW SDK."
+    },
+    "sdk": {
+      "status": "requires_encode_decode",
+      "not_attributed_to_upsample_alone": true,
+      "limitation": "La respuesta SDK (S8) incluye curva inversa, WB, gen5, y posiblemente filtros no documentados adem\u00e1s del 4:2:0. No se atribuye todo al upsampling."
+    }
+  },
+  "model_validation": {
+    "approx_vs_s7_nn": {
+      "fro_rel": 0.5153882032019499,
+      "s7_is_not_sdk": true
+    },
+    "held_out_oracle": {
+      "orientation_p99_reduction": -0.17295720331590325,
+      "saturated_p99_reduction": 0.31910573960929645
+    },
+    "sdk_model_error": null
+  },
+  "oracle": {
+    "roi": 32,
+    "upsample_model": "bilinear_420_candidate_not_sdk",
+    "c0": {
+      "peak": 0.06165530815153439,
+      "p99": 0.06165530815153439,
+      "p99_9": 0.06165530815153439,
+      "integrated": 2.7152158799586825,
+      "luma_corr": 1.0
+    },
+    "o1_continuous": {
+      "peak": 0.04105369411703045,
+      "p99": 0.04105369411702955,
+      "p99_9": 0.04105369411703003,
+      "integrated": 3.6203050224832687,
+      "luma_corr": 1.0,
+      "chroma_legal": true,
+      "y_legal": true
+    },
+    "o1_quantized": {
+      "peak": 0.04101017446296387,
+      "p99": 0.04101017446296387,
+      "p99_9": 0.04101017446296387,
+      "integrated": 3.7478120472283534,
+      "luma_corr": 1.0,
+      "chroma_legal": true,
+      "y_legal": true
+    },
+    "o2": {
+      "peak": 0.08151302516888134,
+      "p99": 0.08151302516342233,
+      "p99_9": 0.08151302516567388,
+      "integrated": 5.430745419431646,
+      "luma_corr": 1.0,
+      "chroma_legal": true,
+      "y_legal": true
+    },
+    "o3": {
+      "peak": 0.037213589134021105,
+      "p99": 0.03721358913402063,
+      "p99_9": 0.037213589134021105,
+      "integrated": 3.7892640509143503,
+      "luma_corr": 1.0,
+      "chroma_legal": true,
+      "y_legal": true
+    },
+    "held_out_orientation": {
+      "c0": {
+        "peak": 0.0701704631520681,
+        "p99": 0.0701704631520681,
+        "p99_9": 0.0701704631520681,
+        "integrated": 4.825373091311665,
+        "luma_corr": 1.0,
+        "chroma_legal": true,
+        "y_legal": true
+      },
+      "o1": {
+        "peak": 0.08230695021423157,
+        "p99": 0.08230695021423143,
+        "p99_9": 0.08230695021423157,
+        "integrated": 5.430495894637063,
+        "luma_corr": 1.0,
+        "chroma_legal": true,
+        "y_legal": true
+      },
+      "p99_reduction": -0.17295720331590325
+    },
+    "held_out_saturated": {
+      "c0": {
+        "peak": 0.38852092116735193,
+        "p99": 0.38852092116735193,
+        "p99_9": 0.38852092116735193,
+        "integrated": 23.323240003849,
+        "luma_corr": 1.0,
+        "chroma_legal": true,
+        "y_legal": true
+      },
+      "o1": {
+        "peak": 0.2645416652645615,
+        "p99": 0.2645416652645589,
+        "p99_9": 0.26454166526456085,
+        "integrated": 32.07742656406235,
+        "luma_corr": 1.0,
+        "chroma_legal": true,
+        "y_legal": true
+      },
+      "p99_reduction": 0.31910573960929645
+    },
+    "reduction_vs_c0": {
+      "o1_p99": 0.3341417738740494,
+      "o1_integrated": -0.3333396615735611,
+      "o1q_p99": 0.33484762800681467,
+      "o3_p99": 0.3964252186923095,
+      "o3_integrated": -0.395566400035938
+    },
+    "joint_y": {
+      "ran": true,
+      "note": "O1\u2013O3 ya operan con Y fija. Un \u0394Y acotado no se aplica: desenfocar luma para igualar croma est\u00e1 prohibido. Se informa need_joint=true si el umbral exploratorio no se alcanza en el modelo bilinear, no como \u00f3ptimo SDK.",
+      "delta_y_rms": 0.0,
+      "skipped_blur_luma": true
+    },
+    "not_sdk_optimum": true
+  },
+  "sdk_campaign": {
+    "status": "not_run",
+    "reason": "campa\u00f1a S8 no ejecutada en este informe"
+  },
+  "robustness_f": {
+    "status": "not_run",
+    "limitation": "No hay CinemaDNG equivalentes a \u00b12 EV / WB 3200/6500 / tint en el banco; un BRAW \u00fanico decodificado con esos ajustes no tiene referencia DNG par. No se declara equivalencia."
+  },
+  "feasibility": {
+    "class": "E",
+    "reason": "Evidencia insuficiente sobre el SDK (S8). Hay caracterizaci\u00f3n S7 y un candidato lineal separable; no se midi\u00f3 la respuesta Blackmagic RAW SDK.",
+    "exploratory_threshold_on_approx_model": false
+  },
+  "next_if_ab": "Si A/B: experimento de implementaci\u00f3n eficiente (predicci\u00f3n local 4:2:0 condicionada a Y y a la curva, sin or\u00e1culo por ROI). No iniciado.",
+  "remaining_if_cde": [
+    "Revelado SDK no lineal / no separable no capturado por bilinear.",
+    "DCT/QMax residual a q>2.",
+    "Cambio de representaci\u00f3n (no 4:2:0) \u2014 fuera de alcance; no implementado.",
+    "Or\u00e1culo por iteraci\u00f3n encode/decode SDK acotada."
+  ]
+}

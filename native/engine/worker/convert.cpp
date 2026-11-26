@@ -573,6 +573,15 @@ int convert(const std::filesystem::path &requestPath) {
                         }
                     }
                     if (trace::active() && result.replaced) trace::line("frame replaced with black: " + result.reason);
+                    if (auto inj = stageInjectPlanes()) {
+                        if (route != Route::Og) throw Error("CDNG_INJECT_PLANES is Pocket OG only");
+                        if (inj->width != planes.width || inj->height != planes.height)
+                            throw Error("CDNG_INJECT_PLANES size must match developed planes");
+                        inj->reduction = planes.reduction;
+                        planes = std::move(*inj);
+                        if (trace::active())
+                            trace::line("CDNG_INJECT_PLANES applied after finishPlanes, before canvas/encode");
+                    }
                     const auto encodeFrom = std::chrono::steady_clock::now();
                     // Solo Pocket OG respeta PRECOMP/ALPHA/BOUNDED; VA/Pocket 4K conservan la precompensación original.
                     DeblockPrecomp deblockCfg;

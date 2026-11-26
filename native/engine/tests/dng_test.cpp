@@ -5,6 +5,7 @@
 #include "../dng_math.hpp"
 #include "../og_debayer.hpp"
 #include "../signal_internal.hpp"
+#include "../stage_dump.hpp"
 #include "check.hpp"
 
 #include <algorithm>
@@ -547,6 +548,35 @@ void parityThreads(const std::vector<fs::path> &paths) {
     for (std::size_t i = 0; i < parallel.size(); ++i) CHECK(parallel[i].data == serial[i % paths.size()].data);
 }
 
+void autonomousInjectPlanes() {
+    const int w = 4, h = 4;
+    Planes src(w, h);
+    for (int i = 0; i < w * h; ++i) src.y[std::size_t(i)] = float(100 + i);
+    src.cb[0] = 12.5f; src.cb[1] = -3.f; src.cb[2] = 8.f; src.cb[3] = 0.5f;
+    src.cr[0] = -9.f; src.cr[1] = 4.f; src.cr[2] = 1.f; src.cr[3] = -2.5f;
+    const auto path = tempPath("inject.brwp");
+    {
+        std::ofstream out(path, std::ios::binary);
+        out.write("BRWP", 4);
+        const uint32_t dim[2] = {uint32_t(w), uint32_t(h)};
+        out.write(reinterpret_cast<const char *>(dim), 8);
+        out.write(reinterpret_cast<const char *>(src.y.data()), std::streamsize(src.y.size() * 4));
+        out.write(reinterpret_cast<const char *>(src.cb.data()), std::streamsize(src.cb.size() * 4));
+        out.write(reinterpret_cast<const char *>(src.cr.data()), std::streamsize(src.cr.size() * 4));
+    }
+    {
+        check::EnvVar env("CDNG_INJECT_PLANES");
+        env.unset();
+        CHECK(!stageInjectPlanes());
+        env.set(path.string().c_str());
+        const auto got = stageInjectPlanes();
+        CHECK(got.has_value());
+        CHECK(got->width == w && got->height == h);
+        CHECK(got->y == src.y && got->cb == src.cb && got->cr == src.cr);
+    }
+    fs::remove(path);
+}
+
 }  // namespace
 
 int main() {
@@ -555,6 +585,7 @@ int main() {
     autonomousResize();
     autonomousWav();
     autonomousPocketOgExposure();
+    autonomousInjectPlanes();
     parityGyro();
 
     if (!check::skipWithoutGolden("dng_test")) {
