@@ -18,6 +18,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
+from tools.exp005_metrics import UV_YMIN, common_uv_mask
 from tools.fidelity import metrics as M
 
 BRADFORD = np.array([[0.8951, 0.2664, -0.1614],
@@ -221,8 +222,7 @@ def documented_scale(meta, exr_decode_exposure=0.0):
 def chroma_axes_from_ref(ref_p3):
     """Ejes de proyección cromática comunes: PCA 2D en (u′,v′) de la referencia (píxeles con Y>min)."""
     y = M.luminance(ref_p3)
-    ok = y > M.P3_LUMA[1] * 0  # placeholder
-    ok = y > 0.005
+    ok = y > UV_YMIN
     u, v = M.uv_prime(ref_p3)
     pts = np.stack([u[ok], v[ok]], -1)
     pts = pts[np.isfinite(pts).all(-1)]
@@ -264,7 +264,7 @@ def compare_camera_to_s9(s2_cam, s9_p3, meta, *, exr_decode_exposure=0.0, roi=No
     rt = roundtrip_error(s2, fwd, inv)
     y_s9 = M.luminance(s9)
     y_be = M.luminance(p3_be)
-    valid = (y_s9 > 0.005) & (y_be > 0.005)
+    valid = (y_s9 > UV_YMIN) & (y_be > UV_YMIN)
     diag_ratio = float(np.median(y_s9[valid] / np.maximum(y_be[valid], 1e-12))) if valid.any() else float('nan')
     axes = chroma_axes_from_ref(s9)
     sl = np.s_[:, :]
@@ -273,11 +273,26 @@ def compare_camera_to_s9(s2_cam, s9_p3, meta, *, exr_decode_exposure=0.0, roi=No
         sl = np.s_[y:y + h, x:x + w]
     d_be = p3_be[sl] - s9[sl]
     d_un = p3_unscaled[sl] - s9[sl]
-    u_be, v_be = M.uv_prime(p3_be[sl])
-    u9, v9 = M.uv_prime(s9[sl])
-    duv = np.hypot(u_be - u9, v_be - v9)
-    duv = duv[np.isfinite(duv)]
+    ok, _, _, ur, vr, uc, vc = common_uv_mask(s9[sl], p3_be[sl], UV_YMIN)
+    duv = np.hypot(uc - ur, vc - vr)[ok] if ok.any() else np.array([])
     return {
+        'algebraic_roundtrip': {
+            'kind': 'inv(cameraToP3)·cameraToP3 on S2',
+            'max_abs': rt['max_abs'],
+            'rmse': rt['rmse'],
+            'reliable': rt['max_abs'] < 1e-6,
+            'note': 'Identidad numérica de la matriz. No equivale al revelado Resolve.',
+        },
+        'develop_equivalence': {
+            'kind': 'Resolve CinemaDNG EXR (S9) vs documented cameraToP3(S2)×2^BE×2^decode.exposure',
+            'not_the_same_as_algebraic_roundtrip': True,
+            'uv_mask': 'Y_s9>ymin AND Y_p3>ymin AND finite u′v′',
+            'duv_mean': float(duv.mean()) if duv.size else 'nan',
+            'duv_max': float(duv.max()) if duv.size else 'nan',
+            'duv_p95': float(np.percentile(duv, 95)) if duv.size else 'nan',
+            'duv_p99': float(np.percentile(duv, 99)) if duv.size else 'nan',
+            'n': int(duv.size),
+        },
         'roundtrip_s2': rt,
         'roundtrip_reliable': rt['max_abs'] < 1e-6,
         'documented_scale': documented_scale(meta, exr_decode_exposure),
@@ -294,7 +309,10 @@ def compare_camera_to_s9(s2_cam, s9_p3, meta, *, exr_decode_exposure=0.0, roi=No
         'chromaticity_be': {
             'duv_mean': float(duv.mean()) if duv.size else 'nan',
             'duv_max': float(duv.max()) if duv.size else 'nan',
+            'duv_p95': float(np.percentile(duv, 95)) if duv.size else 'nan',
+            'duv_p99': float(np.percentile(duv, 99)) if duv.size else 'nan',
             'n': int(duv.size),
+            'mask': 'common_uv',
         },
         'projection': project_uv_residual(p3_be[sl], s9[sl], axes) if axes['ok'] else {'ok': False},
         'clip_s2': {
@@ -307,8 +325,8 @@ def compare_camera_to_s9(s2_cam, s9_p3, meta, *, exr_decode_exposure=0.0, roi=No
         },
         'matrix_fwd': fwd.reshape(-1).tolist(),
         'limitation': (
-            'S9 es revelado Resolve (Gen4 / P3-D65 Linear), no cameraToP3(S2). '
-            'Una Δu′v′ grande implica que la inversa de S9 no es evidencia concluyente de AHD.'
+            'El roundtrip algebraico de cameraToP3 no es equivalencia al revelado Resolve. '
+            'S9 es CinemaDNG Gen4 P3-D65 Linear. Δu′v′ mide diferencia de revelado, no se minimiza con un fit.'
         ),
     }
 

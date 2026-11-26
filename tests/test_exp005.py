@@ -8,7 +8,8 @@ import numpy as np
 from tools.exp004_fixtures import mosaic_rggb
 from tools.exp005_color import (apply_rgb, camera_to_p3, known_color_checks, p3_to_camera,
                                 roundtrip_error)
-from tools.exp005_metrics import aliasing_score, false_color, zippering
+from tools.exp005_metrics import (aliasing_score, common_uv_mask, false_color, halo_stats,
+                                  zippering)
 from tools.fidelity import images, pipeline as P
 
 
@@ -35,6 +36,20 @@ class ColorTransformTests(unittest.TestCase):
         wrapped = (u & 0xffffffff)
         wrapped = wrapped - 0x100000000 if wrapped >= 0x80000000 else wrapped
         self.assertLess(wrapped, 0)
+
+    def test_algebraic_roundtrip_is_not_develop_equivalence(self):
+        from tools.exp005_color import compare_camera_to_s9
+        cm1 = [1.0, -0.2, -0.05, -0.4, 1.2, 0.15, -0.06, 0.18, 0.6]
+        cm2 = [0.8, -0.15, -0.07, -0.45, 1.3, 0.12, -0.09, 0.21, 0.7]
+        meta = {'cm1': cm1, 'cm2': cm2, 'k1': 2856, 'k2': 6504,
+                'as_shot_neutral': [0.55, 1.0, 0.65], 'baseline_gain': 1.0, 'baseline_exposure': 0}
+        s2 = np.full((4, 4, 3), 0.2)
+        s9 = np.full((4, 4, 3), 0.2)
+        s9[..., 0] = 0.35  # croma distinto: revelado ≠ roundtrip algebraico
+        r = compare_camera_to_s9(s2, s9, meta)
+        self.assertTrue(r['algebraic_roundtrip']['reliable'])
+        self.assertTrue(r['develop_equivalence']['not_the_same_as_algebraic_roundtrip'])
+        self.assertGreater(r['develop_equivalence']['duv_mean'], 0)
 
     def test_no_least_squares_fit_in_api(self):
         import inspect
@@ -70,6 +85,24 @@ class MetricTests(unittest.TestCase):
         z = zippering(img)
         self.assertAlmostEqual(z['row_rg'], 0.0)
         self.assertAlmostEqual(z['col_rg'], 0.0)
+
+    def test_common_uv_mask_requires_both_images(self):
+        ref = np.full((8, 8, 3), 0.2)
+        dark = np.full((8, 8, 3), 0.0001)
+        ok_same, *_ = common_uv_mask(ref, ref, 0.005)
+        ok_dark, *_ = common_uv_mask(ref, dark, 0.005)
+        self.assertTrue(ok_same.all())
+        self.assertFalse(ok_dark.any())
+
+    def test_halo_percentiles_not_just_max(self):
+        ref = np.full((32, 32, 3), 0.2)
+        cand = ref.copy()
+        cand[4, 4, 0] = 5.0
+        h = halo_stats(cand, ref)
+        self.assertGreater(h['peak'], h['p99'])
+        self.assertEqual(h['peak_at']['y'], 4)
+        self.assertIn('hot_on_edges_fraction', h['spatial'])
+        self.assertIn('units', h)
 
     def test_false_color_none_on_identity(self):
         img = np.full((16, 16, 3), 0.2, np.float64)

@@ -21,9 +21,9 @@ if ROOT not in sys.path:
 from tools.exp004_g import CROPS, HALO_EDGES, disp, write_png
 from tools.exp005_color import (camera_to_p3, compare_camera_to_s9, invert_s9_to_camera,
                                 known_color_checks, read_dng_color)
-from tools.exp005_metrics import pair_metrics
-from tools.exp005_sweep import ALGOS, FRAMES, MAN_DIR, write_manifest
-from tools.fidelity import images, metrics as M, rd as RD, stage_io, viz
+from tools.exp005_metrics import HALO_UNITS, pair_metrics
+from tools.exp005_sweep import ALGOS, FINAL_ALGOS, FRAMES, MAN_DIR, SERIES_A, write_manifest
+from tools.fidelity import braw_inspect, images, metrics as M, rd as RD, stage_io, viz
 
 SUMMARY_PATH = os.path.join(ROOT, 'benchmark', 'experiments', 'exp005-results-summary.json')
 
@@ -128,9 +128,9 @@ def crop(img, box):
     return img[y:y + h, x:x + w]
 
 
-def analyze_run(args, run_id, test, frame, algo):
+def analyze_run(args, run_id, test, frame, algo, write_contact=False):
     run_dir = os.path.join(args.out, 'runs', run_id)
-    out = {'run_id': run_id, 'test': test, 'frame': frame, 'algo': algo, 'present': False}
+    out = {'run_id': run_id, 'test': test, 'frame': frame, 'algo': algo, 'present': False, 'q': None}
     if not os.path.isfile(os.path.join(run_dir, 'metrics.json')):
         return out
     out['present'] = True
@@ -160,10 +160,24 @@ def analyze_run(args, run_id, test, frame, algo):
                 'duv_edges': inside.get('duv_mean') or (rf.get('luma_chroma') or {}).get('duv_edges'),
                 'mae': norm.get('mae'),
             }
-            out['timing'] = res.get('timing') or res.get('elapsed') or {}
+            out['timing'] = (run['run'].get('timing') or {})
+            out['convert_seconds'] = None
+            for c in (out['timing'].get('conversions') or []):
+                if c.get('seconds') is not None:
+                    out['convert_seconds'] = c.get('seconds')
+                    break
+            out['total_seconds'] = out['timing'].get('total_seconds')
+            out['memory'] = {'rss_bytes': None, 'note': 'el banco no instrumenta RSS; solo tiempo de convert/decode'}
             br = res.get('bitstream') or {}
             out['sample_bytes'] = br.get('sample_bytes')
             out['result_key'] = key
+            req = ((res.get('setup') or {}).get('encode') or {}).get('request') or {}
+            out['q'] = req.get('q')
+            out['hashes'] = {
+                'dng_metrics': (res.get('setup') or {}).get('dng_sha256'),
+                'exr_metrics': ((res.get('setup') or {}).get('reference') or {}).get('sha256'),
+                'sdk_metrics': res.get('candidate_sha256'),
+            }
             break
     exr_p, dec_exp = ref_exr(run_dir, args.references)
     ref = None
@@ -180,15 +194,16 @@ def analyze_run(args, run_id, test, frame, algo):
             out['dng_color_error'] = str(e)
     if cand is not None and ref is not None:
         out['post_sdk'] = pair_metrics(cand.astype(np.float64), ref.astype(np.float64), HALO_EDGES)
-        vis = os.path.join(args.out, 'experiments', 'exp005', 'contact', run_id)
-        os.makedirs(vis, exist_ok=True)
-        write_png(os.path.join(vis, 'sdk_display.png'), disp(cand))
-        write_png(os.path.join(vis, 'ref_display.png'), disp(ref))
-        write_png(os.path.join(vis, 'residual_abs.png'), viz.abs_error_map(ref, cand, 0.05))
-        write_png(os.path.join(vis, 'residual_chroma.png'), viz.chroma_error_map(ref, cand, 0.02, 0.005))
-        for name, box in CROPS.items():
-            write_png(os.path.join(vis, 'crop_%s.png' % name), disp(crop(cand, box)))
-            write_png(os.path.join(vis, 'crop_%s_ref.png' % name), disp(crop(ref, box)))
+        if write_contact:
+            vis = os.path.join(args.out, 'experiments', 'exp005', 'contact', run_id)
+            os.makedirs(vis, exist_ok=True)
+            write_png(os.path.join(vis, 'sdk_display.png'), disp(cand))
+            write_png(os.path.join(vis, 'ref_display.png'), disp(ref))
+            write_png(os.path.join(vis, 'residual_abs.png'), viz.abs_error_map(ref, cand, 0.05))
+            write_png(os.path.join(vis, 'residual_chroma.png'), viz.chroma_error_map(ref, cand, 0.02, 0.005))
+            for name, box in CROPS.items():
+                write_png(os.path.join(vis, 'crop_%s.png' % name), disp(crop(cand, box)))
+                write_png(os.path.join(vis, 'crop_%s_ref.png' % name), disp(crop(ref, box)))
     if s2 is not None and ref is not None and out.get('dng_color'):
         meta = read_dng_color(dng)
         try:
@@ -197,13 +212,51 @@ def analyze_run(args, run_id, test, frame, algo):
         except Exception as e:
             out['a1_error'] = str(e)
     if s1 is not None and s2 is not None:
-        out['pre_encode'] = {
-            's1_zippering': pair_metrics(s1, s1)['zippering'] if s1.shape[0] > 2 else {},
-            's2_clip': pair_metrics(s2, s2)['clip_cand'],
-        }
-        if cand is None:
-            pass
+        pre = {'s1_zippering': zippering_only(s1), 's2_clip': clip_only(s2)}
+        if s1.shape[0] > 8 and s2.shape == (1080, 1920, 3):
+            pre['s1_zippering'] = zippering_only(s1)
+        out['pre_encode'] = pre
+    hashes = out.setdefault('hashes', {})
+    if dng and os.path.isfile(dng):
+        hashes['dng_file'] = _sha(dng)
+        hashes['dng_match'] = hashes.get('dng_metrics') == hashes['dng_file']
+    if exr_p and os.path.isfile(exr_p):
+        hashes['exr_file'] = _sha(exr_p)
+        hashes['exr_match'] = hashes.get('exr_metrics') == hashes['exr_file']
+    f32s = glob.glob(os.path.join(run_dir, 'frames', '*.f32'))
+    if f32s:
+        hashes['sdk_file'] = _sha(f32s[0])
+        hashes['sdk_match'] = hashes.get('sdk_metrics') == hashes['sdk_file']
+    if dump:
+        for key in ('S1_rgb', 'S2_rgb'):
+            if key not in dump:
+                continue
+            meta = dump[key].get('meta') or {}
+            p = meta.get('bin')
+            if p and os.path.isfile(p):
+                hashes[key + '_dump'] = meta.get('sha256') or _sha(p)
+            else:
+                hashes[key + '_array'] = hashlib.sha256(
+                    np.ascontiguousarray(dump[key]['array']).tobytes()).hexdigest()
     return out
+
+
+def zippering_only(rgb):
+    from tools.exp005_metrics import zippering
+    return zippering(rgb)
+
+
+def clip_only(rgb):
+    from tools.exp005_metrics import clipping
+    return clipping(rgb)
+
+
+def _braw_path(run_dir):
+    run = RD.load_run(run_dir)
+    for key, res in (run['metrics'].get('results') or {}).items():
+        bind = RD.resolve_braw_binding(run, res, key, verify_file_sha=False)
+        return bind['braw_path']
+    return None
 
 
 def identity_check(args):
@@ -220,6 +273,18 @@ def identity_check(args):
     sb = load_stage(args, 'exp005-ident-ahd')
     if sa and sb and 'S1_rgb' in sa and 'S1_rgb' in sb:
         out['s1_identical'] = bool(np.array_equal(sa['S1_rgb']['array'], sb['S1_rgb']['array']))
+    try:
+        pa, pb = _braw_path(a), _braw_path(b)
+        if pa and pb:
+            eq = braw_inspect.equivalence(pa, pb, out.get('sha_default'), out.get('sha_ahd'))
+            out['payload_equal'] = eq.get('payload_equal')
+            out['decode_relevant_meta_equal'] = eq.get('decode_relevant_meta_equal')
+            out['payloads_sha256_a'] = braw_inspect.media_fingerprint(pa).get('payloads_sha256')
+            out['payloads_sha256_b'] = braw_inspect.media_fingerprint(pb).get('payloads_sha256')
+            out['braw_path_a'] = pa
+            out['braw_path_b'] = pb
+    except Exception as e:
+        out['payload_error'] = str(e)
     return out
 
 
@@ -384,9 +449,151 @@ def recommend(rows, isolation, injection):
         'Los algoritmos LibRaw se evaluaron; el halo AHD no se absuelve. Campaña final: '
         'comparar artefactos de demosaic en S1/S2, no promover por PSNR SDK.'
     )
-    rec['select_for_final'] = [a for a in ('ahd', 'vng', 'ppg', 'dht', 'aahd') if a in algos_ran]
+    rec['select_for_final'] = [a for a in ('ahd', 'vng', 'aahd') if a in algos_ran]
     rec['ahd_is_primary_cause'] = None
     return rec
+
+
+def halo_exposure_note(rows):
+    """A04_f044 (EXR −3) vs A04_f049 (EXR 0), mismo ISO 1600 / BE 3.1."""
+    def pick(test, frame, algo):
+        for r in rows:
+            if r.get('test') == test and str(r.get('frame')) == str(frame) and r.get('algo') == algo:
+                return r
+        return None
+    out = {'units': HALO_UNITS, 'pairs': []}
+    for algo in ('ahd', 'vng', 'aahd'):
+        a = pick('A04', '44', algo)
+        b = pick('A04', '49', algo)
+        if not a or not b:
+            continue
+        ha = (a.get('post_sdk') or {}).get('halo') or {}
+        hb = (b.get('post_sdk') or {}).get('halo') or {}
+        out['pairs'].append({
+            'algo': algo,
+            'f044_decode_exposure': a.get('exr_decode_exposure'),
+            'f049_decode_exposure': b.get('exr_decode_exposure'),
+            'f044_peak': ha.get('peak'), 'f049_peak': hb.get('peak'),
+            'f044_p99': ha.get('p99'), 'f049_p99': hb.get('p99'),
+            'f044_peak_duv': ha.get('peak_duv'), 'f049_peak_duv': hb.get('peak_duv'),
+            'f044_peak_rel_y': ha.get('peak_rel_y'), 'f049_peak_rel_y': hb.get('peak_rel_y'),
+            'f044_peak_at': ha.get('peak_at'), 'f049_peak_at': hb.get('peak_at'),
+            'f049_peak_in_highlight': hb.get('peak_in_highlight'),
+            'f049_peak_clipped': hb.get('peak_clipped'),
+            'f049_peak_excl_highlight': hb.get('peak_excl_highlight'),
+            'spatial_f049': hb.get('spatial'),
+            'note': 'peak RGB-diff escala con la exposición del EXR; Δu′v′ y peak/Y no.',
+        })
+    return out
+
+
+def closure_from_final(final_rows, ident, injection):
+    """Seleccionar candidato solo con mejora visual consistente y sin regresiones."""
+    bug = {'id': 'BUG-002', 'severity': 'P0', 'status': 'open',
+           'note': 'halos cromáticos persisten a q fino y sin AHD (inject)'}
+    no_synth = {
+        'synthetic_bayer_with_gt': False,
+        'reason': 'CinemaDNG Pocket OG comprimidos (tag 259≠1); no se parchea el mosaico. '
+                  'GT sintético = inject RGB @ pre_map, no CFA.',
+    }
+    if not ident.get('payload_equal') and ident.get('sdk_f32_identical'):
+        ident_note = 'SDK idéntico pero payload no verificado o distinto'
+    elif ident.get('payload_equal') and ident.get('sdk_f32_identical') and ident.get('s1_identical'):
+        ident_note = 'default ≡ AHD explícito (S1, payload, SDK f32)'
+    else:
+        ident_note = ident
+    present = [r for r in final_rows if r.get('present')]
+    if not present:
+        return {'bug002': bug, 'experimental_candidate': None, 'class': 'E',
+                'reason': 'campaña F incompleta', 'identity': ident_note,
+                'synthetic_bayer': no_synth, 'defaults_unchanged': True}
+
+    def mean_field(algo, q, path):
+        xs = []
+        for r in present:
+            if r.get('algo') != algo or r.get('q') != q:
+                continue
+            v = r
+            for k in path.split('.'):
+                v = (v or {}).get(k) if isinstance(v, dict) else None
+            if isinstance(v, (int, float)):
+                xs.append(float(v))
+        return float(np.mean(xs)) if xs else None
+
+    table = []
+    for q in (2, 18):
+        for algo in FINAL_ALGOS:
+            table.append({
+                'q': q, 'algo': algo,
+                'psnr': mean_field(algo, q, 'sdk.psnr'),
+                'detail': mean_field(algo, q, 'sdk.detail_corr'),
+                'duv_mean': mean_field(algo, q, 'post_sdk.uv.duv_mean'),
+                'halo_p99': mean_field(algo, q, 'post_sdk.halo.p99'),
+                'halo_peak': mean_field(algo, q, 'post_sdk.halo.peak'),
+                'false_color': mean_field(algo, q, 'post_sdk.false_color.false_color_fraction'),
+                'zip_row': mean_field(algo, q, 'post_sdk.zippering.row_rg'),
+                'texture': mean_field(algo, q, 'post_sdk.microtexture.texture_ratio'),
+                'convert_s': mean_field(algo, q, 'convert_seconds'),
+            })
+    # Regla: no promover por PSNR; exigir que halo_p99 y false_color no empeoren vs AHD
+    # y que no haya caída de detail > 0.01. Mejora visual consistente = halo_p99 y duv_mean
+    # bajan en q2 y q18.
+    pick = None
+    reason = 'Ningún demosaic elimina el halo. AHD permanece default.'
+    ahd2 = next((t for t in table if t['algo'] == 'ahd' and t['q'] == 2), None)
+    def better(algo):
+        ok = True
+        notes = []
+        for q in (2, 18):
+            a = next((t for t in table if t['algo'] == 'ahd' and t['q'] == q), None)
+            c = next((t for t in table if t['algo'] == algo and t['q'] == q), None)
+            if not a or not c or a['psnr'] is None or c['psnr'] is None:
+                return False, ['métricas ausentes']
+            if c['detail'] is not None and a['detail'] is not None and c['detail'] < a['detail'] - 0.01:
+                ok = False
+                notes.append('q%d detail ↓' % q)
+            if c['false_color'] is not None and a['false_color'] is not None and c['false_color'] > a['false_color'] + 0.002:
+                ok = False
+                notes.append('q%d false color ↑' % q)
+            if c['halo_p99'] is not None and a['halo_p99'] is not None and c['halo_p99'] > a['halo_p99'] * 1.05:
+                notes.append('q%d halo p99 no mejora' % q)
+        return ok, notes
+    for algo in ('vng', 'aahd'):
+        ok, notes = better(algo)
+        rows_q = [t for t in table if t['algo'] == algo]
+        duv_down = all(
+            (t['duv_mean'] is not None and ahd2 and ahd2['duv_mean'] is not None)
+            for t in rows_q)
+        # no candidate unless both q show lower p99 AND ok regressions
+        both_p99 = True
+        for q in (2, 18):
+            a = next((t for t in table if t['algo'] == 'ahd' and t['q'] == q), None)
+            c = next((t for t in table if t['algo'] == algo and t['q'] == q), None)
+            if not a or not c or a['halo_p99'] is None or c['halo_p99'] is None:
+                both_p99 = False
+                break
+            if c['halo_p99'] >= a['halo_p99']:
+                both_p99 = False
+        if ok and both_p99:
+            pick = algo
+            reason = '%s baja p99 de halo en q2 y q18 sin regresión de detalle/false color; sigue sin resolver BUG-002' % algo
+            break
+        elif not ok:
+            reason = (reason + ' %s: %s.' % (algo, ', '.join(notes))) if notes else reason
+    return {
+        'bug002': bug,
+        'experimental_candidate': pick,
+        'class': 'D',
+        'reason': reason,
+        'identity': ident_note,
+        'synthetic_bayer': no_synth,
+        'defaults_unchanged': True,
+        'do_not_implement_chroma_compensation': True,
+        'no_custom_debayer': True,
+        'no_amaze_rcd_lmmse': True,
+        'series_A_table': table,
+        'injection_halo_persists': injection.get('halo_persists_without_ahd'),
+    }
 
 
 def main():
@@ -404,24 +611,40 @@ def main():
     for test, fr in FRAMES:
         for algo in ALGOS:
             run_id = 'exp005-%s-%s-f%s-q2' % (algo, test.lower(), fr)
-            rows.append(analyze_run(args, run_id, test, fr, algo))
+            contact = algo in ('ahd', 'vng', 'aahd') and test == 'A04' and str(fr) == '44'
+            rows.append(analyze_run(args, run_id, test, fr, algo, write_contact=contact))
     ident = identity_check(args)
     iso = ahd_isolation(rows)
     inj = injection_result(args, rows)
     rec = recommend(rows, iso, inj)
+    final_rows = []
+    for q in (2, 18):
+        for test, fr in SERIES_A:
+            for algo in FINAL_ALGOS:
+                run_id = 'exp005-f-%s-%s-f%s-q%d' % (algo, test.lower(), fr, q)
+                contact = q == 2 and test == 'A04' and str(fr) == '44'
+                row = analyze_run(args, run_id, test, fr, algo, write_contact=contact)
+                row['q'] = row.get('q') or q
+                final_rows.append(row)
     summary = {
         'experiment': 'EXP-005',
         'title': 'Pocket OG Debayer Fidelity & BUG-002 isolation',
         'branch': 'experiment/pocket-og-debayer-fidelity',
         'defaults_unchanged': True,
-        'encode': {'q': 2, 'chroma': 'C0', 'alpha': 1, 'deadzone': 0, 'nr': 0, 'synthesis': False, 'rdoq': False},
+        'encode': {'q': [2, 18], 'chroma': 'C0', 'alpha': 1, 'deadzone': 0, 'nr': 0, 'synthesis': False, 'rdoq': False},
+        'halo_units': HALO_UNITS,
         'libraw': LIBRAW_MATRIX,
         'identity_default_vs_ahd': ident,
         'known_color_transform': known_color_checks(),
+        'algebraic_vs_develop': 'roundtrip cameraToP3 ≠ equivalencia Resolve S9; ver a1.algebraic_roundtrip vs develop_equivalence',
+        'synthetic_bayer_gt': False,
         'runs': rows,
         'ahd_isolation': iso,
         'reference_injection': inj,
+        'halo_exposure_a04': halo_exposure_note(rows + final_rows),
+        'final_campaign': final_rows,
         'recommendation': rec,
+        'closure': closure_from_final(final_rows, ident, inj),
         'elapsed_s': time.time() - t0,
     }
     os.makedirs(os.path.dirname(SUMMARY_PATH), exist_ok=True)

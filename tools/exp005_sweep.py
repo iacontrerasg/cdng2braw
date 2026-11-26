@@ -14,12 +14,15 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from tools.exp004_fixtures import build_set, mosaic_rggb, write_fixture
+from tools.exp004_sweep import G1_FRAMES
 from tools.fidelity import rd as RD
 
 MAN_DIR = os.path.join(ROOT, 'benchmark', 'experiments', 'exp005')
 
 ALGOS = ('ahd', 'vng', 'ppg', 'dht', 'aahd', 'linear')
 FRAMES = (('A04', '44'), ('A04', '49'), ('A01', '52'))
+FINAL_ALGOS = ('ahd', 'vng', 'aahd')
+SERIES_A = G1_FRAMES  # A01–A05, 6 fotogramas con EXR
 
 
 def write_manifest(path, *, q=2, inject_rgb=None, inject_at=None, diagnostic=None,
@@ -90,12 +93,12 @@ def maybe_skip(args, run_id, **kw):
     return run_dir
 
 
-def _do(args, run_id, test, frames, *, debayer=None, inject=None, inject_at=None,
+def _do(args, run_id, test, frames, *, q=2, debayer=None, inject=None, inject_at=None,
         no_reference=False, notes=''):
     man = os.path.join(MAN_DIR, run_id + '.json')
-    write_manifest(man, q=2, inject_rgb=inject, inject_at=inject_at, debayer=debayer,
+    write_manifest(man, q=q, inject_rgb=inject, inject_at=inject_at, debayer=debayer,
                    diagnostic=dump_diag(args, run_id), notes=notes)
-    if maybe_skip(args, run_id, q=2, alpha=1.0, deadzone=0.0):
+    if maybe_skip(args, run_id, q=q, alpha=1.0, deadzone=0.0):
         return os.path.join(args.out, 'runs', run_id)
     return run_bench(args, run_id, man, test=test, frames=frames, no_reference=no_reference)
 
@@ -143,6 +146,18 @@ def phase_synth(args):
     return out
 
 
+def phase_final(args):
+    """F: AHD/VNG/AAHD, serie A, q2 y q18. C0 α=1 DZ=0. No persigue borrar el halo."""
+    out = []
+    for q in (2, 18):
+        for test, fr in SERIES_A:
+            for algo in FINAL_ALGOS:
+                run_id = 'exp005-f-%s-%s-f%s-q%d' % (algo, test.lower(), fr, q)
+                out.append(_do(args, run_id, test, fr, q=q, debayer=algo,
+                               notes='EXP-005 F %s q%d C0' % (algo, q)))
+    return out
+
+
 def phase_inject_placeholder(args):
     """La inversa S9 se materializa en exp005_report tras leer S2/S9; aquí solo asegura el directorio."""
     os.makedirs(os.path.join(args.out, 'experiments', 'exp005', 'inject'), exist_ok=True)
@@ -157,7 +172,7 @@ def main():
     p.add_argument('--out', default=os.path.join(ROOT, 'out', 'benchmark'))
     p.add_argument('--converter', default=os.path.join(ROOT, 'build', 'worker', 'converter'))
     p.add_argument('--brawdec', default=os.path.join(ROOT, 'tools', 'brawdec', 'brawdec'))
-    p.add_argument('--phase', choices=('identity', 'algos', 'synth', 'all'), default='all')
+    p.add_argument('--phase', choices=('identity', 'algos', 'synth', 'final', 'all'), default='all')
     p.add_argument('--skip-existing', action='store_true')
     p.add_argument('--no-cache', action='store_true')
     args = p.parse_args()
@@ -168,6 +183,8 @@ def main():
         phase_algos(args)
     if args.phase in ('synth', 'all'):
         phase_synth(args)
+    if args.phase in ('final', 'all'):
+        phase_final(args)
     phase_inject_placeholder(args)
 
 
