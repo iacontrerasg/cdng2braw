@@ -14,6 +14,7 @@ import subprocess
 import time
 
 from . import braw_inspect, identity
+from .deadzone_policy import PolicyError, validate_policy_doc
 from .images import read_f32
 
 
@@ -30,7 +31,8 @@ class PipelineError(RuntimeError):
 OUTPUT_ENV = (
     'CDNG_RATE',                 # search: búsqueda exacta de q por fotograma en modo ratio
     'CDNG_NOISE_SYNTH',          # desactiva o fuerza la síntesis de ruido
-    'CDNG_DEADZONE',             # zona muerta del cuantizador AC
+    'CDNG_DEADZONE',             # zona muerta del cuantizador AC (uniforme legacy)
+    'CDNG_DEADZONE_POLICY',      # EXP-003: ruta JSON política AC (mutuamente excluyente con DEADZONE)
     'CDNG_GREEN',                # demosaic del verde (dir = media direccional)
     'CDNG_CHROMA_FILTER',        # longitud del filtro de croma
     'CDNG_RESIZE_CHROMA',        # sites = reescalado sin corregir fase
@@ -147,6 +149,29 @@ def encode_request(encode, environ=None):
             raise PipelineError('CDNG_DEADZONE inválido: %r' % effective['CDNG_DEADZONE']) from e
         if not (0.0 <= z <= 0.5):
             raise PipelineError('CDNG_DEADZONE fuera de rango [0, 0.5]: %g' % z)
+    if effective.get('CDNG_DEADZONE') is not None and effective.get('CDNG_DEADZONE_POLICY') is not None:
+        raise PipelineError('CDNG_DEADZONE y CDNG_DEADZONE_POLICY son mutuamente excluyentes')
+    policy_meta = None
+    if effective.get('CDNG_DEADZONE_POLICY') is not None:
+        path = os.path.abspath(effective['CDNG_DEADZONE_POLICY'])
+        if not os.path.isfile(path):
+            raise PipelineError('CDNG_DEADZONE_POLICY no existe: %s' % path)
+        try:
+            with open(path, encoding='utf-8') as f:
+                doc = json.load(f)
+            validate_policy_doc(doc)
+        except (OSError, ValueError, PolicyError) as e:
+            raise PipelineError('CDNG_DEADZONE_POLICY inválida: %s (%s)' % (path, e)) from e
+        sha = identity.sha256_file(path)
+        policy_meta = {
+            'path': path,
+            'sha256': sha,
+            'name': doc.get('name'),
+            'mode': doc.get('mode'),
+            'schema': doc.get('schema'),
+        }
+        # Identidad de caché: contenido (SHA) + ruta; el entorno del worker recibe solo la ruta.
+        effective['CDNG_DEADZONE_POLICY'] = '%s#%s' % (path, sha)
 
     ambient = ambient_cdng(environ)
     surprises = []
@@ -166,8 +191,16 @@ def encode_request(encode, environ=None):
         raise PipelineError('variables CDNG_* heredadas no declaradas (evita overrides silenciosos):\n  ' +
                             '\n  '.join(surprises))
 
-    # Solo las que tienen valor concreto van al entorno del proceso hijo (identidad de caché).
-    env = {k: v for k, v in effective.items() if v is not None}
+    # Solo las que tienen valor concreto van al entorno del proceso hijo.
+    # CDNG_DEADZONE_POLICY en effective lleva path#sha; el worker recibe solo path.
+    env = {}
+    for k, v in effective.items():
+        if v is None:
+            continue
+        if k == 'CDNG_DEADZONE_POLICY' and policy_meta is not None:
+            env[k] = policy_meta['path']
+        else:
+            env[k] = v
     # EXP-001b: coherencia PRECOMP / ALPHA / BOUNDED (el worker también rechaza).
     pre = env.get('CDNG_OG_DEBLOCK_PRECOMP')
     alpha = env.get('CDNG_OG_DEBLOCK_ALPHA')

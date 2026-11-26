@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "name": "d4-protect-chroma",
+  "mode": "per_plane",
+  "planes": {
+    "Y":  { "default": 0.5 },
+    "Cb": { "default": 0.1 },
+    "Cr": { "default": 0.1 }
+  }
+}

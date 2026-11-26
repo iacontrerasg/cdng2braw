@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "name": "uniform-z25",
+  "mode": "uniform",
+  "z": 0.25,
+  "planes": {
+    "Y": { "default": 0.25 },
+    "Cb": { "default": 0.25 },
+    "Cr": { "default": 0.25 }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "name": "d2-protect-high",
+  "mode": "per_band",
+  "bands": {
+    "low":  { "f_min": 0.0,  "f_max": 0.25 },
+    "mid":  { "f_min": 0.25, "f_max": 0.5 },
+    "high": { "f_min": 0.5,  "f_max": 1.01 }
+  },
+  "planes": {
+    "Y":  { "default": 0.25, "bands": { "low": 0.4, "mid": 0.25, "high": 0.1 } },
+    "Cb": { "default": 0.25, "bands": { "low": 0.4, "mid": 0.25, "high": 0.1 } },
+    "Cr": { "default": 0.25, "bands": { "low": 0.4, "mid": 0.25, "high": 0.1 } }
+  }
+}

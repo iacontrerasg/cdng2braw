@@ -16,6 +16,7 @@ QMAX = 24
 AUTHORIZED_EXP_ENV = frozenset({
     'CDNG_OG_DEBLOCK_PRECOMP', 'CDNG_OG_DEBLOCK_ALPHA', 'CDNG_OG_DEBLOCK_BOUNDED', 'CDNG_RATE',
     'CDNG_DEADZONE',
+    'CDNG_DEADZONE_POLICY',
 })
 
 # Campos de encode (request o config.encode) que pueden diferir entre puntos RD.
@@ -869,7 +870,7 @@ def build_report(run_dirs, dest, analysis_cfg=None, expected=None, *, verify_fil
 
 
 def verify_run_matches_request(run_dir, *, q=None, ratio=None, alpha=None, bounded=False, ablation=False,
-                               expected_identity=None):
+                               expected_identity=None, deadzone=None, policy_sha=None):
     """Para --skip-existing: todos los resultados deben coincidir con la config pedida."""
     run = load_run(run_dir)
     results = run['metrics'].get('results') or {}
@@ -883,6 +884,7 @@ def verify_run_matches_request(run_dir, *, q=None, ratio=None, alpha=None, bound
 
     for rk, res in sorted(results.items()):
         cfg = config_from_result(res, rk)
+        env = cfg.get('experimental_env') or {}
         if ablation:
             if cfg['tag'] != 'ablation':
                 raise RdError('%s/%s: se esperaba ablación' % (run_dir, rk))
@@ -899,6 +901,14 @@ def verify_run_matches_request(run_dir, *, q=None, ratio=None, alpha=None, bound
             if cfg['mode'] != 'ratio' or float(cfg['ratio_requested']) != float(ratio):
                 raise RdError('%s/%s: ratio solicitado efectivo %s ≠ %s' % (
                     run_dir, rk, cfg['ratio_requested'], ratio))
+        if deadzone is not None:
+            got = env.get('CDNG_DEADZONE')
+            if got is None or abs(float(got) - float(deadzone)) > 1e-12:
+                raise RdError('%s/%s: CDNG_DEADZONE efectivo %s ≠ %s' % (run_dir, rk, got, deadzone))
+        if policy_sha is not None:
+            pol = env.get('CDNG_DEADZONE_POLICY') or ''
+            if policy_sha not in pol:
+                raise RdError('%s/%s: política SHA efectiva %r no contiene %s' % (run_dir, rk, pol, policy_sha))
         # Identidades por fotograma: entradas y referencia por SHA, no por ruta
         if not cfg.get('inputs'):
             raise RdError('%s/%s: inputs ausentes' % (run_dir, rk))

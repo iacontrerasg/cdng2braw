@@ -51,7 +51,8 @@ std::string escape(const std::string &s) {
 }
 
 std::string commonFields(const EncodedFrame *frame, int q_tried, int attempt_index, bool selected,
-                         bool strict, const char *outcome) {
+                         bool strict, const char *outcome, const char *stage,
+                         const std::string &chunk_sha256, int sample_index) {
     const auto ctx = g_ctx;
     std::ostringstream o;
     o << "\"selected\":" << (selected ? "true" : "false")
@@ -63,7 +64,9 @@ std::string commonFields(const EncodedFrame *frame, int q_tried, int attempt_ind
       << ",\"ratio_requested\":" << ctx.ratio_requested
       << ",\"strict\":" << (strict ? "true" : "false")
       << ",\"outcome\":\"" << escape(outcome ? outcome : "") << "\""
+      << ",\"stage\":\"" << escape(stage && *stage ? stage : (selected ? "selected" : "discarded")) << "\""
       << ",\"frame_index\":" << ctx.frame_index
+      << ",\"sample_index\":" << sample_index
       << ",\"source_name\":\"" << escape(ctx.source_name) << "\""
       << ",\"clip\":\"" << escape(ctx.clip) << "\""
       << ",\"mode\":\"" << escape(ctx.mode) << "\""
@@ -76,6 +79,7 @@ std::string commonFields(const EncodedFrame *frame, int q_tried, int attempt_ind
           << ",\"payload_sha256\":\"" << (frame->diag.payload_sha256.empty() ? payloadSha(*frame)
                                                                             : frame->diag.payload_sha256)
           << "\"";
+        if (!chunk_sha256.empty()) o << ",\"chunk_sha256\":\"" << escape(chunk_sha256) << "\"";
     }
     return o.str();
 }
@@ -107,14 +111,19 @@ void encodeStatsCapture(EncodedFrame &frame, int q_tried, bool strict, double qY
     frame.diag.coeff_json = coeff_json;
 }
 
-void encodeStatsPublish(const EncodedFrame &frame, bool selected, const char *outcome) {
+void encodeStatsPublish(const EncodedFrame &frame, bool selected, const char *outcome,
+                        const char *stage, const std::string &chunk_sha256, int sample_index) {
     if (!frame.diag.present && !encodeStatsEnabled()) return;
     if (!frame.diag.present) return;
     const int attempt = frame.diag.attempt_index > 0 ? frame.diag.attempt_index : frame.stats.attempts;
     const std::string common = commonFields(&frame, frame.diag.q_tried ? frame.diag.q_tried : frame.q,
-                                            attempt, selected, frame.diag.strict, outcome);
+                                            attempt, selected, frame.diag.strict, outcome, stage,
+                                            chunk_sha256, sample_index);
     const std::string base = statsDir();
-    if (selected) {
+    const std::string st = stage && *stage ? stage : (selected ? "selected" : "discarded");
+    // Informes oficiales: únicamente sample_written (mux.addFrame completado).
+    const bool authoritative = selected && st == "sample_written";
+    if (authoritative) {
         if (!frame.diag.budget_json.empty()) {
             std::ostringstream line;
             line << "{" << common << ",\"budget\":" << frame.diag.budget_json << "}\n";
@@ -125,7 +134,7 @@ void encodeStatsPublish(const EncodedFrame &frame, bool selected, const char *ou
             line << "{" << common << "," << frame.diag.coeff_json << "}\n";
             appendLine(base + "/coeff-stats.jsonl", line.str());
         }
-    } else {
+    } else if (!selected || st == "chunk_built" || st == "selected" || st == "conversion_completed") {
         std::ostringstream line;
         line << "{" << common;
         if (!frame.diag.budget_json.empty()) line << ",\"budget\":" << frame.diag.budget_json;
@@ -137,7 +146,8 @@ void encodeStatsPublish(const EncodedFrame &frame, bool selected, const char *ou
 
 void encodeStatsPublishDiscarded(int q_tried, int attempt_index, const char *outcome) {
     if (!encodeStatsEnabled()) return;
-    const std::string common = commonFields(nullptr, q_tried, attempt_index, false, true, outcome);
+    const std::string common = commonFields(nullptr, q_tried, attempt_index, false, true, outcome,
+                                            "discarded", {}, -1);
     appendLine(statsDir() + "/encode-attempts.jsonl", "{" + common + "}\n");
 }
 

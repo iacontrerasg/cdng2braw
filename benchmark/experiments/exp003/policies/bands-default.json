@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "name": "bands-reference",
+  "mode": "per_band",
+  "bands": {
+    "low":  { "f_min": 0.0,  "f_max": 0.25 },
+    "mid":  { "f_min": 0.25, "f_max": 0.5 },
+    "high": { "f_min": 0.5,  "f_max": 1.01 }
+  },
+  "planes": {
+    "Y":  { "default": 0.0, "bands": { "low": 0.0, "mid": 0.0, "high": 0.0 } },
+    "Cb": { "default": 0.0, "bands": { "low": 0.0, "mid": 0.0, "high": 0.0 } },
+    "Cr": { "default": 0.0, "bands": { "low": 0.0, "mid": 0.0, "high": 0.0 } }
+  }
+}

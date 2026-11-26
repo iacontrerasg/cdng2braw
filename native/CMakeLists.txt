@@ -56,7 +56,7 @@ add_library(cdng_engine STATIC
     engine/dng.cpp engine/resize.cpp engine/wav.cpp
     engine/signal.cpp engine/nr.cpp
     engine/signal_asshot.cpp engine/signal_scatter.cpp engine/signal_source.cpp engine/signal_util.cpp
-    engine/codec.cpp engine/codec_tables.cpp engine/encode_stats.cpp src/entropy.cpp
+    engine/codec.cpp engine/codec_tables.cpp engine/encode_stats.cpp engine/deadzone_policy.cpp src/entropy.cpp
     engine/container.cpp)
 target_compile_features(cdng_engine PUBLIC cxx_std_17)
 target_include_directories(cdng_engine PUBLIC engine include)

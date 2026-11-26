@@ -277,12 +277,15 @@ def evaluate(ref, cand, test, doc, norm, ceiling, scenes, run_dir, key, tag, vis
         a = analysis['alignment']
         out['alignment'] = images.check_alignment(ref, cand, a['min_detail_correlation'])
         if out['alignment'].get('gate_failed'):
-            # Diagnóstico EXP-002a: no cambia el umbral; clasifica el rechazo.
+            # Diagnóstico EXP-002a/003: no cambia el umbral; clasifica rechazo geométrico vs detalle.
             try:
                 from tools.exp002a_align_diagnose import diagnose
                 out['alignment_diagnosis'] = diagnose(ref, cand, a['min_detail_correlation'])
             except Exception as e:
                 out['alignment_diagnosis'] = {'error': str(e)}
+            # Variante geométricamente alineada pero rechazada por detalle → calidad, no desalineación.
+            if out['alignment'].get('quality_rejected'):
+                out['quality_rejected_variant'] = True
     m, edges = M.fidelity(ref, cand, analysis, norm, ceiling)
     out.update(m)
     rn, cn = ref.astype(np.float64) * norm, cand.astype(np.float64) * norm

@@ -1,6 +1,8 @@
 #include "worker.hpp"
 #include "gyro.hpp"
 #include "encode_stats.hpp"
+#include "deadzone_policy.hpp"
+#include "signal_internal.hpp"
 
 #include <simdjson.h>
 
@@ -299,6 +301,10 @@ struct FrameResult {
     std::optional<SourceInfo> info;   // metadatos del frame (ISO, balance…) si se leyó bien
     std::vector<uint8_t> chunk;
     EncodeStats stats;
+    EncodeDiagnostics diag;            // transportado hasta mux.addFrame (sample_written)
+    EncodeStatsContext statsCtx;       // contexto para publicar tras mux (thread_local no cruza)
+    std::string chunk_sha256;
+    std::size_t frame_size_bytes = 0;  // FirstSlice + slices (identidad del encode)
     int q = 0;
     double noiseLevelY = 0, noiseLevelC = 0;   // ruido de entrada estimado (diagnóstico y calibración)
     uint16_t noiseY = 0, noiseC = 0;           // campos de síntesis escritos
@@ -409,6 +415,16 @@ int convert(const std::filesystem::path &requestPath) {
     const int workers = request.options.workers;
     // Valida PRECOMP/ALPHA/BOUNDED una vez (valores inválidos o contradictorios abortan). En rutas no OG se ignora.
     const DeblockPrecomp ogDeblock = ogDeblockPrecompensation();
+    // EXP-003: política AC selectiva solo en Pocket OG (no VA / Pocket 4K).
+    if (const char *pol = std::getenv("CDNG_DEADZONE_POLICY"); pol && *pol) {
+        if (route != Route::Og)
+            throw Error("CDNG_DEADZONE_POLICY is only supported on Pocket OG");
+        if (const char *dz = std::getenv("CDNG_DEADZONE"); dz && *dz)
+            throw Error("CDNG_DEADZONE and CDNG_DEADZONE_POLICY are mutually exclusive");
+    }
+    // Carga una sola vez antes de los workers: tablas inmutables, sin mutex por coeficiente.
+    deadzonePolicyEnsureLoaded();
+    const auto &dzPol = deadzonePolicy();
     emit("started", json::Object()
         .integer("total", (long long)files.size()).integer("width", width).integer("height", height).integer("workers", workers)
         .num("fps", double(rate->num) / rate->den).str("compression", q ? "quality" : "ratio")
@@ -419,6 +435,10 @@ int convert(const std::filesystem::path &requestPath) {
         .boolean("og_deblock_precomp", ogDeblock.enabled)
         .num("og_deblock_alpha", ogDeblock.enabled && !ogDeblock.bounded ? ogDeblock.alpha : 0.0)
         .boolean("og_deblock_bounded", ogDeblock.bounded)
+        .boolean("deadzone_policy_active", dzPol.active)
+        .str("deadzone_policy_name", dzPol.name)
+        .str("deadzone_policy_sha256", dzPol.sha256)
+        .str("deadzone_policy_path", dzPol.path)
         .str("build", trace::buildId()).str("trace", trace::path().string()));
     const auto start = std::chrono::steady_clock::now();
     auto seconds = [&] { return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count(); };
@@ -601,13 +621,23 @@ int convert(const std::filesystem::path &requestPath) {
                         frame.noiseY = decoderNoiseField(noise.scale * decoderNoise(frame.noiseY, false), false);
                         frame.noiseC = decoderNoiseField(noise.scale * decoderNoise(frame.noiseC, true), true);
                     }
-                    // Publica solo el intento finalmente escrito en el sample (intentos descartados ya
-                    // fueron a encode-attempts.jsonl desde encodeFixed / encodeRateControlled).
-                    if (frame.diag.present) encodeStatsPublish(frame, true, "selected");
-                    encodeStatsClearContext();
                     qLast = q || search ? frame.q : Codec::nextQuantiser(frame.q, frame.size, target);
+                    // Chunk construido (aún no escrito en el contenedor).
                     result.chunk = frameChunk(header, gap, frame); result.stats = frame.stats; result.q = frame.q;
                     result.noiseLevelY = frame.noiseLevelY; result.noiseLevelC = frame.noiseLevelC; result.noiseY = frame.noiseY; result.noiseC = frame.noiseC;
+                    result.frame_size_bytes = frame.size;
+                    result.diag = std::move(frame.diag);
+                    result.statsCtx = encodeStatsContext();
+                    if (result.diag.present) {
+                        result.chunk_sha256 = sha256Hex(result.chunk);
+                        EncodedFrame stub;
+                        stub.q = result.q;
+                        stub.size = result.frame_size_bytes;
+                        stub.diag = result.diag;
+                        stub.stats = result.stats;
+                        encodeStatsPublish(stub, true, "chunk_built", "chunk_built", result.chunk_sha256, int(index));
+                    }
+                    encodeStatsClearContext();
                     result.tEncode = since(encodeFrom);
                 } catch (...) {
                     encodeStatsClearContext();
@@ -655,6 +685,18 @@ int convert(const std::filesystem::path &requestPath) {
                 meta.rate = *rate; meta.route = route; meta.camera = camera;
                 const auto writeFrom = std::chrono::steady_clock::now();
                 mux.addFrame(result.chunk, meta);
+                // sample_written: el chunk ya está en el contenedor en construcción.
+                if (result.diag.present) {
+                    encodeStatsSetContext(result.statsCtx);
+                    EncodedFrame stub;
+                    stub.q = result.q;
+                    stub.size = result.frame_size_bytes;
+                    stub.diag = result.diag;
+                    stub.stats = result.stats;
+                    encodeStatsPublish(stub, true, "sample_written", "sample_written", result.chunk_sha256,
+                                      int(index));
+                    encodeStatsClearContext();
+                }
                 const double wrote = since(writeFrom);
                 profile.frame(index, result.tWait, result.tRead, result.tDevelop, result.tNoise, result.tEncode, ordered, wrote,
                               result.stats.attempts, result.q);
@@ -699,6 +741,19 @@ int convert(const std::filesystem::path &requestPath) {
     finalizeClip(stage, geometry, route, route == Route::Og ? &engine.og : nullptr, camera, extras);
     // Validación estructural antes de publicar, sin necesitar el SDK.
     if (videoSamples(stage).size() != files.size()) throw Error(t("The container does not contain every frame."));
+    // conversion_completed: contenedor finalizado con todos los samples (marca en attempts, no en informes).
+    if (encodeStatsEnabled()) {
+        EncodeStatsContext done;
+        done.clip = request.input.filename().string();
+        done.mode = q ? "quality" : "ratio";
+        if (const char *lab = std::getenv("CDNG_STATS_LABEL")) done.label = lab;
+        encodeStatsSetContext(done);
+        EncodedFrame stub;
+        stub.diag.present = true;
+        stub.diag.attempt_index = 0;
+        encodeStatsPublish(stub, true, "conversion_completed", "conversion_completed", {}, -1);
+        encodeStatsClearContext();
+    }
     check();
     syncFile(stage);
     if (std::error_code ignored; !std::filesystem::equivalent(temp.path.parent_path(), output.parent_path(), ignored))

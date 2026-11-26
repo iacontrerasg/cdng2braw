@@ -29,9 +29,12 @@ bool encodeStatsEnabled();
 void encodeStatsCapture(EncodedFrame &frame, int q_tried, bool strict, double qY, double qC,
                         const std::string &coeff_json);
 
-// Publica una línea JSONL completa (mutex). selected=true → bit-budget.jsonl + coeff-stats.jsonl;
-// selected=false → encode-attempts.jsonl.
-void encodeStatsPublish(const EncodedFrame &frame, bool selected, const char *outcome);
+// Publica una línea JSONL completa (mutex).
+// stage: "selected" | "chunk_built" | "sample_written" | "conversion_completed" | "discarded".
+// Informes oficiales: solo stage=sample_written (chunk presente en el BRAW finalizado).
+void encodeStatsPublish(const EncodedFrame &frame, bool selected, const char *outcome,
+                        const char *stage = nullptr, const std::string &chunk_sha256 = {},
+                        int sample_index = -1);
 
 // Atajo: intento descartado sin EncodedFrame completo (p. ej. CodecRangeError antes de return).
 void encodeStatsPublishDiscarded(int q_tried, int attempt_index, const char *outcome);
