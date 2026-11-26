@@ -44,6 +44,7 @@ struct Request {
     std::string work = "auto";   // carpeta de trabajo: auto | output | temp | una ruta
     int width = 0, height = 0;
     Options options;
+    bool matchCinemaDngRendering = false;   // request.match_cinemadng_rendering; OG viewing DWG/Intermediate; default P3 Linear
 };
 
 double number(simdjson::ondemand::object &object, const char *key, double fallback) {
@@ -96,6 +97,9 @@ Request readRequest(const std::filesystem::path &path) {
     const auto mode = text(object, "compression", "quality");
     r.options.nrLuma = number(object, "nr_luma", 0); r.options.nrChroma = number(object, "nr_chroma", 0);
     if (!object.find_field_unordered("noise_synthesis").get_bool().get(flag)) r.options.noiseSynthesis = flag;
+    flag = false;
+    if (!object.find_field_unordered("match_cinemadng_rendering").get_bool().get(flag))
+        r.matchCinemaDngRendering = flag;
     if (!(workers >= 1 && workers <= MaxWorkers) || !(q >= QMin && q <= QMax)) throw Error(t("Unsupported quality or worker count."));
     if ((mode != "quality" && mode != "ratio") || !std::isfinite(ratio) || ratio < 3 || ratio > 12)
         throw Error(t("Unsupported compression: use q 0…24 or ratio 3:1…12:1."));
@@ -439,6 +443,8 @@ int convert(const std::filesystem::path &requestPath) {
     ogDebayerRejectIfNotOg(route);
     const OgBayerConfig ogBayer = ogBayerFromEnv();
     ogBayerRejectIfNotOg(route);
+    if (request.matchCinemaDngRendering && route != Route::Og)
+        throw Error(t("Match original CinemaDNG rendering is only available for the original Pocket Cinema Camera."));
     // Carga una sola vez antes de los workers: tablas inmutables, sin mutex por coeficiente.
     deadzonePolicyEnsureLoaded();
     const auto &dzPol = deadzonePolicy();
@@ -465,6 +471,7 @@ int convert(const std::filesystem::path &requestPath) {
         .boolean("og_debayer_from_env", ogDebayer.fromEnv)
         .boolean("og_bayer", ogBayer.enabled)
         .boolean("og_bayer_from_env", ogBayer.fromEnv)
+        .boolean("match_cinemadng_rendering", request.matchCinemaDngRendering)
         .str("build", trace::buildId()).str("trace", trace::path().string()));
     const auto start = std::chrono::steady_clock::now();
     auto seconds = [&] { return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count(); };
@@ -790,6 +797,7 @@ int convert(const std::filesystem::path &requestPath) {
     extras.cameraId = randomUuid();
     extras.clipNumber = folder.filename().string();
     extras.date = recordingDate(firstDng);
+    extras.matchCinemaDngRendering = request.matchCinemaDngRendering && route == Route::Og;
     finalizeClip(stage, geometry, route, route == Route::Og ? &engine.og : nullptr, camera, extras);
     // Validación estructural antes de publicar, sin necesitar el SDK.
     if (videoSamples(stage).size() != files.size()) throw Error(t("The container does not contain every frame."));

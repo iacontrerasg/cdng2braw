@@ -32,7 +32,7 @@ AUTHORIZED_EXP_ENV = frozenset({
 # Campos de encode (request o config.encode) que pueden diferir entre puntos RD.
 AUTHORIZED_ENCODE_DIFF_KEYS = frozenset({
     'q', 'ratio', 'compression', 'rate_search', 'experimental_env', 'notes',
-    'noise_synthesis', 'nr_luma', 'nr_chroma', 'workers', 'diagnostic_env',
+    'noise_synthesis', 'match_cinemadng_rendering', 'nr_luma', 'nr_chroma', 'workers', 'diagnostic_env',
 })
 
 
@@ -132,6 +132,7 @@ def config_from_result(result, result_key=None):
         'bounded': bounded,
         'experimental_env': env,
         'noise_synthesis': req.get('noise_synthesis'),
+        'match_cinemadng_rendering': req.get('match_cinemadng_rendering'),
         'nr_luma': req.get('nr_luma'),
         'nr_chroma': req.get('nr_chroma'),
         'rate_search': env.get('CDNG_RATE') == 'search' or (mode == 'ratio'),

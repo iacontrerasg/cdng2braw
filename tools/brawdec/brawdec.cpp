@@ -25,6 +25,9 @@
 //     --decoded-out F.bin       volcar el buffer "decoded" del flujo manual (antes de procesar)
 //     --state-out F.bin         volcar el frame state del flujo manual
 //     --trim OUT.braw [--count N]   escribir un .braw recortado (remux, sin recodificar)
+//     --embed-lut identity [--lut-size N] [--lut-name N] [--lut-title T] [--lutm Embedded]
+//                                   SetEmbeddedPost3DLUT (harness E2b); pasar attrs al trim
+//     --save-sidecar                IBlackmagicRawClip::SaveSidecarFile (no es persistencia en el .braw)
 //
 // Compilar: clang++ -std=c++17 -O1 brawdec.cpp -o brawdec -framework CoreFoundation
 
@@ -62,6 +65,12 @@ struct Variant {
     union { uint8_t u8; int16_t s16; uint16_t u16; int32_t s32; uint32_t u32; float f32; double f64; CFStringRef str; void* parray; };
 };
 static void (*clear_variant)(Variant*) = nullptr;
+struct SafeArrayBound { uint32_t cElements; int32_t lLbound; };
+struct SafeArray;
+static SafeArray* (*safe_array_create)(uint16_t vt, uint32_t dims, SafeArrayBound*) = nullptr;
+static HRESULT (*safe_array_access)(SafeArray*, void**) = nullptr;
+static HRESULT (*safe_array_unaccess)(SafeArray*) = nullptr;
+static HRESULT (*safe_array_destroy)(SafeArray*) = nullptr;
 
 struct IJob : IUnknown {
     virtual HRESULT Submit() = 0;
@@ -83,11 +92,27 @@ struct IMetadataIterator : IUnknown {
     virtual HRESULT GetKey(CFStringRef*) = 0;
     virtual HRESULT GetData(Variant*) = 0;
 };
+struct IPost3DLUT : IUnknown {
+    virtual HRESULT GetName(CFStringRef*) = 0;
+    virtual HRESULT GetTitle(CFStringRef*) = 0;
+    virtual HRESULT GetSize(uint32_t*) = 0;
+    virtual HRESULT GetResourceGPU(void*, void*, uint32_t*, void**) = 0;
+    virtual HRESULT GetResourceCPU(void**) = 0;
+    virtual HRESULT GetResourceSizeBytes(uint32_t*) = 0;
+    virtual HRESULT WriteCubeFile(CFStringRef) = 0;
+    virtual HRESULT WriteCubeToFile(void*) = 0;
+};
 struct IClipAttrs : IUnknown {
     virtual HRESULT GetClipAttribute(uint32_t attr, Variant* v) = 0;
     virtual HRESULT SetClipAttribute(uint32_t attr, Variant* v) = 0;
     virtual HRESULT GetClipAttributeRange(uint32_t attr, Variant* lo, Variant* hi, bool* ro) = 0;
     virtual HRESULT GetClipAttributeList(uint32_t attr, Variant* arr, uint32_t* n, bool* ro) = 0;
+    virtual HRESULT GetISOList(uint32_t* array, uint32_t* n, bool* ro) = 0;
+    virtual HRESULT GetPost3DLUT(IPost3DLUT** lut) = 0;
+    virtual HRESULT GetSidecarPost3DLUT(IPost3DLUT** lut) = 0;
+    virtual HRESULT SetSidecarPost3DLUT(CFStringRef name, CFStringRef title, uint16_t size, Variant* data) = 0;
+    virtual HRESULT GetEmbeddedPost3DLUT(IPost3DLUT** lut) = 0;
+    virtual HRESULT SetEmbeddedPost3DLUT(CFStringRef name, CFStringRef title, uint16_t size, Variant* data) = 0;
 };
 struct IFrameAttrs : IUnknown {
     virtual HRESULT GetFrameAttribute(uint32_t, Variant*) = 0;
@@ -210,6 +235,9 @@ struct Options {
     std::string clip, out, gamma, gamut, csgen, bsOut, bsIn, decOut, decIn, stateOut, trim, toneCurve, memscan;
     std::string framework = FRAMEWORK, schemaOut, supportOut;
     std::string kelvin, tint, iso, exposure;
+    std::string embedLut, lutName = "feat001-e2b", lutTitle = "E2b identity", lutm;
+    uint16_t lutSize = 2;
+    bool saveSidecar = false;
     bool frameInfo = false, metadataKeys = false, frameMetadataKeys = false;
     bool auditAttributes = false;
     bool auditDispatch = false;
@@ -433,6 +461,85 @@ static bool set_string_attr(IClipAttrs* a, uint32_t attr, const std::string& s) 
     return h >= 0;
 }
 
+static void print_post_lut(const char* which, IPost3DLUT* lut) {
+    if (!lut) { fprintf(stderr, "%s: (null)\n", which); return; }
+    CFStringRef name = nullptr, title = nullptr; uint32_t size = 0, bytes = 0; void* cpu = nullptr;
+    lut->GetName(&name); lut->GetTitle(&title); lut->GetSize(&size);
+    lut->GetResourceCPU(&cpu); lut->GetResourceSizeBytes(&bytes);
+    fprintf(stderr, "%s name=\"%s\" title=\"%s\" size=%u cpu=%p bytes=%u\n",
+            which, cstr(name).c_str(), cstr(title).c_str(), size, cpu, bytes);
+    if (name) CFRelease(name);
+    if (title) CFRelease(title);
+}
+
+static void dump_vtable(void* object, const char* tag) {
+    void** methods = *reinterpret_cast<void***>(object);
+    fprintf(stderr, "vtable %s", tag);
+    for (int i = 0; i < 16; i++) fprintf(stderr, " [%d]=%p", i, methods[i]);
+    fprintf(stderr, "\n");
+}
+
+static void report_lut_attrs(IClipAttrs* a) {
+    for (const char* key : {"lutm", "emln", "emlt", "emls", "emld", "scln", "sclt", "scls", "scld"}) {
+        Variant v{};
+        HRESULT r = a->GetClipAttribute(FOURCC(key[0], key[1], key[2], key[3]), &v);
+        fprintf(stderr, "clip %s status %#x type %u ", key, r, v.vt);
+        if (r >= 0) { print_variant(v); printf("\n"); } else fprintf(stderr, "\n");
+        if (r >= 0 && clear_variant) clear_variant(&v);
+    }
+    IPost3DLUT *active = nullptr, *embedded = nullptr, *sidecar = nullptr;
+    HRESULT ra = a->GetPost3DLUT(&active), re = a->GetEmbeddedPost3DLUT(&embedded), rs = a->GetSidecarPost3DLUT(&sidecar);
+    fprintf(stderr, "GetPost3DLUT %#x GetEmbedded %#x GetSidecar %#x\n", ra, re, rs);
+    if (ra >= 0) print_post_lut("active", active);
+    if (re >= 0) print_post_lut("embedded", embedded);
+    if (rs >= 0) print_post_lut("sidecar", sidecar);
+    if (active) active->Release();
+    if (embedded) embedded->Release();
+    if (sidecar) sidecar->Release();
+}
+
+// Lattice identidad size³ RGB float32 (R más lento, B más rápido). SafeArray 1-D, vt = F32 (6).
+static bool set_embedded_identity(IClipAttrs* a, const Options& o) {
+    if (!safe_array_create || !safe_array_access || !safe_array_unaccess) {
+        fprintf(stderr, "SafeArray* no está en el framework\n"); return false;
+    }
+    const uint16_t n = o.lutSize;
+    if (n < 2 || n > 33) { fprintf(stderr, "lut-size %u fuera de 2–33\n", n); return false; }
+    const uint32_t cells = (uint32_t)n * n * n;
+    SafeArrayBound bound{cells * 3, 0};
+    SafeArray* arr = safe_array_create(vtF32, 1, &bound);
+    if (!arr) { fprintf(stderr, "SafeArrayCreate F32 × %u falló\n", bound.cElements); return false; }
+    void* data = nullptr;
+    if (safe_array_access(arr, &data) < 0 || !data) {
+        fprintf(stderr, "SafeArrayAccessData falló\n"); safe_array_destroy(arr); return false;
+    }
+    float* rgb = (float*)data;
+    for (uint16_t r = 0; r < n; r++)
+        for (uint16_t g = 0; g < n; g++)
+            for (uint16_t b = 0; b < n; b++) {
+                const uint32_t i = ((uint32_t)r * n * n + (uint32_t)g * n + b) * 3;
+                rgb[i] = n == 1 ? 0.f : float(r) / float(n - 1);
+                rgb[i + 1] = n == 1 ? 0.f : float(g) / float(n - 1);
+                rgb[i + 2] = n == 1 ? 0.f : float(b) / float(n - 1);
+            }
+    safe_array_unaccess(arr);
+    Variant v{}; v.vt = vtSafeArray; v.parray = arr;
+    dump_vtable(a, "clip-attrs");
+    IPost3DLUT* probe = nullptr;
+    fprintf(stderr, "GetEmbedded %#x lut=%p GetSidecar %#x GetPost %#x\n",
+            a->GetEmbeddedPost3DLUT(&probe), (void*)probe,
+            a->GetSidecarPost3DLUT(&probe), a->GetPost3DLUT(&probe));
+    CFStringRef name = cfstr(o.lutName), title = cfstr(o.lutTitle);
+    HRESULT h = a->SetEmbeddedPost3DLUT(name, title, n, &v);
+    fprintf(stderr, "SetEmbeddedPost3DLUT F32×%u %#x\n", bound.cElements, h);
+    HRESULT hSide = a->SetSidecarPost3DLUT(name, title, n, &v);
+    fprintf(stderr, "SetSidecarPost3DLUT F32×%u %#x\n", bound.cElements, hSide);
+    CFRelease(name); CFRelease(title);
+    if (h < 0 && hSide < 0) return false;
+    if (!o.lutm.empty() && !set_string_attr(a, FOURCC('l', 'u', 't', 'm'), o.lutm)) return false;
+    return true;
+}
+
 // Valores efectivos de clip tras SetClipAttribute (para --frame-info). Un status ≠ 0 significa no verificable.
 static void print_effective_clip(IClipAttrs* a, uint32_t attr, const char* name) {
     Variant v{};
@@ -597,6 +704,12 @@ int main(int argc, char** argv) {
         else if (a == "--decoded-in") o.decIn = next();
         else if (a == "--state-out") o.stateOut = next();
         else if (a == "--trim") o.trim = next();
+        else if (a == "--embed-lut") o.embedLut = next();
+        else if (a == "--lut-size") o.lutSize = (uint16_t)strtoul(next().c_str(), nullptr, 10);
+        else if (a == "--lut-name") o.lutName = next();
+        else if (a == "--lut-title") o.lutTitle = next();
+        else if (a == "--lutm") o.lutm = next();
+        else if (a == "--save-sidecar") o.saveSidecar = true;
         else if (a == "--count") o.count = strtoull(next().c_str(), nullptr, 10);
         else if (a == "--planar") o.planar = true;
         else if (a == "--list") o.list = true;
@@ -615,6 +728,10 @@ int main(int argc, char** argv) {
     void* lib = dlopen(o.framework.c_str(), RTLD_NOW);
     if (!lib) { fprintf(stderr, "dlopen: %s\n", dlerror()); return 1; }
     clear_variant = (void (*)(Variant*))dlsym(lib,"VariantClear");
+    safe_array_create = (SafeArray* (*)(uint16_t, uint32_t, SafeArrayBound*))dlsym(lib, "SafeArrayCreate");
+    safe_array_access = (HRESULT (*)(SafeArray*, void**))dlsym(lib, "SafeArrayAccessData");
+    safe_array_unaccess = (HRESULT (*)(SafeArray*))dlsym(lib, "SafeArrayUnaccessData");
+    safe_array_destroy = (HRESULT (*)(SafeArray*))dlsym(lib, "SafeArrayDestroy");
     auto create = (IFactory * (*)()) dlsym(lib, "CreateBlackmagicRawFactoryInstance");
     if (!create) { fprintf(stderr, "sin CreateBlackmagicRawFactoryInstance\n"); return 1; }
     IFactory* factory = create();
@@ -669,6 +786,17 @@ int main(int argc, char** argv) {
     }
     IClipAttrs* attrs = nullptr;
     if (clip->CloneClipProcessingAttributes(&attrs) < 0 || !attrs) { fprintf(stderr, "CloneClipProcessingAttributes falló\n"); return 1; }
+    if (!o.embedLut.empty()) {
+        if (o.embedLut != "identity") { fprintf(stderr, "--embed-lut solo admite identity en este harness\n"); return 1; }
+        if (!set_embedded_identity(attrs, o)) return 1;
+        fprintf(stderr, "--- LUT tras SetEmbedded (misma sesión) ---\n");
+        report_lut_attrs(attrs);
+    }
+    if (o.saveSidecar) {
+        HRESULT sh = clip->SaveSidecarFile();
+        fprintf(stderr, "SaveSidecarFile %#x\n", sh);
+        if (sh < 0) return 1;
+    }
     if(o.auditDispatch) audit_attribute_dispatch("clip",attrs);
     if (!o.schemaOut.empty() && !save_product_schema(o.schemaOut)) return 1;
     if (!o.supportOut.empty() && !save_support_packs(o.supportOut)) return 1;
@@ -709,7 +837,8 @@ int main(int argc, char** argv) {
 
     if (!o.trim.empty()) {
         IJob* job = nullptr;
-        h = clipEx->CreateJobTrim(cfstr(o.trim), o.frame, o.count, 1, 0.0f, nullptr, nullptr, &job);
+        IClipAttrs* trimAttrs = o.embedLut.empty() ? nullptr : attrs;
+        h = clipEx->CreateJobTrim(cfstr(o.trim), o.frame, o.count, 1, 0.0f, trimAttrs, nullptr, &job);
         if (h < 0 || !job) { fprintf(stderr, "CreateJobTrim error %#x\n", h); return 1; }
         job->Submit();
         if (!wait_done(codec, cb)) return 1;

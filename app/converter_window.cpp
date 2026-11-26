@@ -31,6 +31,7 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QTextBrowser>
+#include <QWidget>
 #include <QFile>
 #include <QRadioButton>
 #include <QScrollArea>
@@ -340,6 +341,16 @@ ConverterWindow::ConverterWindow(ProfileStore store, QString backend, QWidget *p
     noiseSynthesis_->setToolTip(t("Each frame tells the decoder how much noise to add back where the compression removed it, as the camera does; it hides banding and blocks when grading. Off: the decoded image is closest to the original, with no added noise."));
     decoderNoiseRow->addWidget(label(t("Decoder noise"), advancedBox)); decoderNoiseRow->addWidget(noiseSynthesis_); decoderNoiseRow->addStretch();
     advanced->addLayout(decoderNoiseRow);
+    // Pocket OG: viewing DWG/Intermediate (entrada de la LUT medida). Default desactivado = P3-D65 lineal histórico.
+    matchCinemaDngRow_ = new QWidget(advancedBox);
+    auto *matchRow = new QHBoxLayout(matchCinemaDngRow_);
+    matchRow->setContentsMargins(0, 0, 0, 0);
+    matchCinemaDng_ = new QCheckBox(t("Match original CinemaDNG rendering"), matchCinemaDngRow_);
+    matchCinemaDng_->setObjectName("matchCinemaDng"); matchCinemaDng_->setChecked(false);
+    matchCinemaDng_->setToolTip(t("Pocket Cinema Camera (2013) only. Opens in DaVinci Wide Gamut / DaVinci Intermediate with colour science Gen 5. Apply the LUT in the cdng2braw folder for the DNG's Blackmagic Design look. Off: P3-D65 linear, as previous conversions."));
+    matchRow->addWidget(label(t("CinemaDNG look"), matchCinemaDngRow_)); matchRow->addWidget(matchCinemaDng_); matchRow->addStretch();
+    matchCinemaDngRow_->setVisible(false);
+    advanced->addWidget(matchCinemaDngRow_);
     advanced->addStretch();
     // El gestor del perfil de la Pocket original, en el botón «Perfil de cámara…» de la cabecera.
     // Con tomas de la Pocket en el lote, la fila de estado del origen ya ofrece instalarlo.
@@ -403,7 +414,8 @@ ConverterWindow::ConverterWindow(ProfileStore store, QString backend, QWidget *p
         const auto items = clips_->selectedItems();
         if (!items.isEmpty() && !job_->busy()) selectClip(scanned_.at(items.first()->data(0, Qt::UserRole).toInt()).toObject().value("path").toString());
     });
-    connect(clips_, &QTreeWidget::itemChanged, this, [this] { updateBatchControls(); updateCompression(); refreshProfile(); });
+    connect(clips_, &QTreeWidget::itemChanged, this, [this] { updateBatchControls(); updateCompression(); refreshProfile(); updateMatchCinemaDng(); });
+    connect(matchCinemaDng_, &QCheckBox::toggled, this, [this] { updateCompression(); });
     for (auto *button : {selectAll_, selectNone_}) {
         const bool check = button == selectAll_;
         connect(button, &QPushButton::clicked, this, [this, check] { setAllChecked(check); });
@@ -497,7 +509,7 @@ ConverterWindow::ConverterWindow(ProfileStore store, QString backend, QWidget *p
         else { ++failed_; item->setText(4, t("Error")); item->setToolTip(4, detail); batchLog_ << name + ": " + detail.section('\n', 0, 0); }
         if (cancelled) finishBatch(); else startNext();
     });
-    updateResolution(false); updateNoiseControls(); refreshProfile();
+    updateResolution(false); updateNoiseControls(); updateMatchCinemaDng(); refreshProfile();
 }
 void ConverterWindow::loadSource() {
     // Al desactivar los controles al empezar un lote, el campo pierde el foco y emite editingFinished: sin esta
@@ -567,7 +579,7 @@ void ConverterWindow::showClips(bool final) {
         state_->setText(scanned_.isEmpty() ? t("Ready. Choose a folder with CinemaDNG takes.")
                         : usable ? t("Ready. Check the takes and press Convert.") : t("No take in this folder can be converted."));
     if (output_->text().isEmpty() && !input_->text().isEmpty()) output_->setText(QDir(input_->text()).filePath("BRAW"));
-    updateBatchControls(); updateCompression(); refreshProfile();
+    updateBatchControls(); updateCompression(); refreshProfile(); updateMatchCinemaDng();
     // La primera toma convertible queda seleccionada para la vista previa.
     for (int i = 0; i < clips_->topLevelItemCount(); ++i)
         if (scanned_.at(i).toObject().value("compatible").toBool()) { clips_->setCurrentItem(clips_->topLevelItem(i)); selectClip(scanned_.at(i).toObject().value("path").toString()); return; }
@@ -590,7 +602,7 @@ void ConverterWindow::setAllChecked(bool checked) {
         auto *item = clips_->topLevelItem(i);
         if (item->flags() & Qt::ItemIsUserCheckable) item->setCheckState(0, checked ? Qt::Checked : Qt::Unchecked);
     }
-    updateBatchControls(); updateCompression(); refreshProfile();
+    updateBatchControls(); updateCompression(); refreshProfile(); updateMatchCinemaDng();
 }
 QList<int> ConverterWindow::checkedClips() const {
     QList<int> out;
@@ -637,6 +649,17 @@ void ConverterWindow::updateCompression() {
     const bool custom = nrPresets_->checkedId() == 4;
     for (auto *box : {nrLuma_, nrChroma_}) box->setEnabled(custom);
 }
+bool ConverterWindow::scannedHasOg() const {
+    for (const auto &value : scanned_)
+        if (value.toObject().value("route").toString() == "og") return true;
+    return false;
+}
+void ConverterWindow::updateMatchCinemaDng() {
+    const bool og = scannedHasOg();
+    matchCinemaDngRow_->setVisible(og);
+    matchCinemaDng_->setEnabled(og && !job_->busy());
+    if (!og) matchCinemaDng_->setChecked(false);
+}
 QString ConverterWindow::outputPathFor(const QJsonObject &clip) const {
     // Sin fecha: así un lote interrumpido se reanuda saltando lo que ya existe. Resolve guarda en caché los metadatos
     // por ruta (I8): para repetir una toma con otros ajustes basta con que el nombre lleve los ajustes.
@@ -644,6 +667,7 @@ QString ConverterWindow::outputPathFor(const QJsonObject &clip) const {
     if (resolution_->currentData() != "original") { const auto size = sizeForClip(clip); name += QString("_%1x%2").arg(size.width()).arg(size.height()); }
     name += ratioMode_->isChecked() ? QString("_%1to1").arg(ratios_->checkedId()) : QString("_%1").arg(qualityTag(selectedQuality()));
     if (nrLuma_->value() || nrChroma_->value()) name += QString("_nr%1-%2").arg(nrLuma_->value()).arg(nrChroma_->value());
+    if (matchCinemaDng_->isChecked() && clip.value("route").toString() == "og") name += "_match";
     return QDir(output_->text()).filePath(name + ".braw");
 }ProfileWindow *ConverterWindow::profileWindow(const QString &id) {
     if (id.isEmpty() || ProfileSpec::byId(id).id.isEmpty()) return nullptr;
@@ -763,7 +787,7 @@ QVariantMap ConverterWindow::snapshot() const {
         {"ratioMode", ratioMode_->isChecked()}, {"ratio", ratios_->checkedId()}, {"q", selectedQuality()},
         {"nrPreset", nrPresets_->checkedId()}, {"nrLuma", nrLuma_->value()}, {"nrChroma", nrChroma_->value()},
         {"resolution", resolution_->currentIndex()}, {"width", outputWidth_->value()}, {"height", outputHeight_->value()},
-        {"workers", workers_->value()}, {"gyroBraw", gyroBraw_->isChecked()}, {"gyroFiles", gyroFiles_->isChecked()}, {"gyroProject", gyroProject_->isChecked()}, {"noiseSynthesis", noiseSynthesis_->isChecked()}, {"geometry", saveGeometry()}, {"details", details_->toPlainText()},
+        {"workers", workers_->value()}, {"gyroBraw", gyroBraw_->isChecked()}, {"gyroFiles", gyroFiles_->isChecked()}, {"gyroProject", gyroProject_->isChecked()}, {"noiseSynthesis", noiseSynthesis_->isChecked()}, {"matchCinemaDng", matchCinemaDng_->isChecked()}, {"geometry", saveGeometry()}, {"details", details_->toPlainText()},
         {"detailsVisible", !details_->isHidden()}, {"state", state_->text()}};
 }void ConverterWindow::restore(const QVariantMap &state) {
     input_->setText(state.value("input").toString());
@@ -781,10 +805,12 @@ QVariantMap ConverterWindow::snapshot() const {
     gyroBraw_->setChecked(state.value("gyroBraw", true).toBool()); gyroFiles_->setChecked(state.value("gyroFiles", false).toBool());
     gyroProject_->setChecked(state.value("gyroProject", true).toBool());
     noiseSynthesis_->setChecked(state.value("noiseSynthesis", true).toBool());
+    matchCinemaDng_->setChecked(state.value("matchCinemaDng", false).toBool());
     output_->setText(state.value("output").toString());
     restoreGeometry(state.value("geometry").toByteArray());
     details_->setPlainText(state.value("details").toString()); details_->setVisible(state.value("detailsVisible").toBool());
     updateNoiseControls();
+    updateMatchCinemaDng();
     loadedRoot_.clear();
     if (!input_->text().isEmpty()) loadSource();   // vuelve a explorar la carpeta (rápido: solo lee etiquetas)
 }QString ConverterWindow::droppedFolder(const QMimeData *mime) {
@@ -810,10 +836,10 @@ void ConverterWindow::offerInstall() { profiles_->offerInstall(); refreshProfile
 void ConverterWindow::showEvent(QShowEvent *event) { QWidget::showEvent(event); refreshProfile(); }
 void ConverterWindow::setBusy(bool busy) {
     // Los procesos se pueden cambiar durante la conversión (el motor los relee); el resto queda fijo.
-    for (QWidget *widget : QList<QWidget *>{input_, output_, chooseInput_, chooseOutput_, convert_, profileButton_, gyroBraw_, gyroFiles_, gyroProject_, noiseSynthesis_, compressionCard_, nrCard_, resolution_, customSize_, language_, clips_, compareNoise_}) widget->setEnabled(!busy);
+    for (QWidget *widget : QList<QWidget *>{input_, output_, chooseInput_, chooseOutput_, convert_, profileButton_, gyroBraw_, gyroFiles_, gyroProject_, noiseSynthesis_, matchCinemaDng_, compressionCard_, nrCard_, resolution_, customSize_, language_, clips_, compareNoise_}) widget->setEnabled(!busy);
     frame_->setEnabled(!busy && !sourceInfo_.isEmpty()); cancel_->setEnabled(busy);
     if (busy) { reveal_->setEnabled(false); details_->hide(); progress_->setRange(0, 0); }
-    else updateNoiseControls();
+    else { updateNoiseControls(); updateMatchCinemaDng(); }
 }
 void ConverterWindow::start() {
     if (anyProfileOperation() || job_->busy()) return;
@@ -850,6 +876,7 @@ void ConverterWindow::startNext() {
         options.gyroGcsv = options.gyroFsg2 = gyroFiles_->isChecked();
         options.gyroBraw = gyroBraw_->isChecked(); options.gyroProject = gyroProject_->isChecked();
         options.noiseSynthesis = noiseSynthesis_->isChecked();
+        options.matchCinemaDngRendering = matchCinemaDng_->isChecked() && clip.value("route").toString() == "og";
         options.compression = ratioMode_->isChecked() ? "ratio" : "quality"; options.ratio = ratios_->checkedId();
         options.nrLuma = nrLuma_->value(); options.nrChroma = nrChroma_->value();
         options.size = resolution_->currentData() == "original" ? QSize() : sizeForClip(clip);
@@ -896,6 +923,9 @@ void ConverterWindow::finishBatch() {
     progress_->setRange(0, 100); progress_->setValue(batchCancelled_ ? 0 : 100);
     reveal_->setEnabled(converted_ > 0 || skipped_ > 0);
     if (!batchLog_.isEmpty()) { details_->setPlainText(batchLog_.join('\n')); details_->show(); }
+    resolveHint_->setText(matchCinemaDng_->isChecked()
+        ? t("Pocket Cinema Camera (2013) takes with Match original CinemaDNG rendering open in Resolve in DaVinci Wide Gamut / DaVinci Intermediate. Apply the LUT in the cdng2braw folder for the DNG's Blackmagic Design look (details in the camera profile). This is not automatic Gen 1 equivalence.")
+        : t("Pocket Cinema Camera (2013) takes open in Resolve in P3-D65 linear, where they match the DNG. For the DNG's look, decode them in DaVinci Wide Gamut / DaVinci Intermediate and apply the LUT in the cdng2braw folder (details in the camera profile)."));
     resolveHint_->setVisible(convertedOg_ > 0);
     updateBatchControls();
 }void ConverterWindow::closeEvent(QCloseEvent *event) {
