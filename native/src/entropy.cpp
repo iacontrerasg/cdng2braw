@@ -1,5 +1,6 @@
 #include "cdng_native.h"
 #include "cdng_bit_budget.h"
+#include "cdng_ac_cost.h"
 
 #include <algorithm>
 #include <array>
@@ -69,15 +70,16 @@ unsigned klass(int64_t value) {
     return k;
 }
 
-void block(BitWriter &writer, const CdngPlane &plane, size_t index,
-           const CdngEntropyTables &t, CdngEntropyStats &stats, int plane_id, CdngBitBudget *budget) {
-    const uint64_t before_dc = writer.bits_written();
-    writer.put(plane.dc_values[index], plane.dc_lengths[index]);
-    if (budget) budget->dc_bits[plane_id] += writer.bits_written() - before_dc;
+bool valid_tables(const CdngEntropyTables *t) {
+    return t && t->prefix_values && t->prefix_lengths && t->final_values &&
+           t->final_lengths && t->drop && t->adjust && t->eob_length && t->eob_length <= 64;
+}
 
-    std::array<int64_t, 63> ac{};
-    const auto *source = plane.ac + index * plane.coefficients;
-    for (size_t i = 0; i < plane.coefficients; ++i) {
+/* Clamp + adjust. Escribe en ac[0..n). Devuelve cuántos no-cero tras adjust (pre-drop). */
+size_t clamp_adjust_ac(const int64_t *source, size_t n, const CdngEntropyTables &t,
+                       int64_t *ac, CdngEntropyStats &stats) {
+    size_t nz = 0;
+    for (size_t i = 0; i < n; ++i) {
         auto value = source[i];
         if (value > kMax || value < -kMax) {
             ++stats.clamped;
@@ -87,12 +89,16 @@ void block(BitWriter &writer, const CdngPlane &plane, size_t index,
         if (value && adjustment) value = value > 0 ? adjustment : -adjustment;
         if (value > kMax || value < -kMax) throw std::invalid_argument("invalid adjustment");
         ac[i] = value;
-        if (budget && value) ++budget->ac_nonzero[plane_id];
+        if (value) ++nz;
     }
+    return nz;
+}
+
+void drop_ac(int64_t *ac, size_t n, const CdngEntropyTables &t, CdngEntropyStats &stats) {
     for (unsigned pass = 0; pass < 2; ++pass) {
         int previous = -1;
         bool changed = false;
-        for (size_t i = 0; i < plane.coefficients; ++i) {
+        for (size_t i = 0; i < n; ++i) {
             if (!ac[i]) continue;
             const auto run = static_cast<size_t>(static_cast<int>(i) - previous - 1);
             previous = static_cast<int>(i);
@@ -104,40 +110,74 @@ void block(BitWriter &writer, const CdngPlane &plane, size_t index,
         }
         if (!changed) break;
     }
+}
+
+void prepare_ac(const int64_t *source, size_t n, const CdngEntropyTables &t,
+                int64_t *ac, CdngEntropyStats &stats) {
+    clamp_adjust_ac(source, n, t, ac, stats);
+    drop_ac(ac, n, t, stats);
+}
+
+uint64_t put_ac_symbol(BitWriter &writer, size_t run, int64_t value,
+                       const CdngEntropyTables &t, CdngEntropyStats *stats,
+                       CdngAcBlockCost *cost) {
+    const uint64_t b_start = writer.bits_written();
+    const unsigned k = klass(value), positive = value > 0;
+    const auto entry = (positive * 63 + run) * kClasses + k;
+    bool fallback = false;
+    for (unsigned p = 0; p < 4; ++p) {
+        const auto pos = p * 2 * 63 * kClasses + entry;
+        const auto length = t.prefix_lengths[pos];
+        if (length) {
+            fallback = true;
+            const uint64_t b0 = writer.bits_written();
+            writer.put(t.prefix_values[pos], length);
+            if (cost) cost->ac_prefix_bits += writer.bits_written() - b0;
+        }
+    }
+    if (stats && fallback) ++stats->fallback;
+    if (cost && fallback) ++cost->fallback;
+    const auto magnitude = static_cast<unsigned>(value > 0 ? value : -value);
+    const auto mantissa = positive ? magnitude - (1u << k) : (1u << (k + 1)) - 1u - magnitude;
+    if (!t.final_lengths[entry]) throw std::invalid_argument("missing AC code");
+    {
+        const uint64_t b0 = writer.bits_written();
+        writer.put(t.final_values[entry], t.final_lengths[entry]);
+        if (cost) cost->ac_final_bits += writer.bits_written() - b0;
+    }
+    {
+        const uint64_t b0 = writer.bits_written();
+        writer.put((positive << k) | mantissa, k + 1);
+        if (cost) cost->ac_magnitude_bits += writer.bits_written() - b0;
+    }
+    return writer.bits_written() - b_start;
+}
+
+void block(BitWriter &writer, const CdngPlane &plane, size_t index,
+           const CdngEntropyTables &t, CdngEntropyStats &stats, int plane_id, CdngBitBudget *budget) {
+    const uint64_t before_dc = writer.bits_written();
+    writer.put(plane.dc_values[index], plane.dc_lengths[index]);
+    if (budget) budget->dc_bits[plane_id] += writer.bits_written() - before_dc;
+
+    std::array<int64_t, 63> ac{};
+    const auto *source = plane.ac + index * plane.coefficients;
+    const size_t nz = clamp_adjust_ac(source, plane.coefficients, t, ac.data(), stats);
+    if (budget) budget->ac_nonzero[plane_id] += nz;
+    drop_ac(ac.data(), plane.coefficients, t, stats);
     int previous = -1;
     for (size_t i = 0; i < plane.coefficients; ++i) {
         auto value = ac[i];
         if (!value) continue;
         const auto run = static_cast<size_t>(static_cast<int>(i) - previous - 1);
         previous = static_cast<int>(i);
-        const unsigned k = klass(value), positive = value > 0;
-        const auto entry = (positive * 63 + run) * kClasses + k;
-        bool fallback = false;
-        for (unsigned p = 0; p < 4; ++p) {
-            const auto pos = p * 2 * 63 * kClasses + entry;
-            const auto length = t.prefix_lengths[pos];
-            if (length) {
-                fallback = true;
-                const uint64_t b0 = writer.bits_written();
-                writer.put(t.prefix_values[pos], length);
-                if (budget) budget->ac_prefix_bits[plane_id] += writer.bits_written() - b0;
-            }
+        CdngAcBlockCost sym{};
+        put_ac_symbol(writer, run, value, t, &stats, &sym);
+        if (budget) {
+            budget->ac_prefix_bits[plane_id] += sym.ac_prefix_bits;
+            budget->ac_final_bits[plane_id] += sym.ac_final_bits;
+            budget->ac_magnitude_bits[plane_id] += sym.ac_magnitude_bits;
+            ++budget->ac_coded[plane_id];
         }
-        stats.fallback += fallback;
-        const auto magnitude = static_cast<unsigned>(value > 0 ? value : -value);
-        const auto mantissa = positive ? magnitude - (1u << k) : (1u << (k + 1)) - 1u - magnitude;
-        if (!t.final_lengths[entry]) throw std::invalid_argument("missing AC code");
-        {
-            const uint64_t b0 = writer.bits_written();
-            writer.put(t.final_values[entry], t.final_lengths[entry]);
-            if (budget) budget->ac_final_bits[plane_id] += writer.bits_written() - b0;
-        }
-        {
-            const uint64_t b0 = writer.bits_written();
-            writer.put((positive << k) | mantissa, k + 1);
-            if (budget) budget->ac_magnitude_bits[plane_id] += writer.bits_written() - b0;
-        }
-        if (budget) ++budget->ac_coded[plane_id];
     }
     {
         const uint64_t b0 = writer.bits_written();
@@ -301,4 +341,72 @@ int cdng_bit_budget_json(char *buf, size_t cap) {
         (unsigned long long)b.marker_count);
     if (n < 0 || size_t(n) >= cap) return -1;
     return n;
+}
+
+int cdng_ac_prepare(const int64_t *ac_in, size_t coefficients,
+                    const CdngEntropyTables *tables,
+                    int64_t *ac_out, CdngEntropyStats *stats) {
+    if (!ac_in || !valid_tables(tables) || (coefficients != 63 && coefficients != 31)) return 1;
+    try {
+        std::array<int64_t, 63> tmp{};
+        CdngEntropyStats local{};
+        prepare_ac(ac_in, coefficients, *tables, tmp.data(), local);
+        if (ac_out) std::memcpy(ac_out, tmp.data(), coefficients * sizeof(int64_t));
+        if (stats) *stats = local;
+        return 0;
+    } catch (...) { return 1; }
+}
+
+int cdng_ac_block_cost(const int64_t *ac_in, size_t coefficients,
+                       const CdngEntropyTables *tables,
+                       CdngAcBlockCost *out, int64_t *ac_effective) {
+    if (!ac_in || !out || !valid_tables(tables) || (coefficients != 63 && coefficients != 31)) return 1;
+    try {
+        *out = {};
+        std::array<int64_t, 63> ac{};
+        CdngEntropyStats stats{};
+        prepare_ac(ac_in, coefficients, *tables, ac.data(), stats);
+        out->clamped = stats.clamped;
+        out->dropped = stats.dropped;
+        if (ac_effective) std::memcpy(ac_effective, ac.data(), coefficients * sizeof(int64_t));
+        BitWriter writer;
+        int previous = -1;
+        for (size_t i = 0; i < coefficients; ++i) {
+            if (!ac[i]) continue;
+            const auto run = static_cast<size_t>(static_cast<int>(i) - previous - 1);
+            previous = static_cast<int>(i);
+            CdngAcBlockCost sym{};
+            put_ac_symbol(writer, run, ac[i], *tables, &stats, &sym);
+            out->ac_prefix_bits += sym.ac_prefix_bits;
+            out->ac_final_bits += sym.ac_final_bits;
+            out->ac_magnitude_bits += sym.ac_magnitude_bits;
+            ++out->ac_coded;
+        }
+        out->fallback = stats.fallback;
+        {
+            const uint64_t b0 = writer.bits_written();
+            writer.put(tables->eob_value, tables->eob_length);
+            out->eob_bits = writer.bits_written() - b0;
+        }
+        out->total_bits = out->ac_prefix_bits + out->ac_final_bits + out->ac_magnitude_bits + out->eob_bits;
+        if (out->total_bits != writer.bits_written()) return 1;
+        return 0;
+    } catch (...) { return 1; }
+}
+
+uint64_t cdng_ac_symbol_bits(size_t run, int64_t level, const CdngEntropyTables *tables) {
+    if (!level || !valid_tables(tables) || run >= 63) return 0;
+    if (level > kMax || level < -kMax) return 0;
+    try {
+        if (tables->drop[run * kClasses + klass(level)]) return 0;
+        BitWriter writer;
+        CdngAcBlockCost sym{};
+        put_ac_symbol(writer, run, level, *tables, nullptr, &sym);
+        return writer.bits_written();
+    } catch (...) { return 0; }
+}
+
+uint64_t cdng_ac_eob_bits(const CdngEntropyTables *tables) {
+    if (!valid_tables(tables)) return 0;
+    return tables->eob_length;
 }
