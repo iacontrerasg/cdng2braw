@@ -149,11 +149,28 @@ export CDNG_RDOQ_LAMBDA=0.5   # opcional; default 0
 # Encoder por defecto (sin estas vars) = legacy / deadzone existente
 ```
 
-### Pendiente (brief truncado tras Fase D)
+## Fase E — Validación del trellis
+
+Implementación: trellis DP (no coordinate descent). Prueba: `engine_rdoq_test`.
+
+| Comprobación | Resultado esperado |
+|--------------|-------------------|
+| Optimalidad en candidatos | `J_trellis = J_exhaustivo` en bloques con K≤4 activos |
+| `R_estimated` | suma símbolos del DP + EOB (sin prepare) |
+| `R_optimized` | alias de `R_estimated` (objetivo del DP) |
+| `R_emitted` | `cdng_ac_block_cost` tras clamp/adjust/drop |
+| Nulo / EOB / signos / determinismo / rango | cubiertos en test |
+| ZRL / drop | trellis evita `(run,k)` con `drop`; post-mod cuantificado |
+| adjust | tablas verificadas: `adjust[*]=0` |
+| DC | API solo muta el buffer AC |
+
+Con tablas oficiales, `R_estimated == R_emitted` salvo rarezas de drop; el test exige mismatch &lt; 5 % en batería aleatoria y reporta conteos.
+
+### Pendiente (campaña)
 
 - Barrido λ / igual tasa vs α=0.75 z=0.5
 - Serie A con cobertura estricta y Pareto multidimensional
 - Clasificación hipótesis / aceptación
-- No implementar perfiles P0 Maximum Fidelity / Production 3:1 / fix BUG-002 aquí
+- No implementar perfiles P0 / BUG-002 aquí
 
-SHA base registrado también en `benchmark/experiments/exp003b-base-sha.txt`.
+SHA base: `benchmark/experiments/exp003b-base-sha.txt`.
