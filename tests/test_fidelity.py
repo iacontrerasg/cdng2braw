@@ -595,6 +595,156 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
         sample, payload = 1_000_000, 900_000
         self.assertNotAlmostEqual(RD.RAW_BYTES_12BIT / sample, RD.RAW_BYTES_12BIT / payload)
 
+    def test_rd_braw_binding_rejects_ambiguous_same_range_two_clips(self):
+        """Dos clips distintos con el mismo start/count no pueden resolverse solo por range."""
+        from tools.fidelity import rd as RD, identity
+        with tempfile.TemporaryDirectory() as d:
+            cache = os.path.join(d, 'cache', 'braw')
+            runs = os.path.join(d, 'runs', 'fake')
+            os.makedirs(runs)
+            model = {'quant_steps.json': 'x'}
+            worker = 'w' * 64
+            # Materiales distintos (clip/inputs) → keys distintos, mismo range [10, 2]
+            mats = []
+            keys = []
+            for clip, sha in (('CLIP_A', 'aa'), ('CLIP_B', 'bb')):
+                mat = {
+                    'kind': 'braw', 'info_schema': 2,
+                    'converter': {'cdng_convert_sha256': worker, 'model': model},
+                    'clip': clip, 'first_frame': 10,
+                    'inputs': [{'index': 10, 'name': 'f.dng', 'sha256': sha},
+                               {'index': 11, 'name': 'g.dng', 'sha256': sha + '2'}],
+                    'request': {'compression': 'quality', 'q': 4, 'noise_synthesis': False,
+                                'nr_luma': 0, 'nr_chroma': 0},
+                    'experimental_env': {'CDNG_OG_DEBLOCK_PRECOMP': '1'},
+                }
+                key = identity.sha256_json(mat)
+                mats.append(mat)
+                keys.append(key)
+                bdir = os.path.join(cache, key[:24])
+                os.makedirs(bdir)
+                # Payload mínimo: no hace falta BRAW real para probar ambigüedad de timing
+                open(os.path.join(bdir, 'clip.braw'), 'wb').write(b'not-a-braw')
+                with open(os.path.join(bdir, 'identity.json'), 'w') as f:
+                    json.dump({'material': mat, 'sha256': identity.sha256_file(
+                        os.path.join(bdir, 'clip.braw'))}, f)
+
+            # Run con timing ambiguo si solo se mira range (ambos [10,2])
+            run_doc = {
+                'converter': {'cdng_convert_sha256': worker, 'model': model},
+                'decoder': {'brawdec_sha256': 'd' * 64, 'framework_sha256': 'f' * 64,
+                            'camera_support': {'p.json': 'c' * 64}},
+                'config': {
+                    'manifest_analysis': {'normalize_to_iso': 200},
+                    'rois': {}, 'decode': {'gamma': 'Linear'},
+                    'encode': {'compression': 'quality', 'q': 4, 'noise_synthesis': False,
+                               'nr_luma': 0, 'nr_chroma': 0},
+                },
+                'timing': {'conversions': [
+                    {'test': 'T1', 'range': [10, 2], 'reused': False, 'seconds': 1},
+                    {'test': 'T2', 'range': [10, 2], 'reused': False, 'seconds': 1},
+                ]},
+                'cache': [
+                    {'kind': 'braw', 'key': keys[0], 'reused': False},
+                    {'kind': 'braw', 'key': keys[1], 'reused': False},
+                ],
+                'dataset': '/data', 'references': '/refs',
+            }
+            with open(os.path.join(runs, 'run.json'), 'w') as f:
+                json.dump(run_doc, f)
+            with open(os.path.join(runs, 'metrics.json'), 'w') as f:
+                json.dump({'results': {}}, f)
+            # Enlazar cache relativa: rd espera out/benchmark/cache desde runs/../..
+            # runs = d/runs/fake → cache = d/cache  (pardir×2 = d)
+            run = RD.load_run(runs)
+            # Resultado del clip A / test T1
+            result_a = {
+                'test': 'T1', 'frame': 10,
+                'setup': {
+                    'clip': 'CLIP_A', 'range': [10, 2], 'frame': 10, 'iso': 400,
+                    'inputs': mats[0]['inputs'], 'dng_sha256': 'aa',
+                    'decode': {'exposure': 0},
+                    'reference': {'sha256': 'refa', 'file': 'a.exr'},
+                    'encode': {'request': mats[0]['request'],
+                               'experimental_env': mats[0]['experimental_env']},
+                },
+            }
+            bind = RD.resolve_braw_binding(run, result_a, 'T1_f010', verify_file_sha=True)
+            self.assertEqual(bind['conversion_key'], keys[0])
+            self.assertEqual(bind['clip'], 'CLIP_A')
+            self.assertEqual(bind['test'], 'T1')
+            # Mismo range, otro clip → otra conversion_key (no se elige la primera por range)
+            result_b = json.loads(json.dumps(result_a))
+            result_b['test'] = 'T2'
+            result_b['setup']['clip'] = 'CLIP_B'
+            result_b['setup']['inputs'] = mats[1]['inputs']
+            result_b['setup']['dng_sha256'] = 'bb'
+            result_b['setup']['encode']['request'] = mats[1]['request']
+            result_b['setup']['encode']['experimental_env'] = mats[1]['experimental_env']
+            result_b['setup']['reference'] = {'sha256': 'refb', 'file': 'b.exr'}
+            bind_b = RD.resolve_braw_binding(run, result_b, 'T2_f010', verify_file_sha=True)
+            self.assertEqual(bind_b['conversion_key'], keys[1])
+            self.assertNotEqual(bind['conversion_key'], bind_b['conversion_key'])
+            # Si se corrompe el test ID y solo queda range, timing es ambiguo al recuperar
+            # (forzar fallo: key inexistente + timing duplicado sin test usable)
+            bad = json.loads(json.dumps(result_a))
+            bad['setup']['inputs'] = [{'index': 10, 'name': 'f.dng', 'sha256': 'ZZ'},
+                                      {'index': 11, 'name': 'g.dng', 'sha256': 'YY'}]
+            with self.assertRaises(RD.RdError) as cm:
+                RD.resolve_braw_binding(run, bad, 'T1_f010', verify_file_sha=False)
+            msg = str(cm.exception)
+            self.assertTrue('ambiguo' in msg or '≠' in msg or 'sin conversion_key' in msg or
+                            'material' in msg, msg)
+
+    def test_rd_coverage_uses_test_and_frame(self):
+        from tools.fidelity import rd as RD
+        rows = [
+            {'alpha': 1.0, 'q_requested': 0, 'mode': 'quality', 'test': 'A01', 'frame': 10, 'run': 'r1'},
+            {'alpha': 1.0, 'q_requested': 0, 'mode': 'quality', 'test': 'A02', 'frame': 10, 'run': 'r2'},
+        ]
+        cov = RD.coverage_report(rows, expected_q=[0], expected_alphas=[1.0],
+                                 expected_test_frames=[('A01', 10), ('A02', 10), ('A03', 10)])
+        self.assertEqual(len(cov['missing']), 1)
+        self.assertEqual(cov['missing'][0]['test'], 'A03')
+        # Mismo frame en dos tests no es duplicado
+        cov2 = RD.coverage_report(rows)
+        self.assertEqual(cov2['duplicates'], [])
+
+    def test_rd_run_identity_requires_critical_fields(self):
+        from tools.fidelity import rd as RD
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, 'metrics.json'), 'w') as f:
+                json.dump({'results': {}}, f)
+            with open(os.path.join(d, 'run.json'), 'w') as f:
+                json.dump({'converter': {'cdng_convert_sha256': 'w'}, 'decoder': {}}, f)
+            run = RD.load_run(d)
+            with self.assertRaises(RD.RdError) as cm:
+                RD.run_identity(run)
+            self.assertIn('identidad crítica', str(cm.exception))
+
+    def test_rd_html_overlays_alphas_common_scale(self):
+        from tools.fidelity import rd as RD
+        with tempfile.TemporaryDirectory() as d:
+            agg = []
+            for a, psnr0 in ((1.0, 40.0), (0.5, 41.0), (0.75, 40.5)):
+                for q in (0, 12, 24):
+                    agg.append({
+                        'alpha': a, 'mode': 'quality', 'q': q, 'q_requested': q,
+                        'ratio_requested': None, 'tag': 'control',
+                        'psnr': psnr0 - q * 0.01, 'duv_edges': 0.01, 'grad': 1.0,
+                        'lap': 0.9, 'block_bmi': 0.001, 'bits_per_site': 4.0 - q * 0.05,
+                        'sample_bytes': 1e6, 'ratio_sample_12bit': 3.0, 'gb_h_24fps': 80.0,
+                        'q_eff': float(q) or 1.0, 'n_codec_range_fallback': 0,
+                    })
+            path = os.path.join(d, 'rd.html')
+            RD.write_html(path, 'overlay', agg)
+            html = open(path, encoding='utf-8').read()
+            self.assertIn('escala común', html)
+            self.assertIn('α=1.0', html)
+            self.assertIn('α=0.5', html)
+            # Una sola SVG por métrica (overlay), no una por alpha
+            self.assertEqual(html.count('<svg'), 6)
+
     def test_og_deblock_alpha_and_bounded_validation(self):
         from tools.fidelity import pipeline as P, identity
         ok = P.encode_request(self._encode(experimental_env={

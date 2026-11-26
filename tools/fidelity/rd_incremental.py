@@ -25,7 +25,8 @@ class IncrementalError(RuntimeError):
 
 def load_analysis(manifest_path=None):
     path = manifest_path or os.path.join(ROOT, 'benchmark', 'manifest.json')
-    doc = json.load(open(path, encoding='utf-8'))
+    with open(path, encoding='utf-8') as f:
+        doc = json.load(f)
     if 'analysis' not in doc:
         raise IncrementalError('manifiesto sin analysis: %s' % path)
     return doc['analysis'], path
@@ -47,56 +48,69 @@ def precomp_fingerprint(result):
     }
 
 
+def encode_fixed_fingerprint(result):
+    req = ((result.get('setup') or {}).get('encode') or {}).get('request') or {}
+    return RD.encode_nonexperimental(req)
+
+
 def assert_pair_identity(base_run, cand_run, key):
-    """Verifica identidad de entradas/refs/revelado/precomp; solo permite diferir en cuantización."""
+    """Identidad completa; solo se autoriza diferir en cuantización (q/ratio)."""
     if key not in base_run['metrics']['results']:
         raise IncrementalError('%s: falta fotograma %s en base' % (cand_run['id'], key))
     if key not in cand_run['metrics']['results']:
         raise IncrementalError('%s: falta fotograma %s en candidato' % (cand_run['id'], key))
     b, c = base_run['metrics']['results'][key], cand_run['metrics']['results'][key]
-    bcfg, ccfg = RD.config_from_result(b), RD.config_from_result(c)
+    bcfg, ccfg = RD.config_from_result(b, key), RD.config_from_result(c, key)
+
+    # Identidades de corrida (worker/modelo/SDK/perfiles/análisis/ROI/encode fijo)
+    try:
+        bi, ci = RD.run_identity(base_run), RD.run_identity(cand_run)
+    except RD.RdError as e:
+        raise IncrementalError(str(e)) from e
+    for k in RD.COMPARABLE_KEYS:
+        if bi[k] != ci[k]:
+            raise IncrementalError('%s: %s incompatible con base' % (cand_run['id'], k))
 
     for field, bv, cv in (
+        ('test', bcfg.get('test'), ccfg.get('test')),
+        ('clip', bcfg.get('clip'), ccfg.get('clip')),
+        ('range', bcfg.get('range'), ccfg.get('range')),
         ('inputs', bcfg.get('inputs'), ccfg.get('inputs')),
-        ('reference', bcfg.get('reference'), ccfg.get('reference')),
+        ('dng_sha256', bcfg.get('dng_sha256'), ccfg.get('dng_sha256')),
+        ('reference_sha256', bcfg.get('reference_sha256'), ccfg.get('reference_sha256')),
         ('frame', bcfg.get('frame'), ccfg.get('frame')),
         ('decode', bcfg.get('decode'), ccfg.get('decode')),
         ('iso', bcfg.get('iso'), ccfg.get('iso')),
-        ('dng_sha256', bcfg.get('dng_sha256'), ccfg.get('dng_sha256')),
-        ('clip', bcfg.get('clip'), ccfg.get('clip')),
         ('noise_synthesis', bcfg.get('noise_synthesis'), ccfg.get('noise_synthesis')),
         ('nr_luma', bcfg.get('nr_luma'), ccfg.get('nr_luma')),
         ('nr_chroma', bcfg.get('nr_chroma'), ccfg.get('nr_chroma')),
     ):
+        if bv is None and field in ('dng_sha256', 'inputs', 'decode', 'test', 'clip', 'reference_sha256'):
+            raise IncrementalError('%s/%s: falta identidad crítica %s' % (cand_run['id'], key, field))
         if bv != cv:
             raise IncrementalError('%s/%s: %s distinto entre base y candidato' % (cand_run['id'], key, field))
 
+    # Referencia: igualdad por SHA, no por ruta/file name alone
+    bref = (b.get('setup') or {}).get('reference') or {}
+    cref = (c.get('setup') or {}).get('reference') or {}
+    if bref.get('sha256') != cref.get('sha256'):
+        raise IncrementalError('%s/%s: reference.sha256 distinto' % (cand_run['id'], key))
+    if encode_fixed_fingerprint(b) != encode_fixed_fingerprint(c):
+        raise IncrementalError('%s/%s: opciones de encode no experimentales distintas' % (cand_run['id'], key))
     if precomp_fingerprint(b) != precomp_fingerprint(c):
         raise IncrementalError('%s/%s: precompensación distinta' % (cand_run['id'], key))
 
-    # Solo se autorizan diferencias de cuantización (q o ratio solicitado)
     if bcfg['mode'] != ccfg['mode']:
         raise IncrementalError('%s/%s: modo de compresión distinto' % (cand_run['id'], key))
     if bcfg['mode'] == 'quality':
         if bcfg['q_requested'] is None or ccfg['q_requested'] is None:
             raise IncrementalError('%s/%s: q solicitado ausente' % (cand_run['id'], key))
-        if int(bcfg['q_requested']) >= int(ccfg['q_requested']) and bcfg['q_requested'] != ccfg['q_requested']:
-            # base debe ser q menor o igual; si iguales, no hay distorsión incremental útil
-            pass
         if int(bcfg['q_requested']) > int(ccfg['q_requested']):
             raise IncrementalError('%s/%s: base q=%s > candidato q=%s' % (
                 cand_run['id'], key, bcfg['q_requested'], ccfg['q_requested']))
     elif bcfg['mode'] == 'ratio':
-        if bcfg['ratio_requested'] != ccfg['ratio_requested']:
-            # permitido: distinta ratio
-            pass
-        else:
+        if bcfg['ratio_requested'] == ccfg['ratio_requested']:
             raise IncrementalError('%s/%s: misma ratio solicitada; no hay eje incremental' % (cand_run['id'], key))
-
-    bi, ci = RD.run_identity(base_run), RD.run_identity(cand_run)
-    for k in ('cdng_convert_sha256', 'dataset', 'references'):
-        if bi.get(k) and ci.get(k) and bi[k] != ci[k]:
-            raise IncrementalError('%s: %s de corrida incompatible con base' % (cand_run['id'], k))
 
     bpath = os.path.join(base_run['dir'], 'frames', key + '.f32')
     cpath = os.path.join(cand_run['dir'], 'frames', key + '.f32')
@@ -104,10 +118,11 @@ def assert_pair_identity(base_run, cand_run, key):
         if not os.path.isfile(p):
             raise IncrementalError('%s/%s: falta f32 %s' % (cand_run['id'], key, label))
         expect = res.get('candidate_sha256')
-        if expect:
-            got = identity.sha256_file(p)
-            if got != expect:
-                raise IncrementalError('%s/%s: sha f32 %s ≠ candidate_sha256' % (cand_run['id'], key, label))
+        if not expect:
+            raise IncrementalError('%s/%s: candidate_sha256 ausente (%s)' % (cand_run['id'], key, label))
+        got = identity.sha256_file(p)
+        if got != expect:
+            raise IncrementalError('%s/%s: sha f32 %s ≠ candidate_sha256' % (cand_run['id'], key, label))
     return b, c, bpath, cpath
 
 
@@ -130,20 +145,18 @@ def analyze_pair(base_dir, cand_dir, analysis):
         cimg = images.read_f32(cpath)
         norm = frame_norm(cres, analysis)
 
-        # Normalizado (ISO/exposición del manifiesto) y sin normalizar
         inc_norm, _ = M.fidelity(bimg, cimg, analysis, norm=norm, ceiling=None)
         inc_raw, _ = M.fidelity(bimg, cimg, analysis, norm=1.0, ceiling=None)
 
-        # q efectivo del bitstream cuando hay caché
         try:
-            b_bs = RD.bitstream_frame(base, bres)
-            c_bs = RD.bitstream_frame(cand, cres)
+            b_bs = RD.bitstream_frame(base, bres, key)
+            c_bs = RD.bitstream_frame(cand, cres, key)
             q_base, q_cand = b_bs['q_frame'], c_bs['q_frame']
+            bitstream_note = None
         except RD.RdError as e:
             q_base = q_cand = None
             bitstream_note = str(e)
         else:
-            bitstream_note = None
             if q_base is not None and q_cand is not None and q_base > q_cand:
                 raise IncrementalError(
                     '%s/%s: q_eff base (%s) > candidato (%s); la referencia incremental debe ser q mínima' % (
@@ -161,8 +174,8 @@ def analyze_pair(base_dir, cand_dir, analysis):
             'absolute_cand_raw': (cres.get('reference_fidelity') or {}).get('raw'),
             'absolute_base_normalized': (bres.get('reference_fidelity') or {}).get('normalized'),
             'absolute_base_raw': (bres.get('reference_fidelity') or {}).get('raw'),
-            'q_requested_base': RD.config_from_result(bres).get('q_requested'),
-            'q_requested_cand': RD.config_from_result(cres).get('q_requested'),
+            'q_requested_base': RD.config_from_result(bres, key).get('q_requested'),
+            'q_requested_cand': RD.config_from_result(cres, key).get('q_requested'),
             'q_eff_base': q_base,
             'q_eff_cand': q_cand,
             'bitstream_note': bitstream_note,

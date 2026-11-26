@@ -183,3 +183,23 @@ No se re-ejecutaron las 123 configuraciones. Se reutilizaron corridas con identi
 | ratio techo α=1 | ~3.48 (worker) | ~3.47 sample / ~3.48 worker |
 | Conclusión saturación ≥5:1 | Sin cambio | Sin cambio |
 | Conclusión q0 lossless | Rechazada | Rechazada + q0≡q1 efectivo |
+
+## 12. Final review (post `deb48dc`)
+
+### Asociación resultado ↔ BRAW
+
+- Cada fotograma se liga por **conversion_key** reconstruido (test, clip, range, inputs SHA, request, env, worker/model).
+- Se verifica `identity.json` (material + SHA-256 del `clip.braw`) antes de leer q/tamaños.
+- Dos clips con el mismo `start/count` no se confunden: el key difiere; si el timing queda ambiguo → error explícito (nunca el primer match).
+
+### Identidad experimental
+
+`assert_comparable_runs` / incremental exigen worker, modelo, SDK, perfiles, brawdec, análisis, ROI, decode y encode no experimental. Ausencia = error. Referencias e inputs por **SHA**, no por ruta.
+
+### Informes
+
+Curvas SVG superpuestas (α) con **escala común** por métrica; cobertura por `(test_id, frame)`.
+
+### Delta vs `deb48dc`
+
+Tras regenerar desde las mismas corridas: **puntos de calidad (q) sin cambio numérico**. Agregados por ratio siguen separados (3/5/8/12). Sin re-sweep.

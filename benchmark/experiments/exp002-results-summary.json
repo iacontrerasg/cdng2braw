@@ -1,7 +1,9 @@
 {
   "a04_n_frames": 198,
   "a04_n_runs": 99,
+  "association_delta": "Quality points unchanged vs deb48dc. Ratio aggregates remain per ratio_requested (3/5/8/12).",
   "base_commit": "a0e2cb19dc1055dcf40fa87c5708e0c408a9a2fd",
+  "braw_binding": "conversion_key from material (test/clip/range/inputs SHA/request/env/worker); identity.json SHA verified",
   "coverage": {
     "duplicates": [],
     "missing": [],
@@ -9,52 +11,62 @@
       {
         "frame": 44,
         "q_frame": 1,
-        "run": "exp002-a04-a0-q00"
+        "run": "exp002-a04-a0-q00",
+        "test": "A04"
       },
       {
         "frame": 49,
         "q_frame": 1,
-        "run": "exp002-a04-a0-q00"
+        "run": "exp002-a04-a0-q00",
+        "test": "A04"
       },
       {
         "frame": 44,
         "q_frame": 1,
-        "run": "exp002-a04-a050-q00"
+        "run": "exp002-a04-a050-q00",
+        "test": "A04"
       },
       {
         "frame": 49,
         "q_frame": 1,
-        "run": "exp002-a04-a050-q00"
+        "run": "exp002-a04-a050-q00",
+        "test": "A04"
       },
       {
         "frame": 44,
         "q_frame": 1,
-        "run": "exp002-a04-a075-q00"
+        "run": "exp002-a04-a075-q00",
+        "test": "A04"
       },
       {
         "frame": 49,
         "q_frame": 1,
-        "run": "exp002-a04-a075-q00"
+        "run": "exp002-a04-a075-q00",
+        "test": "A04"
       },
       {
         "frame": 44,
         "q_frame": 1,
-        "run": "exp002-a04-a1-q00"
+        "run": "exp002-a04-a1-q00",
+        "test": "A04"
       },
       {
         "frame": 49,
         "q_frame": 1,
-        "run": "exp002-a04-a1-q00"
+        "run": "exp002-a04-a1-q00",
+        "test": "A04"
       },
       {
         "frame": 44,
         "q_frame": 1,
-        "run": "exp002-a04-bd-q00"
+        "run": "exp002-a04-bd-q00",
+        "test": "A04"
       },
       {
         "frame": 49,
         "q_frame": 1,
-        "run": "exp002-a04-bd-q00"
+        "run": "exp002-a04-bd-q00",
+        "test": "A04"
       }
     ]
   },
@@ -62,7 +74,6 @@
   "final_table": [
     {
       "alpha": 0.5,
-      "bits_per_site_sample": 7.014861111111111,
       "block": -9.17151494023152e-05,
       "duv_edges": 0.0141205423613874,
       "gb_h": 157.0969728,
@@ -75,14 +86,10 @@
       "q_eff": 1.0,
       "q_requested": 0,
       "ratio_sample_12bit": 1.7106539717454985,
-      "ratio_segment_worker": 1.71,
-      "sample_bytes": 1818252.0,
-      "sdk_frame_bytes": 1835008.0,
-      "seconds": 0.7050382500000002
+      "sample_bytes": 1818252.0
     },
     {
       "alpha": 0.5,
-      "bits_per_site_sample": 6.163996913580247,
       "block": -0.00010682257510024077,
       "duv_edges": 0.014134548266133848,
       "gb_h": 138.04197119999998,
@@ -95,14 +102,10 @@
       "q_eff": 4.0,
       "q_requested": 4,
       "ratio_sample_12bit": 1.94678879162511,
-      "ratio_segment_worker": 1.95,
-      "sample_bytes": 1597708.0,
-      "sdk_frame_bytes": 1622016.0,
-      "seconds": 0.5989309589999996
+      "sample_bytes": 1597708.0
     },
     {
       "alpha": 0.5,
-      "bits_per_site_sample": 4.9352932098765425,
       "block": -0.00012785059569171112,
       "duv_edges": 0.01430894245014562,
       "gb_h": 110.5252992,
@@ -115,14 +118,10 @@
       "q_eff": 9.0,
       "q_requested": 9,
       "ratio_sample_12bit": 2.4314664850902057,
-      "ratio_segment_worker": 2.43,
-      "sample_bytes": 1279228.0,
-      "sdk_frame_bytes": 1310720.0,
-      "seconds": 0.6096633330000003
+      "sample_bytes": 1279228.0
     },
     {
       "alpha": 0.5,
-      "bits_per_site_sample": 3.8008950617283954,
       "block": -0.00018023029741483123,
       "duv_edges": 0.014599779011062606,
       "gb_h": 85.12058880000001,
@@ -135,14 +134,10 @@
       "q_eff": 18.0,
       "q_requested": 18,
       "ratio_sample_12bit": 3.1571511851971703,
-      "ratio_segment_worker": 3.16,
-      "sample_bytes": 985192.0,
-      "sdk_frame_bytes": 1015808.0,
-      "seconds": 0.5775081250000005
+      "sample_bytes": 985192.0
     },
     {
       "alpha": 0.5,
-      "bits_per_site_sample": 3.6151388888888887,
       "block": -0.00018923476871369658,
       "duv_edges": 0.014669770199239943,
       "gb_h": 80.9606016,
@@ -155,14 +150,10 @@
       "q_eff": 20.0,
       "q_requested": 20,
       "ratio_sample_12bit": 3.319374565613611,
-      "ratio_segment_worker": 3.32,
-      "sample_bytes": 937044.0,
-      "sdk_frame_bytes": 966656.0,
-      "seconds": 0.5790931669999992
+      "sample_bytes": 937044.0
     },
     {
       "alpha": 0.5,
-      "bits_per_site_sample": 3.2910185185185186,
       "block": -0.0002010346701315927,
       "duv_edges": 0.014784115395493333,
       "gb_h": 73.7019648,
@@ -175,78 +166,50 @@
       "q_eff": 24.0,
       "q_requested": 24,
       "ratio_sample_12bit": 3.6462875981934015,
-      "ratio_segment_worker": 3.65,
-      "sample_bytes": 853032.0,
-      "sdk_frame_bytes": 884736.0,
-      "seconds": 0.5694319170000005
+      "sample_bytes": 853032.0
     },
     {
       "alpha": 0.5,
-      "block": -0.0001750508693054455,
-      "duv_edges": 0.014597706694673078,
       "gb_h": 86.7048192,
-      "grad": 0.9596977626424166,
-      "lap": 0.8901427576821301,
       "mode": "r3",
       "psnr": 42.73198126030674,
       "q_eff": 17.0,
       "ratio_requested": 3,
       "ratio_sample_12bit": 3.0994651582798793,
-      "ratio_segment_worker": 3.1,
-      "sample_bytes": 1003528.0,
-      "seconds": 1.0613701659999997
+      "sample_bytes": 1003528.0
     },
     {
       "alpha": 0.5,
-      "block": -0.0002010346701315927,
-      "duv_edges": 0.014784115395493333,
       "gb_h": 73.7019648,
-      "grad": 0.9599045719657389,
-      "lap": 0.89146376719588,
       "mode": "r5",
       "psnr": 42.6414362966685,
       "q_eff": 24.0,
       "ratio_requested": 5,
       "ratio_sample_12bit": 3.6462875981934015,
-      "ratio_segment_worker": 3.65,
-      "sample_bytes": 853032.0,
-      "seconds": 0.7639675840000002
+      "sample_bytes": 853032.0
     },
     {
       "alpha": 0.5,
-      "block": -0.0002010346701315927,
-      "duv_edges": 0.014784115395493333,
       "gb_h": 73.7019648,
-      "grad": 0.9599045719657389,
-      "lap": 0.89146376719588,
       "mode": "r8",
       "psnr": 42.6414362966685,
       "q_eff": 24.0,
       "ratio_requested": 8,
       "ratio_sample_12bit": 3.6462875981934015,
-      "ratio_segment_worker": 3.65,
-      "sample_bytes": 853032.0,
-      "seconds": 0.8039609580000003
+      "sample_bytes": 853032.0
     },
     {
       "alpha": 0.5,
-      "block": -0.0002010346701315927,
-      "duv_edges": 0.014784115395493333,
       "gb_h": 73.7019648,
-      "grad": 0.9599045719657389,
-      "lap": 0.89146376719588,
       "mode": "r12",
       "psnr": 42.6414362966685,
       "q_eff": 24.0,
       "ratio_requested": 12,
       "ratio_sample_12bit": 3.6462875981934015,
-      "ratio_segment_worker": 3.65,
-      "sample_bytes": 853032.0,
-      "seconds": 0.7719655419999996
+      "sample_bytes": 853032.0
     },
     {
       "alpha": 0.75,
-      "bits_per_site_sample": 7.1191512345679016,
       "block": -8.894598812292332e-05,
       "duv_edges": 0.01430591181081397,
       "gb_h": 159.4325376,
@@ -259,14 +222,10 @@
       "q_eff": 1.0,
       "q_requested": 0,
       "ratio_sample_12bit": 1.6855942215319353,
-      "ratio_segment_worker": 1.69,
-      "sample_bytes": 1845284.0,
-      "sdk_frame_bytes": 1867776.0,
-      "seconds": 0.7057127079999994
+      "sample_bytes": 1845284.0
     },
     {
       "alpha": 0.75,
-      "bits_per_site_sample": 6.255601851851852,
       "block": -0.00010383851248590872,
       "duv_edges": 0.014318732978047182,
       "gb_h": 140.0934528,
@@ -279,14 +238,10 @@
       "q_eff": 4.0,
       "q_requested": 4,
       "ratio_sample_12bit": 1.918280680185764,
-      "ratio_segment_worker": 1.92,
-      "sample_bytes": 1621452.0,
-      "sdk_frame_bytes": 1638400.0,
-      "seconds": 0.595461333
+      "sample_bytes": 1621452.0
     },
     {
       "alpha": 0.75,
-      "bits_per_site_sample": 5.019907407407407,
       "block": -0.00012450356521279495,
       "duv_edges": 0.014489765246452088,
       "gb_h": 112.420224,
@@ -299,14 +254,10 @@
       "q_eff": 9.0,
       "q_requested": 9,
       "ratio_sample_12bit": 2.3904823388361156,
-      "ratio_segment_worker": 2.39,
-      "sample_bytes": 1301160.0,
-      "sdk_frame_bytes": 1327104.0,
-      "seconds": 0.5989677500000001
+      "sample_bytes": 1301160.0
     },
     {
       "alpha": 0.75,
-      "bits_per_site_sample": 3.8829783950617287,
       "block": -0.0001773260016926688,
       "duv_edges": 0.014781957832630383,
       "gb_h": 86.9588352,
@@ -319,14 +270,10 @@
       "q_eff": 18.0,
       "q_requested": 18,
       "ratio_sample_12bit": 3.0904113678871763,
-      "ratio_segment_worker": 3.09,
-      "sample_bytes": 1006468.0,
-      "sdk_frame_bytes": 1032192.0,
-      "seconds": 0.5726930420000007
+      "sample_bytes": 1006468.0
     },
     {
       "alpha": 0.75,
-      "bits_per_site_sample": 3.6970833333333335,
       "block": -0.00018511922788940947,
       "duv_edges": 0.014852787882598676,
       "gb_h": 82.7957376,
@@ -339,14 +286,10 @@
       "q_eff": 20.0,
       "q_requested": 20,
       "ratio_sample_12bit": 3.245801880401544,
-      "ratio_segment_worker": 3.25,
-      "sample_bytes": 958284.0,
-      "sdk_frame_bytes": 983040.0,
-      "seconds": 0.574260999
+      "sample_bytes": 958284.0
     },
     {
       "alpha": 0.75,
-      "bits_per_site_sample": 3.3721141975308644,
       "block": -0.0001977193615649072,
       "duv_edges": 0.014976776291053817,
       "gb_h": 75.5180928,
@@ -359,78 +302,50 @@
       "q_eff": 24.0,
       "q_requested": 24,
       "ratio_sample_12bit": 3.5585983568586457,
-      "ratio_segment_worker": 3.56,
-      "sample_bytes": 874052.0,
-      "sdk_frame_bytes": 901120.0,
-      "seconds": 0.5710877909999992
+      "sample_bytes": 874052.0
     },
     {
       "alpha": 0.75,
-      "block": -0.00017036096292699448,
-      "duv_edges": 0.01478022923705662,
       "gb_h": 88.54272,
-      "grad": 0.982560235528489,
-      "lap": 0.9491547847545381,
       "mode": "r3",
       "psnr": 42.679428263049275,
       "q_eff": 17.0,
       "ratio_requested": 3,
       "ratio_sample_12bit": 3.035129032197174,
-      "ratio_segment_worker": 3.04,
-      "sample_bytes": 1024800.0,
-      "seconds": 1.1649400839999997
+      "sample_bytes": 1024800.0
     },
     {
       "alpha": 0.75,
-      "block": -0.0001977193615649072,
-      "duv_edges": 0.014976776291053817,
       "gb_h": 75.5180928,
-      "grad": 0.9830113404389829,
-      "lap": 0.950553708973441,
       "mode": "r5",
       "psnr": 42.585189700148305,
       "q_eff": 24.0,
       "ratio_requested": 5,
       "ratio_sample_12bit": 3.5585983568586457,
-      "ratio_segment_worker": 3.56,
-      "sample_bytes": 874052.0,
-      "seconds": 0.7718008339999997
+      "sample_bytes": 874052.0
     },
     {
       "alpha": 0.75,
-      "block": -0.0001977193615649072,
-      "duv_edges": 0.014976776291053817,
       "gb_h": 75.5180928,
-      "grad": 0.9830113404389829,
-      "lap": 0.950553708973441,
       "mode": "r8",
       "psnr": 42.585189700148305,
       "q_eff": 24.0,
       "ratio_requested": 8,
       "ratio_sample_12bit": 3.5585983568586457,
-      "ratio_segment_worker": 3.56,
-      "sample_bytes": 874052.0,
-      "seconds": 0.7741827080000008
+      "sample_bytes": 874052.0
     },
     {
       "alpha": 0.75,
-      "block": -0.0001977193615649072,
-      "duv_edges": 0.014976776291053817,
       "gb_h": 75.5180928,
-      "grad": 0.9830113404389829,
-      "lap": 0.950553708973441,
       "mode": "r12",
       "psnr": 42.585189700148305,
       "q_eff": 24.0,
       "ratio_requested": 12,
       "ratio_sample_12bit": 3.5585983568586457,
-      "ratio_segment_worker": 3.56,
-      "sample_bytes": 874052.0,
-      "seconds": 0.7702639589999998
+      "sample_bytes": 874052.0
     },
     {
       "alpha": 1.0,
-      "bits_per_site_sample": 7.23070987654321,
       "block": -6.539894604283732e-06,
       "duv_edges": 0.014504485075580258,
       "gb_h": 161.93088,
@@ -443,14 +358,10 @@
       "q_eff": 1.0,
       "q_requested": 0,
       "ratio_sample_12bit": 1.659588100715799,
-      "ratio_segment_worker": 1.66,
-      "sample_bytes": 1874200.0,
-      "sdk_frame_bytes": 1900544.0,
-      "seconds": 0.7491821659999999
+      "sample_bytes": 1874200.0
     },
     {
       "alpha": 1.0,
-      "bits_per_site_sample": 6.353148148148148,
       "block": -2.148365871537444e-05,
       "duv_edges": 0.01451777108204363,
       "gb_h": 142.2779904,
@@ -463,14 +374,10 @@
       "q_eff": 4.0,
       "q_requested": 4,
       "ratio_sample_12bit": 1.888827380879822,
-      "ratio_segment_worker": 1.89,
-      "sample_bytes": 1646736.0,
-      "sdk_frame_bytes": 1671168.0,
-      "seconds": 0.5924494590000005
+      "sample_bytes": 1646736.0
     },
     {
       "alpha": 1.0,
-      "bits_per_site_sample": 5.108672839506173,
       "block": -4.290886802098379e-05,
       "duv_edges": 0.014694123134203336,
       "gb_h": 114.4081152,
@@ -483,14 +390,10 @@
       "q_eff": 9.0,
       "q_requested": 9,
       "ratio_sample_12bit": 2.348946661479696,
-      "ratio_segment_worker": 2.35,
-      "sample_bytes": 1324168.0,
-      "sdk_frame_bytes": 1343488.0,
-      "seconds": 0.5994356260000001
+      "sample_bytes": 1324168.0
     },
     {
       "alpha": 1.0,
-      "bits_per_site_sample": 3.9676080246913576,
       "block": -9.626061185712543e-05,
       "duv_edges": 0.014982922794725297,
       "gb_h": 88.8541056,
@@ -503,14 +406,10 @@
       "q_eff": 18.0,
       "q_requested": 18,
       "ratio_sample_12bit": 3.0244924794142864,
-      "ratio_segment_worker": 3.03,
-      "sample_bytes": 1028404.0,
-      "sdk_frame_bytes": 1048576.0,
-      "seconds": 0.5907253339999996
+      "sample_bytes": 1028404.0
     },
     {
       "alpha": 1.0,
-      "bits_per_site_sample": 3.7813117283950617,
       "block": -0.00010488890116280435,
       "duv_edges": 0.015049952527312376,
       "gb_h": 84.6820224,
@@ -523,14 +422,10 @@
       "q_eff": 20.0,
       "q_requested": 20,
       "ratio_sample_12bit": 3.1735019450543,
-      "ratio_segment_worker": 3.18,
-      "sample_bytes": 980116.0,
-      "sdk_frame_bytes": 999424.0,
-      "seconds": 0.5756852500000007
+      "sample_bytes": 980116.0
     },
     {
       "alpha": 1.0,
-      "bits_per_site_sample": 3.455956790123457,
       "block": -0.00012129708061635021,
       "duv_edges": 0.015177141085998932,
       "gb_h": 77.3957376,
@@ -543,102 +438,140 @@
       "q_eff": 24.0,
       "q_requested": 24,
       "ratio_sample_12bit": 3.4722656423892024,
-      "ratio_segment_worker": 3.48,
-      "sample_bytes": 895784.0,
-      "sdk_frame_bytes": 917504.0,
-      "seconds": 0.5635989999999999
+      "sample_bytes": 895784.0
     },
     {
       "alpha": 1.0,
-      "block": -9.626061185712543e-05,
-      "duv_edges": 0.014982922794725297,
       "gb_h": 88.8541056,
-      "grad": 1.0064655745219868,
-      "lap": 1.0140724205276326,
       "mode": "r3",
       "psnr": 42.5198604477935,
       "q_eff": 18.0,
       "ratio_requested": 3,
       "ratio_sample_12bit": 3.0244924794142864,
-      "ratio_segment_worker": 3.03,
-      "sample_bytes": 1028404.0,
-      "seconds": 1.088177583
+      "sample_bytes": 1028404.0
     },
     {
       "alpha": 1.0,
-      "block": -0.00012129708061635021,
-      "duv_edges": 0.015177141085998932,
       "gb_h": 77.3957376,
-      "grad": 1.0067493687451063,
-      "lap": 1.0157785199730671,
       "mode": "r5",
       "psnr": 42.431553321127566,
       "q_eff": 24.0,
       "ratio_requested": 5,
       "ratio_sample_12bit": 3.4722656423892024,
-      "ratio_segment_worker": 3.48,
-      "sample_bytes": 895784.0,
-      "seconds": 0.7709813340000001
+      "sample_bytes": 895784.0
     },
     {
       "alpha": 1.0,
-      "block": -0.00012129708061635021,
-      "duv_edges": 0.015177141085998932,
       "gb_h": 77.3957376,
-      "grad": 1.0067493687451063,
-      "lap": 1.0157785199730671,
       "mode": "r8",
       "psnr": 42.431553321127566,
       "q_eff": 24.0,
       "ratio_requested": 8,
       "ratio_sample_12bit": 3.4722656423892024,
-      "ratio_segment_worker": 3.48,
-      "sample_bytes": 895784.0,
-      "seconds": 0.7682687089999999
+      "sample_bytes": 895784.0
     },
     {
       "alpha": 1.0,
-      "block": -0.00012129708061635021,
-      "duv_edges": 0.015177141085998932,
       "gb_h": 77.3957376,
-      "grad": 1.0067493687451063,
-      "lap": 1.0157785199730671,
       "mode": "r12",
       "psnr": 42.431553321127566,
       "q_eff": 24.0,
       "ratio_requested": 12,
       "ratio_sample_12bit": 3.4722656423892024,
-      "ratio_segment_worker": 3.48,
-      "sample_bytes": 895784.0,
-      "seconds": 0.7674981250000005
+      "sample_bytes": 895784.0
     }
   ],
   "identities": [
     {
+      "analysis_sha256": "3775b15ef4aee6111fc76477e8ab2ed975c81651e8f7474bee113947d82e2d72",
       "brawdec_sha256": "a1423976a30c57dfefd537f148b69f0448ec946a6a6b67bad4a0d6af269d695d",
+      "camera_support": {
+        "pocket-og-cinemadng-experimental.json": "63a0358740bfc98a459769a68d5490345785d1cbba42aa7086c6fe192d62fb5c",
+        "pocket-og-cinemadng-iso.json": "5344084f2ab960c6595a9c886f94ac52ade86d07c6c6a14b190877980c29dee6"
+      },
+      "camera_support_sha256": "af462d803acd48d9c5228daa603e1ac49d5ba3b7d18c1d1ec69d8377a9019a77",
       "cdng_convert_sha256": "f265ea91d3b8765d3266572a3f7276d9b3bfd2ba1e5159ea1e092aebb66c3883",
-      "config_sha256": null,
-      "dataset": "/Users/isaac/Desktop/BMD",
-      "decoder": {
-        "brawdec_sha256": "a1423976a30c57dfefd537f148b69f0448ec946a6a6b67bad4a0d6af269d695d",
-        "camera_support": {
-          "pocket-og-cinemadng-experimental.json": "63a0358740bfc98a459769a68d5490345785d1cbba42aa7086c6fe192d62fb5c",
-          "pocket-og-cinemadng-iso.json": "5344084f2ab960c6595a9c886f94ac52ade86d07c6c6a14b190877980c29dee6"
-        },
-        "camera_support_dir": "/Library/Application Support/Blackmagic Design/Blackmagic RAW/Camera Support",
+      "dataset_path": "/Users/isaac/Desktop/BMD",
+      "decode_defaults": {
+        "camera_support": "/Library/Application Support/Blackmagic Design/Blackmagic RAW/Camera Support",
+        "color_science_gen": 5,
+        "exposure": 0,
         "framework": "/Applications/DaVinci Resolve/DaVinci Resolve.app/Contents/Frameworks/BlackmagicRawAPI.framework/BlackmagicRawAPI",
-        "framework_sha256": "3e235422fbf4b106c129730d1acef3abc6571f622550466ac26e7aad52f4c4d1"
+        "gamma": "Linear",
+        "gamut": "DCI-P3 D65",
+        "highlight_recovery": 0,
+        "iso": "as_shot",
+        "scale": "full",
+        "white_balance": "as_shot"
+      },
+      "decode_defaults_sha256": "afcc13c752c4c65f1b38e98c34299c9a6c96efe72a3f0d2c2bbec95a6c351b7b",
+      "encode_nonexperimental": {
+        "noise_synthesis": false,
+        "nr_chroma": 0,
+        "nr_luma": 0,
+        "workers": 2
+      },
+      "encode_nonexperimental_sha256": "73aaa5dfb6b57c103379b616bdda69524265bba7cfa713e9816271190ef6d8ed",
+      "framework_sha256": "3e235422fbf4b106c129730d1acef3abc6571f622550466ac26e7aad52f4c4d1",
+      "manifest_analysis": {
+        "alignment": {
+          "basis": "Correlaci\u00f3n del detalle (paso alto de log2 Y) entre el BRAW revelado y el EXR del DNG, medida en la serie A con los BRAW v2: 0.819\u20130.820 en el fotograma correcto, 0.637\u20130.657 en fotogramas vecinos, 0.42 con otra toma de la misma escena. 0.74 separa ambos grupos.",
+          "min_detail_correlation": 0.74,
+          "search": 8
+        },
+        "ceiling_margin": 0.9999,
+        "chroma_min_luminance": 0.005,
+        "edge_mask": {
+          "dilate": 1,
+          "min_luminance": 0.002,
+          "percentile": 90
+        },
+        "error_percentiles": [
+          50,
+          90,
+          95,
+          99,
+          99.9
+        ],
+        "luminance": "P3-D65",
+        "luminance_bins": [
+          0.0,
+          0.0025,
+          0.01,
+          0.04,
+          0.16,
+          0.64,
+          1000000000.0
+        ],
+        "neutral_mask": {
+          "max_duv": 0.01,
+          "min_luminance": 0.01
+        },
+        "normalize_to_iso": 200,
+        "psnr_peak": 1.0
+      },
+      "model": {
+        "cam/orig.braw": "dd877f066f3ea1a46e6465e8297c96a449b7efbe1608e5fd1327efc435f45392",
+        "noise_synthesis.json": "bd7cca6dd94aa025653d961f871a342d916930b66c00f3564d75ddda4a3e0479",
+        "nr_normals_6000x64.f32": "8311afccd9f4fef837fc8a0e7e50c467eee1fa967252f758d508246225bb9838",
+        "pocket_forward_gen4.bin": "5052afb67c2957371e2b8f36e9d2eae35608de11ab240dfca538cd8e37892b2e",
+        "pocket_inverse_gen4.bin": "c65f56b110e28ded884dd185e29ae9aca400c35622a65e3a34d6d643206ffb85",
+        "pocket_og_cinemadng_iso_camera_support.json": "5344084f2ab960c6595a9c886f94ac52ade86d07c6c6a14b190877980c29dee6",
+        "pocket_og_cinemadng_signal.json": "30cd14b01b6052cb187131779d49de3f27ccb02c97b6c764a1b3cba93910f5c2",
+        "quant_steps.json": "8ec720f6a7bfefbe1e3d0ef63f0f2bac31d6e72273fac930ee4f2c3025ee7f8b",
+        "raw_to_709.json": "7479af0cd41a4186391263c81ea3b8b29d1998f43060a32331063136d8683351",
+        "video_assist_input_transform.json": "f6cff6fcb3b5dbda17c00cb544ee9e73b420256dee3b840fc7bc1f6a5b057ffe",
+        "vlc-table.json": "517c6828ab3d4e1355ac1bca9469982d137b1eaadc395fedf2416d1002445762"
       },
       "model_sha256": "a788d9b62a0cdad75319acca96f741ebc967f20a1b7bf503bd336d0a875b7873",
-      "references": "/Users/isaac/Desktop/EXR"
+      "references_path": "/Users/isaac/Desktop/EXR",
+      "rois": {
+        "chart_wall": "c7754756ee8dd5dcf3df74e42be811d44653ad0fa373f3f9cf576122731ab445"
+      },
+      "rois_sha256": "d43ffc5d7cf7d3b2604205ef02cc1c58188139cc07e7117a64b9129e9de96bc3"
     }
   ],
-  "q_eff_notes": {
-    "definition": "q del fotograma en bitstream (hdr[1]), no (q_min+q_max)/2",
-    "q0_requested_effective": "En A04, q_requested=0 y q_requested=1 producen q_frame=1 id\u00e9ntico (CodecRangeError/encodeFixed); f32 SHA iguales",
-    "storage_basis": "sample_bytes (bmdf+chunk) para GB/h y ratio_sample_12bit; payload_bytes=suma slices; container_bytes=archivo; sdk_frame_bytes=compresi\u00f3n del runner"
-  },
-  "review_fix": "EXP-002-code-review",
+  "review_fix": "EXP-002-final-review",
   "storage_1080p24": [
     {
       "alpha": null,

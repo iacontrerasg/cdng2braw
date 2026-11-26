@@ -12,9 +12,14 @@ PHOTOSITES_1080P = 1920 * 1080
 RAW_BYTES_12BIT = PHOTOSITES_1080P * 12 / 8
 QMAX = 24
 
-# Variables experimentales autorizadas en EXP-002 (además de PRECOMP/ALPHA/BOUNDED/RATE).
+# Variables experimentales autorizadas en EXP-002.
 AUTHORIZED_EXP_ENV = frozenset({
     'CDNG_OG_DEBLOCK_PRECOMP', 'CDNG_OG_DEBLOCK_ALPHA', 'CDNG_OG_DEBLOCK_BOUNDED', 'CDNG_RATE',
+})
+
+# Campos de encode (request o config.encode) que pueden diferir entre puntos RD.
+AUTHORIZED_ENCODE_DIFF_KEYS = frozenset({
+    'q', 'ratio', 'compression', 'rate_search', 'experimental_env', 'notes',
 })
 
 
@@ -23,8 +28,10 @@ class RdError(RuntimeError):
 
 
 def load_run(path):
-    metrics = json.load(open(os.path.join(path, 'metrics.json'), encoding='utf-8'))
-    run = json.load(open(os.path.join(path, 'run.json'), encoding='utf-8'))
+    with open(os.path.join(path, 'metrics.json'), encoding='utf-8') as f:
+        metrics = json.load(f)
+    with open(os.path.join(path, 'run.json'), encoding='utf-8') as f:
+        run = json.load(f)
     return {'dir': os.path.abspath(path), 'metrics': metrics, 'run': run,
             'id': os.path.basename(os.path.abspath(path))}
 
@@ -33,7 +40,6 @@ def parse_exp002_id(run_id):
     """Etiqueta del nombre de corrida (solo etiqueta; la identidad real viene de run/metrics).
 
     Reconoce …-a1- / …-a050- / …-a075- / …-a0- / …-bd- (bounded, no «abd»).
-    Expone claves legacy (alpha/q/ratio/mode/tag) y *_label.
     """
     out = {'id': run_id, 'alpha_label': None, 'q_label': None, 'ratio_label': None,
            'mode_label': None, 'tag_label': None}
@@ -57,7 +63,6 @@ def parse_exp002_id(run_id):
     if m:
         out['ratio_label'] = int(m.group(1))
         out['mode_label'] = 'ratio'
-    # Alias legacy usados por tests / consumidores previos
     out['alpha'] = out['alpha_label']
     out['q'] = out['q_label']
     out['ratio'] = out['ratio_label']
@@ -83,7 +88,15 @@ def alpha_from_env(env):
     return a, ('control' if abs(a - 1.0) < 1e-12 else 'proportional'), False
 
 
-def config_from_result(result):
+def test_id_of(result, result_key=None):
+    if result.get('test'):
+        return result['test']
+    if result_key and '_f' in result_key:
+        return result_key.split('_f', 1)[0]
+    return None
+
+
+def config_from_result(result, result_key=None):
     """Configuración efectiva de un resultado (setup + compression)."""
     setup = result.get('setup') or {}
     enc = setup.get('encode') or {}
@@ -95,7 +108,9 @@ def config_from_result(result):
     ratio_req = req.get('ratio') if mode == 'ratio' else None
     unauthorized = sorted(k for k, v in env.items()
                           if k.startswith('CDNG_') and k not in AUTHORIZED_EXP_ENV and v is not None)
+    ref = setup.get('reference') or {}
     return {
+        'test': test_id_of(result, result_key),
         'mode': mode,
         'q_requested': q_req,
         'ratio_requested': ratio_req,
@@ -111,91 +126,258 @@ def config_from_result(result):
         'iso': setup.get('iso'),
         'inputs': setup.get('inputs'),
         'range': setup.get('range'),
-        'frame': result.get('frame'),
+        'frame': result.get('frame') if result.get('frame') is not None else setup.get('frame'),
         'clip': setup.get('clip'),
-        'reference': setup.get('reference'),
+        'reference': ref,
+        'reference_sha256': ref.get('sha256') if isinstance(ref, dict) else None,
         'dng_sha256': setup.get('dng_sha256'),
+        'encode_request': req,
         'unauthorized_env': unauthorized,
     }
 
 
+def encode_nonexperimental(req):
+    """Opciones de codificación que deben coincidir fuera del eje q/ratio."""
+    req = req or {}
+    return {k: v for k, v in sorted(req.items()) if k not in AUTHORIZED_ENCODE_DIFF_KEYS}
+
+
+def _require(run_id, name, value, *, empty_ok=False):
+    if value is None or (not empty_ok and value == {}) or value == '':
+        raise RdError('%s: falta identidad crítica «%s»' % (run_id, name))
+    return value
+
+
 def run_identity(run):
-    """Identidad de corrida: worker, SDK, perfiles, dataset."""
+    """Identidad completa de corrida: worker, modelo, SDK, perfiles, análisis, ROI."""
+    rid = run['id']
     r = run['run']
-    conv = r.get('converter') or {}
-    dec = r.get('decoder') or {}
+    conv = _require(rid, 'converter', r.get('converter'))
+    dec = _require(rid, 'decoder', r.get('decoder'))
+    cfg = _require(rid, 'config', r.get('config') if isinstance(r.get('config'), dict) else None)
+    model = _require(rid, 'converter.model', conv.get('model'))
+    cam = _require(rid, 'decoder.camera_support', dec.get('camera_support'))
+    analysis = _require(rid, 'config.manifest_analysis', cfg.get('manifest_analysis'))
+    rois = cfg.get('rois')
+    if rois is None:
+        raise RdError('%s: falta identidad crítica «config.rois»' % rid)
+    decode_defaults = _require(rid, 'config.decode', cfg.get('decode'))
+    encode_cfg = _require(rid, 'config.encode', cfg.get('encode'))
     return {
-        'cdng_convert_sha256': conv.get('cdng_convert_sha256'),
-        'model_sha256': identity.sha256_json(conv.get('model')) if conv.get('model') is not None else None,
-        'brawdec_sha256': (dec.get('brawdec_sha256') if isinstance(dec, dict) else None) or (
-            (r.get('build') or {}).get('decoder_sha256')),
-        'decoder': dec,
-        'dataset': r.get('dataset'),
-        'references': r.get('references'),
-        'config_sha256': (r.get('config') if isinstance(r.get('config'), str) else None) or r.get('config_sha256'),
+        'cdng_convert_sha256': _require(rid, 'cdng_convert_sha256', conv.get('cdng_convert_sha256')),
+        'model': model,
+        'model_sha256': identity.sha256_json(model),
+        'brawdec_sha256': _require(rid, 'brawdec_sha256', dec.get('brawdec_sha256')),
+        'framework_sha256': _require(rid, 'framework_sha256', dec.get('framework_sha256')),
+        'camera_support': cam,
+        'camera_support_sha256': identity.sha256_json(cam),
+        'manifest_analysis': analysis,
+        'analysis_sha256': identity.sha256_json(analysis),
+        'rois': rois,
+        'rois_sha256': identity.sha256_json(rois),
+        'decode_defaults': decode_defaults,
+        'decode_defaults_sha256': identity.sha256_json(decode_defaults),
+        'encode_nonexperimental': encode_nonexperimental(encode_cfg),
+        'encode_nonexperimental_sha256': identity.sha256_json(encode_nonexperimental(encode_cfg)),
+        # Rutas de dataset/referencias NO son identidad de contenido; se exponen solo informativas.
+        'dataset_path': r.get('dataset'),
+        'references_path': r.get('references'),
     }
 
 
 def cache_root_for(run):
-    """Raíz de caché: hermano de runs/ bajo out/benchmark."""
-    # run['dir'] = .../out/benchmark/runs/<id>
     return os.path.abspath(os.path.join(run['dir'], os.pardir, os.pardir, 'cache'))
 
 
-def braw_path_for_result(run, result):
-    """Localiza clip.braw de caché alineado con el tramo del resultado."""
-    timing = (run['run'].get('timing') or {}).get('conversions') or []
-    braw_entries = [c for c in (run['run'].get('cache') or []) if c.get('kind') == 'braw']
-    if len(timing) != len(braw_entries):
-        # Emparejar por orden de aparición en el tramo [start,count]
-        pass
-    rng = (result.get('setup') or {}).get('range')
+def conversion_material_from_result(run, result):
+    """Reconstruye el material de caché BRAW a partir de metadatos del resultado (corridas históricas)."""
+    setup = result.get('setup') or {}
+    enc = setup.get('encode') or {}
+    conv = (run['run'].get('converter') or {})
+    clip = setup.get('clip')
+    rng = setup.get('range')
+    inputs = setup.get('inputs')
+    req = enc.get('request')
+    env = enc.get('experimental_env')
+    if not clip:
+        raise RdError('%s: setup.clip ausente' % run['id'])
     if not rng or len(rng) != 2:
         raise RdError('%s: setup.range ausente' % run['id'])
-    start, count = int(rng[0]), int(rng[1])
-    idx = None
+    if not inputs:
+        raise RdError('%s: setup.inputs ausente' % run['id'])
+    if req is None:
+        raise RdError('%s: encode.request ausente' % run['id'])
+    if env is None:
+        raise RdError('%s: experimental_env ausente' % run['id'])
+    if not conv.get('cdng_convert_sha256') or conv.get('model') is None:
+        raise RdError('%s: converter incompleto para material BRAW' % run['id'])
+    return {
+        'kind': 'braw', 'info_schema': 2,
+        'converter': {'cdng_convert_sha256': conv['cdng_convert_sha256'], 'model': conv['model']},
+        'clip': clip,
+        'first_frame': int(rng[0]),
+        'inputs': inputs,
+        'request': req,
+        'experimental_env': env,
+    }
+
+
+def expected_conversion_key(run, result):
+    return identity.sha256_json(conversion_material_from_result(run, result))
+
+
+def frame_local_index(result):
+    setup = result.get('setup') or {}
+    rng = setup.get('range')
+    frame = result.get('frame') if result.get('frame') is not None else setup.get('frame')
+    if not rng or len(rng) != 2 or frame is None:
+        raise RdError('range/frame ausentes para índice local')
+    local = int(frame) - int(rng[0])
+    count = int(rng[1])
+    if local < 0 or local >= count:
+        raise RdError('índice local %d fuera de range %s' % (local, rng))
+    return local
+
+
+def binding_spec(run, result, result_key=None):
+    """Identificación explícita resultado ↔ conversión ↔ fotograma."""
+    setup = result.get('setup') or {}
+    test = test_id_of(result, result_key)
+    if not test:
+        raise RdError('%s: test ID ausente' % run['id'])
+    clip = setup.get('clip')
+    rng = setup.get('range')
+    if not clip or not rng:
+        raise RdError('%s/%s: clip o range ausente' % (run['id'], test))
+    key = expected_conversion_key(run, result)
+    local = frame_local_index(result)
+    return {
+        'test': test,
+        'clip': clip,
+        'range': [int(rng[0]), int(rng[1])],
+        'conversion_key': key,
+        'frame': int(result.get('frame') if result.get('frame') is not None else setup.get('frame')),
+        'local_index': local,
+        'inputs_sha256': identity.sha256_json(setup.get('inputs')),
+        'dng_sha256': setup.get('dng_sha256'),
+        'reference_sha256': ((setup.get('reference') or {}).get('sha256')
+                             if isinstance(setup.get('reference'), dict) else None),
+    }
+
+
+def _timing_matches(run, spec):
+    """Candidatos de timing con el mismo test+range (sin elegir el primero a ciegas)."""
+    timing = (run['run'].get('timing') or {}).get('conversions') or []
+    hits = []
     for i, t in enumerate(timing):
         tr = t.get('range')
-        if tr and int(tr[0]) == start and int(tr[1]) == count:
-            idx = i
-            break
-    if idx is None:
-        # fallback: mismo orden que entradas braw filtrando por test
-        test_id = (result.get('test') or (result.get('result') or '').split('_')[0])
-        cand = [i for i, t in enumerate(timing) if t.get('test') == test_id]
-        if len(cand) == 1:
-            idx = cand[0]
-        elif len(braw_entries) == len(timing) and cand:
-            # primer tramo del test que coincida con range
-            for i in cand:
-                tr = timing[i].get('range')
-                if tr and int(tr[0]) == start:
-                    idx = i
-                    break
-    if idx is None or idx >= len(braw_entries):
-        raise RdError('%s: no hay entrada de caché BRAW para range %s' % (run['id'], rng))
-    key = braw_entries[idx]['key']
-    path = os.path.join(cache_root_for(run), 'braw', key[:24], 'clip.braw')
+        if (t.get('test') == spec['test'] and tr and len(tr) == 2 and
+                int(tr[0]) == spec['range'][0] and int(tr[1]) == spec['range'][1]):
+            hits.append((i, t))
+    return hits
+
+
+def resolve_braw_binding(run, result, result_key=None, *, verify_file_sha=True):
+    """Asociación inequívoca resultado → BRAW de caché.
+
+    Primario: conversion_key reconstruido desde metadatos (clip, inputs SHA, request, env, worker).
+    Histórico: si el key no está en cache[], exige coincidencia única test+range en timing
+    alineada 1:1 con entradas braw; múltiples candidatos → error (nunca el primero arbitrario).
+    """
+    spec = binding_spec(run, result, result_key)
+    key = spec['conversion_key']
+    braw_entries = [c for c in (run['run'].get('cache') or []) if c.get('kind') == 'braw']
+    key_hits = [c for c in braw_entries if c.get('key') == key]
+
+    recovery = 'conversion_key'
+    if len(key_hits) > 1:
+        raise RdError('%s/%s: múltiples entradas de caché con conversion_key %s' % (
+            run['id'], spec['test'], key[:12]))
+    if len(key_hits) == 1:
+        entry = key_hits[0]
+    else:
+        # Recuperación histórica inequívoca vía timing test+range
+        recovery = 'timing_test_range'
+        timing_hits = _timing_matches(run, spec)
+        if not timing_hits:
+            raise RdError('%s/%s: sin conversion_key %s en caché ni timing (test=%s range=%s)' % (
+                run['id'], spec['test'], key[:12], spec['test'], spec['range']))
+        if len(timing_hits) > 1:
+            raise RdError('%s/%s: timing ambiguo: %d conversiones con test=%s range=%s' % (
+                run['id'], spec['test'], len(timing_hits), spec['test'], spec['range']))
+        timing = (run['run'].get('timing') or {}).get('conversions') or []
+        if len(timing) != len(braw_entries):
+            raise RdError('%s/%s: no se puede alinear timing (%d) con braw cache (%d)' % (
+                run['id'], spec['test'], len(timing), len(braw_entries)))
+        idx = timing_hits[0][0]
+        entry = braw_entries[idx]
+        if entry.get('key') != key:
+            # El material reconstruido no coincide con la entrada alineada → no adivinar
+            raise RdError(
+                '%s/%s: conversion_key reconstruido %s ≠ caché alineada %s '
+                '(test+range únicos pero material inconsistente)' % (
+                    run['id'], spec['test'], key[:12], (entry.get('key') or '')[:12]))
+
+    path = os.path.join(cache_root_for(run), 'braw', entry['key'][:24], 'clip.braw')
     if not os.path.isfile(path):
-        raise RdError('%s: falta BRAW de caché %s' % (run['id'], path))
-    return path, key
+        raise RdError('%s/%s: falta BRAW %s' % (run['id'], spec['test'], path))
+
+    identity_path = os.path.join(os.path.dirname(path), 'identity.json')
+    if not os.path.isfile(identity_path):
+        raise RdError('%s/%s: falta identity.json del BRAW' % (run['id'], spec['test']))
+    with open(identity_path, encoding='utf-8') as f:
+        saved = json.load(f)
+    material = conversion_material_from_result(run, result)
+    if saved.get('material') != material:
+        raise RdError('%s/%s: identity.json.material ≠ material reconstruido' % (run['id'], spec['test']))
+    expected_sha = saved.get('sha256')
+    if not expected_sha:
+        raise RdError('%s/%s: identity.json sin sha256 del BRAW' % (run['id'], spec['test']))
+    if verify_file_sha:
+        got = identity.sha256_file(path)
+        if got != expected_sha:
+            raise RdError('%s/%s: SHA BRAW %s ≠ identity %s' % (
+                run['id'], spec['test'], got[:12], expected_sha[:12]))
+    # Timing debe ser único para este test+range (aunque ya hayamos resuelto por key)
+    timing_hits = _timing_matches(run, spec)
+    if len(timing_hits) > 1:
+        raise RdError('%s/%s: timing ambiguo pese a conversion_key' % (run['id'], spec['test']))
+
+    return {
+        **spec,
+        'braw_path': path,
+        'braw_cache_key': entry['key'],
+        'braw_sha256': expected_sha,
+        'recovery': recovery,
+    }
 
 
-def bitstream_frame(run, result):
-    """q y tamaños del fotograma evaluado desde el bitstream."""
-    path, key = braw_path_for_result(run, result)
-    payloads = braw_inspect.frame_payloads(path)
-    start, count = result['setup']['range']
-    local = int(result['frame']) - int(start)
+def braw_path_for_result(run, result, result_key=None):
+    """Compat: (path, conversion_key) inequívoco."""
+    bind = resolve_braw_binding(run, result, result_key)
+    return bind['braw_path'], bind['braw_cache_key']
+
+
+def bitstream_frame(run, result, result_key=None, *, verify_file_sha=True):
+    """q y tamaños del fotograma evaluado desde el bitstream (tras verificar identidad BRAW)."""
+    bind = resolve_braw_binding(run, result, result_key, verify_file_sha=verify_file_sha)
+    payloads = braw_inspect.frame_payloads(bind['braw_path'])
+    local = bind['local_index']
     if local < 0 or local >= len(payloads):
         raise RdError('%s: índice local %d fuera de %d samples' % (run['id'], local, len(payloads)))
     f = payloads[local]
     payload_bytes = sum(f['slice_bytes'])
-    container_bytes = os.path.getsize(path)
+    container_bytes = os.path.getsize(bind['braw_path'])
     qs = [p['q'] for p in payloads]
     return {
-        'braw_path': path,
-        'braw_cache_key': key,
+        'braw_path': bind['braw_path'],
+        'braw_cache_key': bind['braw_cache_key'],
+        'braw_sha256': bind['braw_sha256'],
+        'conversion_key': bind['conversion_key'],
+        'test': bind['test'],
+        'clip': bind['clip'],
+        'range': bind['range'],
+        'local_index': local,
         'q_frame': int(f['q']),
         'sample_bytes': int(f['sample_size']),
         'chunk_bytes': int(f['chunk_size']),
@@ -207,6 +389,7 @@ def bitstream_frame(run, result):
         'segment_q_min': min(qs),
         'segment_q_max': max(qs),
         'segment_q_mean': sum(qs) / float(len(qs)),
+        'recovery': bind['recovery'],
     }
 
 
@@ -237,7 +420,7 @@ def label_matches_config(label, cfg):
     return errors
 
 
-def frame_row(run, key, result, *, require_bitstream=True):
+def frame_row(run, key, result, *, require_bitstream=True, verify_file_sha=True):
     rf = result.get('reference_fidelity') or {}
     n = rf.get('normalized') or {}
     raw_m = rf.get('raw') or {}
@@ -246,7 +429,7 @@ def frame_row(run, key, result, *, require_bitstream=True):
     neut = rf.get('neutral') or {}
     eb = rf.get('experimental_block') or {}
     comp = result.get('compression') or {}
-    cfg = config_from_result(result)
+    cfg = config_from_result(result, key)
     label = parse_exp002_id(run['id'])
     mismatch = label_matches_config(label, cfg)
     if cfg['unauthorized_env']:
@@ -254,45 +437,45 @@ def frame_row(run, key, result, *, require_bitstream=True):
 
     bs = None
     if require_bitstream:
-        bs = bitstream_frame(run, result)
+        bs = bitstream_frame(run, result, key, verify_file_sha=verify_file_sha)
         q_frame = bs['q_frame']
         sample_bytes = bs['sample_bytes']
         payload_bytes = bs['payload_bytes']
         container_bytes = bs['container_bytes']
         q_seg_min, q_seg_max, q_seg_mean = bs['segment_q_min'], bs['segment_q_max'], bs['segment_q_mean']
+        braw_sha = bs['braw_sha256']
+        conversion_key = bs['conversion_key']
+        local_index = bs['local_index']
     else:
         q_frame = comp.get('q_min') if comp.get('q_min') == comp.get('q_max') else None
         sample_bytes = payload_bytes = container_bytes = None
         q_seg_min = comp.get('q_min')
         q_seg_max = comp.get('q_max')
         q_seg_mean = None
+        braw_sha = conversion_key = local_index = None
 
     q_req = cfg['q_requested']
     q_bumped = (q_req is not None and q_frame is not None and q_frame != q_req)
     q_saturated = (q_frame == QMAX) if q_frame is not None else False
-    # Fallback CodecRangeError: calidad fija y q efectivo > solicitado
     codec_range_fallback = bool(q_req is not None and q_frame is not None and q_frame > q_req)
 
     sdk_frame_bytes = comp.get('frame_bytes')
-    # Ratios con denominador 12-bit raw explícito; no mezclar con braw_ratio_achieved del worker (tramo).
     ratio_sample = (RAW_BYTES_12BIT / sample_bytes) if sample_bytes else None
     ratio_payload = (RAW_BYTES_12BIT / payload_bytes) if payload_bytes else None
     ratio_sdk = (RAW_BYTES_12BIT / sdk_frame_bytes) if sdk_frame_bytes else None
     bits_per_site_sample = (8.0 * sample_bytes / PHOTOSITES_1080P) if sample_bytes else None
     bits_per_site_payload = (8.0 * payload_bytes / PHOTOSITES_1080P) if payload_bytes else None
-
-    # Almacenamiento: usar sample_bytes (contenido por fotograma en el contenedor) de forma consistente.
     store_bytes = sample_bytes if sample_bytes is not None else sdk_frame_bytes
 
     return {
-        'run': run['id'], 'result': key, 'frame': result.get('frame'),
+        'run': run['id'], 'result': key, 'test': cfg['test'], 'frame': cfg['frame'],
+        'clip': cfg['clip'], 'range': cfg['range'],
+        'conversion_key': conversion_key, 'braw_sha256': braw_sha, 'local_index': local_index,
         'label_mismatch': mismatch,
         'mode': cfg['mode'], 'alpha': cfg['alpha'], 'tag': cfg['tag'], 'bounded': cfg['bounded'],
         'q_requested': q_req, 'ratio_requested': cfg['ratio_requested'],
         'q_frame': q_frame, 'q_segment_min': q_seg_min, 'q_segment_max': q_seg_max,
-        'q_segment_mean': q_seg_mean,
-        # q_eff = q del fotograma evaluado (bitstream), no (q_min+q_max)/2
-        'q_eff': q_frame,
+        'q_segment_mean': q_seg_mean, 'q_eff': q_frame,
         'q_bumped': q_bumped, 'q_saturated_qmax': q_saturated,
         'codec_range_fallback': codec_range_fallback,
         'psnr': n.get('psnr_db'), 'rmse': n.get('rmse'),
@@ -311,7 +494,6 @@ def frame_row(run, key, result, *, require_bitstream=True):
         'ratio_segment_worker': comp.get('braw_ratio_achieved'),
         'bits_per_site_sample': bits_per_site_sample,
         'bits_per_site_payload': bits_per_site_payload,
-        # Alias de curvas: bits/ratio/almacenamiento sobre sample (consistente)
         'bits_per_site': bits_per_site_sample,
         'frame_bytes': store_bytes,
         'frame_ratio': ratio_sample,
@@ -319,13 +501,15 @@ def frame_row(run, key, result, *, require_bitstream=True):
         'gb_h_24fps': (store_bytes * 24 * 3600 / 1e9) if store_bytes else None,
         'iso': cfg['iso'],
         'inputs_sha': identity.sha256_json(cfg['inputs']) if cfg.get('inputs') is not None else None,
+        'reference_sha256': cfg.get('reference_sha256'),
+        'dng_sha256': cfg.get('dng_sha256'),
         'decode': cfg['decode'],
         'candidate_sha256': result.get('candidate_sha256'),
         'worker_sha': (run['run'].get('converter') or {}).get('cdng_convert_sha256'),
     }
 
 
-def collect(runs, *, require_bitstream=True, require_label_match=True):
+def collect(runs, *, require_bitstream=True, require_label_match=True, verify_file_sha=True):
     rows = []
     identities = []
     for run in runs:
@@ -334,7 +518,8 @@ def collect(runs, *, require_bitstream=True, require_label_match=True):
         seconds = (run['run'].get('timing') or {}).get('total_seconds')
         fresh = [c for c in (run['run'].get('timing') or {}).get('conversions', []) if not c.get('reused')]
         for key, result in sorted(run['metrics'].get('results', {}).items()):
-            row = frame_row(run, key, result, require_bitstream=require_bitstream)
+            row = frame_row(run, key, result, require_bitstream=require_bitstream,
+                            verify_file_sha=verify_file_sha)
             if require_label_match and row['label_mismatch']:
                 raise RdError('%s / %s: etiqueta incompatible: %s' % (run['id'], key, '; '.join(row['label_mismatch'])))
             row['run_seconds'] = seconds
@@ -343,66 +528,84 @@ def collect(runs, *, require_bitstream=True, require_label_match=True):
     return rows, identities
 
 
+COMPARABLE_KEYS = (
+    'cdng_convert_sha256', 'model_sha256', 'brawdec_sha256', 'framework_sha256',
+    'camera_support_sha256', 'analysis_sha256', 'rois_sha256',
+    'decode_defaults_sha256', 'encode_nonexperimental_sha256',
+)
+
+
 def assert_comparable_runs(runs):
-    """Misma compilación/SDK/dataset/referencias entre corridas del informe."""
+    """Misma identidad de binarios/análisis/ROI/encode fijo; ausencia = error."""
     if not runs:
         return
     base = run_identity(runs[0])
     for run in runs[1:]:
         cur = run_identity(run)
-        for k in ('cdng_convert_sha256', 'dataset', 'references'):
-            if base.get(k) and cur.get(k) and base[k] != cur[k]:
-                raise RdError('identidad incompatible en %s: %s %s ≠ %s' % (run['id'], k, base[k], cur[k]))
+        for k in COMPARABLE_KEYS:
+            if base[k] != cur[k]:
+                raise RdError('identidad incompatible en %s: %s distinto' % (run['id'], k))
 
 
 def coverage_report(rows, expected_q=None, expected_alphas=None, expected_frames=None,
-                    expected_ratios=None):
-    """Corridas/fotogramas faltantes o duplicados.
+                    expected_ratios=None, expected_test_frames=None):
+    """Cobertura por (test_id, frame), no solo número de frame.
 
-    Si expected_q/expected_alphas son None, no se exigen celdas ausentes (solo duplicados
-    y fallbacks q0); el llamador del barrido completo A04 debe pasar expected_q=range(25).
+    expected_test_frames: lista de (test, frame). Si no se pasa, se deduce de las filas.
+    expected_frames (legacy): números de frame; se combina con tests observados.
     """
     seen_q = defaultdict(list)
     seen_r = defaultdict(list)
     for r in rows:
+        tf = (r.get('test'), r.get('frame'))
         if r.get('mode') == 'quality':
-            seen_q[(r.get('alpha'), r.get('q_requested'), r.get('frame'))].append(r['run'])
+            seen_q[(r.get('alpha'), r.get('q_requested'), tf)].append(r['run'])
         elif r.get('mode') == 'ratio':
-            seen_r[(r.get('alpha'), r.get('ratio_requested'), r.get('frame'))].append(r['run'])
+            seen_r[(r.get('alpha'), r.get('ratio_requested'), tf)].append(r['run'])
+
+    if expected_test_frames is not None:
+        test_frames = [(t, int(f)) for t, f in expected_test_frames]
+    elif expected_frames is not None:
+        tests = sorted({r.get('test') for r in rows if r.get('test')})
+        test_frames = [(t, int(f)) for t in tests for f in expected_frames]
+    else:
+        test_frames = sorted({(r.get('test'), r.get('frame')) for r in rows
+                              if r.get('test') is not None and r.get('frame') is not None})
+
     missing, dupes = [], []
-    frames = expected_frames or sorted({r['frame'] for r in rows if r.get('frame') is not None})
     if expected_q is not None:
         alphas = expected_alphas if expected_alphas is not None else [1.0, 0.5, 0.75]
         for a in alphas:
             for q in expected_q:
-                for fr in frames:
-                    k = (a, q, fr)
+                for tf in test_frames:
+                    k = (a, q, tf)
                     if k not in seen_q:
-                        missing.append({'alpha': a, 'q': q, 'frame': fr, 'mode': 'quality'})
+                        missing.append({'alpha': a, 'q': q, 'test': tf[0], 'frame': tf[1], 'mode': 'quality'})
                     elif len(seen_q[k]) > 1:
-                        dupes.append({'alpha': a, 'q': q, 'frame': fr, 'runs': seen_q[k]})
+                        dupes.append({'alpha': a, 'q': q, 'test': tf[0], 'frame': tf[1], 'runs': seen_q[k]})
     else:
         for k, runs in seen_q.items():
             if len(runs) > 1:
-                dupes.append({'alpha': k[0], 'q': k[1], 'frame': k[2], 'runs': runs})
+                dupes.append({'alpha': k[0], 'q': k[1], 'test': k[2][0], 'frame': k[2][1], 'runs': runs})
     if expected_ratios is not None:
         alphas = expected_alphas if expected_alphas is not None else [1.0, 0.5, 0.75]
         for a in alphas:
             for ratio in expected_ratios:
-                for fr in frames:
-                    k = (a, ratio, fr)
+                for tf in test_frames:
+                    k = (a, ratio, tf)
                     if k not in seen_r:
-                        missing.append({'alpha': a, 'ratio': ratio, 'frame': fr, 'mode': 'ratio'})
+                        missing.append({'alpha': a, 'ratio': ratio, 'test': tf[0], 'frame': tf[1], 'mode': 'ratio'})
                     elif len(seen_r[k]) > 1:
-                        dupes.append({'alpha': a, 'ratio': ratio, 'frame': fr, 'runs': seen_r[k]})
+                        dupes.append({'alpha': a, 'ratio': ratio, 'test': tf[0], 'frame': tf[1],
+                                      'runs': seen_r[k]})
     q0_bumps = [r for r in rows if r.get('q_requested') == 0 and r.get('codec_range_fallback')]
     return {'missing': missing, 'duplicates': dupes, 'q0_codec_range_fallbacks': [
-        {'run': r['run'], 'frame': r['frame'], 'q_frame': r['q_frame']} for r in q0_bumps
+        {'run': r['run'], 'test': r.get('test'), 'frame': r['frame'], 'q_frame': r['q_frame']}
+        for r in q0_bumps
     ]}
 
 
 def _normalize_row_keys(r):
-    """Acepta filas legacy (q/ratio) y nuevas (q_requested/…)."""
     r = dict(r)
     if r.get('q_requested') is None and r.get('q') is not None:
         r['q_requested'] = r['q']
@@ -432,7 +635,6 @@ def aggregate(rows, keys=('alpha', 'q_requested', 'ratio_requested', 'mode', 'ta
             return sum(vals) / len(vals) if vals else None
 
         item = dict(zip(keys, k))
-        # Alias legacy para curvas
         item['q'] = item.get('q_requested')
         item['ratio'] = item.get('ratio_requested')
         for f in ('psnr', 'rmse', 'psnr_raw', 'rmse_raw', 'duv_edges', 'duv_neutral', 'grad', 'lap', 'block_bmi',
@@ -463,17 +665,30 @@ def write_csv(path, rows):
             w.writerow(flat)
 
 
-def _svg_polyline(points, width, height, pad, color, x_key, y_key):
-    xs = [p[x_key] for p in points if p.get(x_key) is not None and p.get(y_key) is not None]
-    ys = [p[y_key] for p in points if p.get(x_key) is not None and p.get(y_key) is not None]
-    if len(xs) < 1:
-        return '<p>sin datos</p>', None
+def _series_bounds(series_list, x_key, y_key):
+    xs, ys = [], []
+    for pts in series_list:
+        for p in pts:
+            if p.get(x_key) is not None and p.get(y_key) is not None:
+                xs.append(p[x_key])
+                ys.append(p[y_key])
+    if not xs:
+        return None
     xmin, xmax = min(xs), max(xs)
     ymin, ymax = min(ys), max(ys)
     if xmax == xmin:
         xmax = xmin + 1
     if ymax == ymin:
         ymax = ymin + 1e-9
+    return xmin, xmax, ymin, ymax
+
+
+def _svg_overlay(series, width, height, pad, x_key, y_key, colors):
+    """Una gráfica con varias series (α) en la misma escala."""
+    bounds = _series_bounds([pts for _, pts in series], x_key, y_key)
+    if bounds is None:
+        return '<p>sin datos</p>'
+    xmin, xmax, ymin, ymax = bounds
 
     def sx(x):
         return pad + (x - xmin) / (xmax - xmin) * (width - 2 * pad)
@@ -481,24 +696,36 @@ def _svg_polyline(points, width, height, pad, color, x_key, y_key):
     def sy(y):
         return height - pad - (y - ymin) / (ymax - ymin) * (height - 2 * pad)
 
-    pts = ' '.join('%.1f,%.1f' % (sx(x), sy(y)) for x, y in zip(xs, ys))
-    circles = ''.join('<circle cx="%.1f" cy="%.1f" r="2.5" fill="%s"/>' % (sx(x), sy(y), color)
-                      for x, y in zip(xs, ys))
-    svg = (
+    parts = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">'
-        '<rect width="%d" height="%d" fill="#1a1a1a"/>'
-        '<polyline fill="none" stroke="%s" stroke-width="2" points="%s"/>%s'
+        '<rect width="%d" height="%d" fill="#1a1a1a"/>' % (width, height, width, height, width, height)
+    ]
+    legend_y = 14
+    for label, pts in series:
+        color = colors.get(label, '#ffffff')
+        valid = [(p[x_key], p[y_key]) for p in pts
+                 if p.get(x_key) is not None and p.get(y_key) is not None]
+        if not valid:
+            continue
+        pts_s = ' '.join('%.1f,%.1f' % (sx(x), sy(y)) for x, y in valid)
+        parts.append('<polyline fill="none" stroke="%s" stroke-width="2" points="%s"/>' % (color, pts_s))
+        parts.append(''.join(
+            '<circle cx="%.1f" cy="%.1f" r="2.5" fill="%s"/>' % (sx(x), sy(y), color) for x, y in valid))
+        parts.append(
+            '<text x="%d" y="%d" fill="%s" font-size="11">α=%s</text>' % (
+                width - pad - 70, legend_y, color, label))
+        legend_y += 14
+    parts.append(
         '<text x="%d" y="%d" fill="#aaa" font-size="11">%.3g</text>'
         '<text x="%d" y="%d" fill="#aaa" font-size="11">%.3g</text>'
         '<text x="%d" y="%d" fill="#aaa" font-size="11">%.3g</text>'
         '<text x="%d" y="%d" fill="#aaa" font-size="11">%.3g</text>'
         '</svg>' % (
-            width, height, width, height, width, height, color, pts, circles,
             pad, height - 4, xmin, width - pad - 40, height - 4, xmax,
             4, pad + 4, ymax, 4, height - pad, ymin,
         )
     )
-    return svg, (xmin, xmax, ymin, ymax)
+    return ''.join(parts)
 
 
 def write_html(path, title, agg):
@@ -520,19 +747,20 @@ def write_html(path, title, agg):
     ]
     sections = []
     for heading, xk, yk in metrics_charts:
-        blocks = []
+        series = []
         for a, rows in sorted(by_alpha.items()):
             pts = [{'q': r.get('q'), 'bits_per_site': r.get('bits_per_site'),
                     'psnr': r.get('psnr'), 'duv_edges': r.get('duv_edges'),
                     'grad': r.get('grad'), 'lap': r.get('lap'), 'block_bmi': r.get('block_bmi')}
                    for r in rows]
-            # Omitir puntos sin métrica (no pintar como 0)
-            pts = [p for p in pts if p.get(xk) is not None and p.get(yk) is not None]
-            svg, _ = _svg_polyline(pts, 640, 220, 36, colors.get(a, '#ffffff'), xk, yk)
-            blocks.append('<div><h3>α=%s (n=%d pts)</h3>%s</div>' % (a, len(pts), svg))
-        sections.append('<div class="card"><h2>%s</h2>%s</div>' % (heading, ''.join(blocks)))
+            series.append((a, pts))
+        svg = _svg_overlay(series, 720, 280, 40, xk, yk, colors)
+        n_pts = sum(1 for _, pts in series for p in pts
+                    if p.get(xk) is not None and p.get(yk) is not None)
+        sections.append(
+            '<div class="card"><h2>%s</h2><p>%d puntos · escala común · curvas superpuestas</p>%s</div>' % (
+                heading, n_pts, svg))
 
-    # Mapa de calor PSNR q × alpha (tabla, sin inventar ceros)
     alphas = sorted(by_alpha.keys())
     qs = sorted({r['q'] for rows in by_alpha.values() for r in rows if r.get('q') is not None})
     heat = ['<div class="card"><h2>Mapa PSNR (q × α)</h2><table><tr><th>q\\\\α</th>']
@@ -584,7 +812,7 @@ def write_html(path, title, agg):
         '</style></head><body>\n'
         '<h1>' + title + '</h1>\n'
         '<p>Informe autocontenido (SVG embebido, sin CDN). '
-        'Celdas «—» = métrica ausente (no se sustituye por 0).</p>\n'
+        'Curvas superpuestas con escala común. Celdas «—» = métrica ausente.</p>\n'
         + ''.join(sections) + ''.join(heat) + ''.join(table) +
         '\n</body></html>\n'
     )
@@ -592,12 +820,22 @@ def write_html(path, title, agg):
         f.write(html)
 
 
-def build_report(run_dirs, dest, analysis_cfg=None, expected=None):
+def build_report(run_dirs, dest, analysis_cfg=None, expected=None, *, verify_file_sha=True):
     os.makedirs(dest, exist_ok=True)
     runs = [load_run(d) for d in run_dirs]
     assert_comparable_runs(runs)
-    rows, identities = collect(runs, require_bitstream=True, require_label_match=True)
+    rows, identities = collect(runs, require_bitstream=True, require_label_match=True,
+                               verify_file_sha=verify_file_sha)
     cov = coverage_report(rows, **(expected or {}))
+    if cov['duplicates']:
+        raise RdError('configuraciones duplicadas antes de agregar: %s' % cov['duplicates'][:3])
+    if (expected or {}).get('expected_q') is not None and cov['missing']:
+        raise RdError('cobertura incompleta: %d celdas faltantes (p.ej. %s)' % (
+            len(cov['missing']), cov['missing'][:3]))
+    if (expected or {}).get('expected_ratios') is not None:
+        ratio_missing = [m for m in cov['missing'] if m.get('mode') == 'ratio']
+        if ratio_missing:
+            raise RdError('cobertura de ratios incompleta: %s' % ratio_missing[:3])
     agg = aggregate(rows)
     write_csv(os.path.join(dest, 'frames.csv'), rows)
     write_csv(os.path.join(dest, 'aggregate.csv'), agg)
@@ -609,6 +847,7 @@ def build_report(run_dirs, dest, analysis_cfg=None, expected=None):
         'identities': identities[:1],
         'notes': {
             'q_eff': 'q del fotograma en el bitstream (hdr byte 1), no (q_min+q_max)/2',
+            'braw_binding': 'conversion_key desde material (test/clip/range/inputs/request/env/worker)',
             'storage_bytes': 'sample_bytes (bmdf+chunk) por fotograma',
             'ratio_sample_12bit': 'RAW_BYTES_12BIT / sample_bytes',
             'q0_fallback': 'si q_requested=0 y q_frame>0 → CodecRangeError / encodeFixed subió de q',
@@ -627,31 +866,51 @@ def build_report(run_dirs, dest, analysis_cfg=None, expected=None):
     return summary
 
 
-def verify_run_matches_request(run_dir, *, q=None, ratio=None, alpha=None, bounded=False, ablation=False):
-    """Para --skip-existing: la corrida existente debe corresponder a la config pedida."""
+def verify_run_matches_request(run_dir, *, q=None, ratio=None, alpha=None, bounded=False, ablation=False,
+                               expected_identity=None):
+    """Para --skip-existing: todos los resultados deben coincidir con la config pedida."""
     run = load_run(run_dir)
-    if not run['metrics'].get('results'):
+    results = run['metrics'].get('results') or {}
+    if not results:
         raise RdError('%s: metrics.json sin results' % run_dir)
-    # Comprueba el primer resultado (todos deben compartir encode)
-    key = sorted(run['metrics']['results'])[0]
-    cfg = config_from_result(run['metrics']['results'][key])
-    if ablation:
-        if cfg['tag'] != 'ablation':
-            raise RdError('%s: se esperaba ablación' % run_dir)
-    elif bounded:
-        if not cfg['bounded']:
-            raise RdError('%s: se esperaba bounded' % run_dir)
-    elif alpha is not None and cfg['alpha'] is not None:
-        if abs(cfg['alpha'] - float(alpha)) > 1e-9:
-            raise RdError('%s: alpha efectivo %s ≠ %s' % (run_dir, cfg['alpha'], alpha))
-    if q is not None:
-        if cfg['mode'] != 'quality' or cfg['q_requested'] != int(q):
-            raise RdError('%s: q solicitado efectivo %s ≠ %s' % (run_dir, cfg['q_requested'], q))
-    if ratio is not None:
-        if cfg['mode'] != 'ratio' or float(cfg['ratio_requested']) != float(ratio):
-            raise RdError('%s: ratio solicitado efectivo %s ≠ %s' % (run_dir, cfg['ratio_requested'], ratio))
-    # Integridad mínima: frames f32
-    for rk, res in run['metrics']['results'].items():
+    rid = run_identity(run)  # exige identidades críticas
+    if expected_identity:
+        for k in COMPARABLE_KEYS:
+            if expected_identity.get(k) is not None and rid[k] != expected_identity[k]:
+                raise RdError('%s: %s no coincide con la identidad solicitada' % (run_dir, k))
+
+    for rk, res in sorted(results.items()):
+        cfg = config_from_result(res, rk)
+        if ablation:
+            if cfg['tag'] != 'ablation':
+                raise RdError('%s/%s: se esperaba ablación' % (run_dir, rk))
+        elif bounded:
+            if not cfg['bounded']:
+                raise RdError('%s/%s: se esperaba bounded' % (run_dir, rk))
+        elif alpha is not None and cfg['alpha'] is not None:
+            if abs(cfg['alpha'] - float(alpha)) > 1e-9:
+                raise RdError('%s/%s: alpha efectivo %s ≠ %s' % (run_dir, rk, cfg['alpha'], alpha))
+        if q is not None:
+            if cfg['mode'] != 'quality' or cfg['q_requested'] != int(q):
+                raise RdError('%s/%s: q solicitado efectivo %s ≠ %s' % (run_dir, rk, cfg['q_requested'], q))
+        if ratio is not None:
+            if cfg['mode'] != 'ratio' or float(cfg['ratio_requested']) != float(ratio):
+                raise RdError('%s/%s: ratio solicitado efectivo %s ≠ %s' % (
+                    run_dir, rk, cfg['ratio_requested'], ratio))
+        # Identidades por fotograma: entradas y referencia por SHA, no por ruta
+        if not cfg.get('inputs'):
+            raise RdError('%s/%s: inputs ausentes' % (run_dir, rk))
+        for inp in cfg['inputs']:
+            if not inp.get('sha256'):
+                raise RdError('%s/%s: input sin sha256' % (run_dir, rk))
+        if cfg.get('reference') is not None and not cfg.get('reference_sha256'):
+            raise RdError('%s/%s: referencia sin sha256' % (run_dir, rk))
+        if not cfg.get('dng_sha256'):
+            raise RdError('%s/%s: dng_sha256 ausente' % (run_dir, rk))
+        if not cfg.get('decode'):
+            raise RdError('%s/%s: decode ausente' % (run_dir, rk))
+        # Binding BRAW inequívoco
+        resolve_braw_binding(run, res, rk, verify_file_sha=True)
         f32 = os.path.join(run['dir'], 'frames', rk + '.f32')
         if not os.path.isfile(f32):
             raise RdError('%s: falta %s' % (run_dir, f32))
