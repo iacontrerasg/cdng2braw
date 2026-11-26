@@ -1,6 +1,7 @@
 #pragma once
 // EXP-003b — RDOQ: candidatos, distorsión DCT y trellis por bloque AC.
-// Desactivado por defecto; activar con CDNG_RDOQ=1 (o λ>0 vía CDNG_RDOQ_LAMBDA).
+// Desactivado por defecto; activar solo con CDNG_RDOQ=1|on|true|yes.
+// CDNG_RDOQ_LAMBDA exige RDOQ activo; valores inválidos se rechazan (no se normalizan).
 #include "codec_tables.hpp"
 #include "deadzone_policy.hpp"
 #include "cdng_native.h"
@@ -25,7 +26,8 @@ struct RdoqConfig {
     bool allow_away_from_zero = true;
 };
 
-// Lee CDNG_RDOQ / CDNG_RDOQ_LAMBDA. Sin efecto si disabled.
+// Lee CDNG_RDOQ / CDNG_RDOQ_LAMBDA.
+// Ausente → disabled. Flag desconocido, λ inválida o λ sin RDOQ → Error.
 RdoqConfig rdoqConfigFromEnv();
 
 inline double distortionDct(double coef, int64_t level, double step, double weight = 1.0) {

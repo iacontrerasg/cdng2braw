@@ -466,17 +466,29 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
         self.assertIsNone(eff0['CDNG_RDOQ'])
         self.assertIsNone(eff0['CDNG_RDOQ_LAMBDA'])
         self.assertNotIn('CDNG_RDOQ', env0)
-        # λ sin RDOQ rechazado.
+        # Tokens off/on aceptados (misma semántica que C++).
+        for off in ('0', 'off', 'false', 'no', 'OFF'):
+            _, _, env_off, _ = P.encode_request(
+                self._encode(experimental_env={'CDNG_RDOQ': off}), environ={})
+            self.assertEqual(env_off['CDNG_RDOQ'], off)
+        for on in ('1', 'on', 'true', 'yes', 'YES'):
+            _, _, env_on_tok, _ = P.encode_request(
+                self._encode(experimental_env={'CDNG_RDOQ': on}), environ={})
+            self.assertEqual(env_on_tok['CDNG_RDOQ'], on)
+        with self.assertRaises(P.PipelineError):
+            P.encode_request(self._encode(experimental_env={'CDNG_RDOQ': 'maybe'}), environ={})
+        # λ sin RDOQ / con RDOQ=0 rechazado.
         with self.assertRaises(P.PipelineError) as cm:
             P.encode_request(self._encode(experimental_env={'CDNG_RDOQ_LAMBDA': '0.5'}), environ={})
         self.assertIn('CDNG_RDOQ', str(cm.exception))
-        # λ negativa / inf rechazadas.
         with self.assertRaises(P.PipelineError):
             P.encode_request(self._encode(experimental_env={
-                'CDNG_RDOQ': '1', 'CDNG_RDOQ_LAMBDA': '-1'}), environ={})
-        with self.assertRaises(P.PipelineError):
-            P.encode_request(self._encode(experimental_env={
-                'CDNG_RDOQ': '1', 'CDNG_RDOQ_LAMBDA': 'inf'}), environ={})
+                'CDNG_RDOQ': '0', 'CDNG_RDOQ_LAMBDA': '1'}), environ={})
+        # λ negativa / inf / nan / parseo parcial rechazadas (sin normalizar).
+        for bad in ('-1', 'inf', '+inf', '-inf', 'nan', 'NaN', '1abc', 'abc', '1.2.3'):
+            with self.assertRaises(P.PipelineError):
+                P.encode_request(self._encode(experimental_env={
+                    'CDNG_RDOQ': '1', 'CDNG_RDOQ_LAMBDA': bad}), environ={})
         # Identidad de caché distinta con RDOQ/λ.
         req, eff_off, _, _ = P.encode_request(self._encode(), environ={})
         _, eff_on, env_on, _ = P.encode_request(self._encode(experimental_env={

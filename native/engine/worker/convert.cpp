@@ -423,16 +423,11 @@ int convert(const std::filesystem::path &requestPath) {
         if (const char *dz = std::getenv("CDNG_DEADZONE"); dz && *dz)
             throw Error("CDNG_DEADZONE and CDNG_DEADZONE_POLICY are mutually exclusive");
     }
-    // EXP-003b RDOQ: solo Pocket OG; λ finita ≥ 0 (config inmutable para el clip).
+    // EXP-003b RDOQ: parseo estricto en rdoqConfigFromEnv (sin normalizar inválidos);
+    // solo Pocket OG.
     const RdoqConfig rdoqCfg = rdoqConfigFromEnv();
     if (rdoqCfg.enabled && route != Route::Og)
         throw Error("CDNG_RDOQ is only supported on Pocket OG");
-    if (const char *lam = std::getenv("CDNG_RDOQ_LAMBDA"); lam && *lam) {
-        if (!rdoqCfg.enabled)
-            throw Error("CDNG_RDOQ_LAMBDA requires CDNG_RDOQ=1");
-        if (!(rdoqCfg.lambda >= 0.0) || !std::isfinite(rdoqCfg.lambda))
-            throw Error("CDNG_RDOQ_LAMBDA must be finite and >= 0");
-    }
     // Carga una sola vez antes de los workers: tablas inmutables, sin mutex por coeficiente.
     deadzonePolicyEnsureLoaded();
     const auto &dzPol = deadzonePolicy();

@@ -1,5 +1,6 @@
 // EXP-003b Fase E — validación del trellis RDOQ.
 #include "../codec_tables.hpp"
+#include "../common.hpp"
 #include "../rdoq.hpp"
 #include "cdng_ac_cost.h"
 #include "check.hpp"
@@ -326,6 +327,94 @@ int main() {
 
     // ---- Interactión adjust: tablas reales tienen adjust=0 ----
     for (auto a : tables.adjust) CHECK(a == 0);
+
+    // ---- Diagnósticos opcionales no cambian niveles (identidad de payload del bloque) ----
+    {
+        double coef[63] = {};
+        int64_t leg[63] = {};
+        fillBlock(coef, leg, 5, {3.2, -2.1, 0.4, 5.5, -4.0}, {3, -2, 0, 6, -4});
+        auto cfg = cfgLambda(0.25);
+        int64_t a[63], b[63];
+        std::memcpy(a, leg, sizeof a);
+        std::memcpy(b, leg, sizeof b);
+        rdoqOptimizeBlock(coef, step, a, 63, native, cfg, DeadzonePlane::Y, ScanY.data());
+        RdoqBlockReport rep{};
+        double D = 0;
+        uint64_t R = 0;
+        rdoqOptimizeBlock(coef, step, b, 63, native, cfg, DeadzonePlane::Y, ScanY.data(), &D, &R, &rep);
+        CHECK(std::equal(a, a + 63, b));
+        CHECK(rep.R_estimated > 0 || D >= 0);
+    }
+
+    // ---- rdoqConfigFromEnv: semántica unificada + rechazo estricto ----
+    {
+        check::EnvVar flag("CDNG_RDOQ");
+        check::EnvVar lam("CDNG_RDOQ_LAMBDA");
+        flag.unset();
+        lam.unset();
+        {
+            auto c = rdoqConfigFromEnv();
+            CHECK(!c.enabled);
+            CHECK(c.lambda == 0.0);
+        }
+        for (const char *on : {"1", "on", "true", "YES"}) {
+            flag.set(on);
+            lam.unset();
+            auto c = rdoqConfigFromEnv();
+            CHECK(c.enabled);
+            CHECK(c.lambda == 0.0);
+        }
+        for (const char *off : {"0", "off", "false", "NO"}) {
+            flag.set(off);
+            lam.unset();
+            auto c = rdoqConfigFromEnv();
+            CHECK(!c.enabled);
+        }
+        flag.set("1");
+        lam.set("12.5");
+        {
+            auto c = rdoqConfigFromEnv();
+            CHECK(c.enabled);
+            CHECK(std::fabs(c.lambda - 12.5) < 1e-12);
+        }
+        // Desconocidos / inválidos.
+        flag.set("maybe");
+        lam.unset();
+        {
+            bool threw = false;
+            try { (void)rdoqConfigFromEnv(); } catch (const Error &) { threw = true; }
+            CHECK(threw);
+        }
+        flag.set("0");
+        lam.set("1");
+        {
+            bool threw = false;
+            try { (void)rdoqConfigFromEnv(); } catch (const Error &) { threw = true; }
+            CHECK(threw);
+        }
+        flag.unset();
+        lam.set("1");
+        {
+            bool threw = false;
+            try { (void)rdoqConfigFromEnv(); } catch (const Error &) { threw = true; }
+            CHECK(threw);
+        }
+        flag.set("1");
+        for (const char *bad : {"-1", "nan", "inf", "+inf", "-inf", "1abc", "abc", ""}) {
+            if (!*bad) continue;  // vacío se trata como ausente → λ=0
+            lam.set(bad);
+            bool threw = false;
+            try { (void)rdoqConfigFromEnv(); } catch (const Error &) { threw = true; }
+            CHECK(threw);
+        }
+        // λ vacío / ausente con RDOQ on → λ=0.
+        flag.set("1");
+        lam.unset();
+        {
+            auto c = rdoqConfigFromEnv();
+            CHECK(c.enabled && c.lambda == 0.0);
+        }
+    }
 
     std::cout << "rdoq_test: correcto\n";
     return 0;

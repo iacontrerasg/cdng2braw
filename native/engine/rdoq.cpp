@@ -1,7 +1,9 @@
 #include "rdoq.hpp"
 #include "cdng_ac_cost.h"
+#include "common.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdlib>
 #include <limits>
@@ -12,17 +14,37 @@ namespace {
 
 constexpr int64_t kMaxLevel = 4095;
 
-bool env_on(const char *name) {
-    const char *v = std::getenv(name);
-    return v && *v && std::string(v) != "0";
+std::string envLower(const char *value) {
+    std::string s;
+    if (!value) return s;
+    for (const char *p = value; *p; ++p) s.push_back(char(std::tolower(static_cast<unsigned char>(*p))));
+    return s;
 }
 
-double env_double(const char *name, double fallback) {
-    const char *v = std::getenv(name);
-    if (!v || !*v) return fallback;
+// Misma semántica que Python (pipeline.encode_request) y parseOnOff de precomp:
+// 1|on|true|yes → on; 0|off|false|no → off; resto → Error.
+bool parseRdoqFlag(const char *value) {
+    if (!value || !*value)
+        throw Error("CDNG_RDOQ: unsupported value '' (use 0|1|off|on|false|true|no|yes)");
+    const std::string s = envLower(value);
+    if (s == "1" || s == "on" || s == "true" || s == "yes") return true;
+    if (s == "0" || s == "off" || s == "false" || s == "no") return false;
+    throw Error("CDNG_RDOQ: unsupported value '" + std::string(value) +
+                "' (use 0|1|off|on|false|true|no|yes)");
+}
+
+// λ estricta: número completo finito ≥ 0. Rechaza negativo, NaN, Inf, basura y parseo parcial.
+double parseRdoqLambda(const char *value) {
+    if (!value || !*value)
+        throw Error("CDNG_RDOQ_LAMBDA: unsupported value '' (finite number >= 0)");
     char *end = nullptr;
-    const double x = std::strtod(v, &end);
-    return (end && end != v) ? x : fallback;
+    const double x = std::strtod(value, &end);
+    if (end == value || (end && *end))
+        throw Error("CDNG_RDOQ_LAMBDA: unsupported value '" + std::string(value) +
+                    "' (finite number >= 0)");
+    if (!std::isfinite(x) || x < 0.0)
+        throw Error("CDNG_RDOQ_LAMBDA must be finite and >= 0 (got '" + std::string(value) + "')");
+    return x;
 }
 
 double weight_at(const RdoqConfig &cfg, DeadzonePlane plane, size_t scan_i) {
@@ -54,11 +76,20 @@ bool better_j(double j, int64_t lev, double jBest, int64_t levBest) {
 
 RdoqConfig rdoqConfigFromEnv() {
     RdoqConfig c;
-    c.enabled = env_on("CDNG_RDOQ");
-    c.lambda = env_double("CDNG_RDOQ_LAMBDA", 0.0);
-    // Validación estricta en el worker (convert.cpp); aquí solo normalizamos negativos a 0
-    // si alguien llama encode sin pasar por convert.
-    if (!std::isfinite(c.lambda) || c.lambda < 0) c.lambda = 0;
+    const char *flag = std::getenv("CDNG_RDOQ");
+    const char *lam = std::getenv("CDNG_RDOQ_LAMBDA");
+    if (flag && *flag)
+        c.enabled = parseRdoqFlag(flag);
+    else
+        c.enabled = false;
+
+    if (lam && *lam) {
+        if (!c.enabled)
+            throw Error("CDNG_RDOQ_LAMBDA requires CDNG_RDOQ=1");
+        c.lambda = parseRdoqLambda(lam);
+    } else {
+        c.lambda = 0.0;
+    }
     return c;
 }
 
@@ -174,7 +205,6 @@ void rdoqOptimizeBlock(const double *coef_scan, double step, int64_t *ac_io, siz
     const double eob = cfg.lambda * double(eobBits);
     double bestJ = inf;
     size_t bestS = 0;
-    int64_t bestLastLev = 0;
     for (size_t s = 0; s < S; ++s) {
         if (!(J[s] < inf)) continue;
         const double j = J[s] + eob;
@@ -183,8 +213,6 @@ void rdoqOptimizeBlock(const double *coef_scan, double step, int64_t *ac_io, siz
                 (Rest[s] == Rest[bestS] && s < bestS)))) {
             bestJ = j;
             bestS = s;
-            bestLastLev = (s == 0) ? 0 : choice[(ncoef - 1) * S + s];
-            (void)bestLastLev;
         }
     }
     if (!(bestJ < inf)) return;
@@ -198,6 +226,9 @@ void rdoqOptimizeBlock(const double *coef_scan, double step, int64_t *ac_io, siz
         s = size_t(psp);
     }
     for (size_t i = 0; i < ncoef; ++i) ac_io[i] = levels[i];
+
+    // Diagnósticos opcionales: no forman parte de la legalidad del trellis ni del payload.
+    if (!out_D && !out_R && !out_report) return;
 
     uint64_t R_est = 0;
     double D = 0;

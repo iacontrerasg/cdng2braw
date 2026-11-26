@@ -22,7 +22,17 @@
     "improves_3_to_1": false,
     "improves_5_to_1": false,
     "reached_6_to_1": false,
-    "reached_8_to_1": false
+    "reached_8_to_1": false,
+    "reached_6_to_1_physical_series_a": true,
+    "max_gate_approved_ratio_series_a": 5.159275688576158
+  },
+  "compression_ceiling": {
+    "physical_series_a_max_ratio": 6.134282307699549,
+    "physical_note": "\u22486.13:1 @ \u03bb=250 fixed-q; 6/6 detail rejected",
+    "gate_approved_series_a_max_ratio": 5.159275688576158,
+    "gate_approved_note": "\u22485.16:1 @ \u03bb\u2248130 series_approved",
+    "rate_search_saturates_near": 5.06,
+    "rate_search_note": "DZ ~5.06:1 / RDOQ \u03bb100 ~4.84:1 at QMax; no useful 6:1 or 8:1"
   },
   "n_runs": 59,
   "controls": [
@@ -1719,6 +1729,12 @@
     "6_to_1": false,
     "8_to_1": false,
     "5_to_1_series_approved": true,
+    "6_to_1_physical_series_a": true,
+    "6_to_1_physical_max_ratio": 6.134282307699549,
+    "6_to_1_physical_series_approved": false,
+    "max_gate_approved_ratio_series_a": 5.159275688576158,
+    "6_to_1_rate_search": false,
+    "8_to_1_rate_search": false,
     "6_to_1_any_a04": false,
     "8_to_1_any_a04": false
   },

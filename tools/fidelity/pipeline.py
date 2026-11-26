@@ -222,21 +222,33 @@ def encode_request(encode, environ=None):
             raise PipelineError('CDNG_OG_DEBLOCK_ALPHA inválido: %s' % alpha) from e
         if not any(abs(av - a) < 1e-12 for a in (0.0, 0.25, 0.5, 0.75, 1.0)):
             raise PipelineError('CDNG_OG_DEBLOCK_ALPHA debe ser 0|0.25|0.5|0.75|1 (got %s)' % alpha)
-    # EXP-003b RDOQ: on/off + λ ≥ 0 finita; λ sin RDOQ no admite valor.
+    # EXP-003b RDOQ: misma semántica que C++ (rdoqConfigFromEnv). Sin normalizar inválidos.
     rdoq = env.get('CDNG_RDOQ')
-    rdoq_on = rdoq is not None and rdoq.lower() in ('1', 'on', 'true', 'yes')
-    rdoq_off = rdoq is not None and rdoq.lower() in ('0', 'off', 'false', 'no')
-    if rdoq is not None and not (rdoq_on or rdoq_off):
-        raise PipelineError('CDNG_RDOQ debe ser 0|1 (got %s)' % rdoq)
+    rdoq_on = False
+    if rdoq is not None:
+        token = str(rdoq).strip().lower()
+        if not token:
+            rdoq_on = False  # vacío ≡ ausente (OFF), como getenv vacío en C++
+        elif token in ('1', 'on', 'true', 'yes'):
+            rdoq_on = True
+        elif token in ('0', 'off', 'false', 'no'):
+            rdoq_on = False
+        else:
+            raise PipelineError(
+                'CDNG_RDOQ debe ser 0|1|off|on|false|true|no|yes (got %s)' % rdoq)
     lam = env.get('CDNG_RDOQ_LAMBDA')
-    if lam is not None and not rdoq_on:
-        raise PipelineError('CDNG_RDOQ_LAMBDA requiere CDNG_RDOQ=1')
-    if lam is not None:
+    if lam is not None and str(lam).strip() != '':
+        if not rdoq_on:
+            raise PipelineError('CDNG_RDOQ_LAMBDA requiere CDNG_RDOQ=1')
+        s = str(lam).strip()
         try:
-            lv = float(lam)
+            lv = float(s)
         except ValueError as e:
             raise PipelineError('CDNG_RDOQ_LAMBDA inválido: %s' % lam) from e
-        if not (lv == lv) or lv < 0 or lv == float('inf'):  # NaN / negativo / +inf
+        # Rechazar parseo parcial (p. ej. "1abc") — misma regla que strtod con end==NUL en C++.
+        if not re.fullmatch(r'[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?', s):
+            raise PipelineError('CDNG_RDOQ_LAMBDA inválido: %s' % lam)
+        if not (lv == lv) or lv < 0 or abs(lv) == float('inf'):
             raise PipelineError('CDNG_RDOQ_LAMBDA debe ser finita y ≥ 0 (got %s)' % lam)
     # Diagnóstico: manifiesto explícito gana; el ambiente se registra y también se pasa (no altera el BRAW).
     diagnostic = {k: ambient[k] for k in DIAGNOSTIC_ENV if k in ambient}

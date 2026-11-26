@@ -278,17 +278,27 @@ def main():
             'rdoq': a['rdoq'], 'psnr': a['psnr_mean'], 'detail': a['detail_corr_mean'],
         })
 
+    series_hi = [a for a in series_aggs if (a.get('ratio_sample_mean') or 0) >= 6.0]
     reached = {
+        # Gate-approved útil sobre Serie A completa
         '6_to_1': any((a.get('ratio_sample_mean') or 0) >= 6.0 and a.get('series_approved')
                       for a in series_aggs),
-        '8_to_1': any((a.get('ratio_sample_mean') or 0) >= 8.0 for a in
-                      series_aggs + aggregate(rows)),
+        '8_to_1': any((a.get('ratio_sample_mean') or 0) >= 8.0 and a.get('series_approved')
+                      for a in series_aggs),
         '5_to_1_series_approved': any((a.get('ratio_sample_mean') or 0) >= 5.0 and a.get('series_approved')
                                       for a in series_aggs),
+        # Físico en Serie A (puede estar rechazado por fidelidad)
+        '6_to_1_physical_series_a': bool(series_hi),
+        '6_to_1_physical_max_ratio': max((a.get('ratio_sample_mean') or 0) for a in series_hi) if series_hi else None,
+        '6_to_1_physical_series_approved': any(a.get('series_approved') for a in series_hi),
+        'max_gate_approved_ratio_series_a': max(
+            (a.get('ratio_sample_mean') or 0) for a in series_aggs if a.get('series_approved')),
     }
-    # También ratio en A04 rate-search
-    reached['6_to_1_any_a04'] = any((a.get('ratio_sample') or 0) >= 6.0 for a in rate_search)
-    reached['8_to_1_any_a04'] = any((a.get('ratio_sample') or 0) >= 8.0 for a in rate_search)
+    # Rate-search A04 (QMax): no confundir con fixed-q físico
+    reached['6_to_1_rate_search'] = any((a.get('ratio_sample') or 0) >= 6.0 for a in rate_search)
+    reached['8_to_1_rate_search'] = any((a.get('ratio_sample') or 0) >= 8.0 for a in rate_search)
+    reached['6_to_1_any_a04'] = reached['6_to_1_rate_search']  # alias legacy
+    reached['8_to_1_any_a04'] = reached['8_to_1_rate_search']
 
     strategy = classify(equal, series_aggs, reached)
 
@@ -333,8 +343,19 @@ def main():
                                   for c in equal),
             'improves_5_to_1': any('5to1' in c['label'] and c['verdict'] == 'cand_not_worse_and_improves'
                                   for c in equal),
-            'reached_6_to_1': bool(reached.get('6_to_1') or reached.get('6_to_1_any_a04')),
-            'reached_8_to_1': bool(reached.get('8_to_1') or reached.get('8_to_1_any_a04')),
+            # Útil = gate Serie A o rate search (no cuenta el 6.13 físico rechazado).
+            'reached_6_to_1': bool(reached.get('6_to_1') or reached.get('6_to_1_rate_search')),
+            'reached_8_to_1': bool(reached.get('8_to_1') or reached.get('8_to_1_rate_search')),
+            'reached_6_to_1_physical_series_a': bool(reached.get('6_to_1_physical_series_a')),
+            'max_gate_approved_ratio_series_a': reached.get('max_gate_approved_ratio_series_a'),
+        },
+        'compression_ceiling': {
+            'physical_series_a_max_ratio': reached.get('6_to_1_physical_max_ratio'),
+            'physical_note': '≈6.13:1 @ λ=250 fixed-q; 6/6 detail rejected',
+            'gate_approved_series_a_max_ratio': reached.get('max_gate_approved_ratio_series_a'),
+            'gate_approved_note': '≈5.16:1 @ λ≈130 series_approved',
+            'rate_search_saturates_near': 5.06,
+            'rate_search_note': 'DZ ~5.06:1 / RDOQ λ100 ~4.84:1 at QMax; no useful 6:1 or 8:1',
         },
         'n_runs': len(idx),
         'controls': controls,

@@ -172,7 +172,7 @@ Con tablas oficiales, `R_estimated == R_emitted` salvo rarezas de drop; el test 
 
 - Default OFF: sin `CDNG_RDOQ` el payload = legacy (identidad de caché distinta si se activa).
 - Solo Pocket OG (`convert.cpp` rechaza otras rutas).
-- `CDNG_RDOQ` / `CDNG_RDOQ_LAMBDA` en `OUTPUT_ENV`; λ finita ≥ 0; λ sin RDOQ rechazada.
+- `CDNG_RDOQ` / `CDNG_RDOQ_LAMBDA` en `OUTPUT_ENV`. Semántica unificada Python/C++: `0|off|false|no` / `1|on|true|yes`; desconocidos → error. λ finita ≥ 0, sin parseo parcial; λ sin RDOQ rechazada (sin normalizar).
 - Config registrada en evento `started` (`rdoq`, `rdoq_lambda`).
 - Compatible con DZ/α/NR/synth vía `experimental_env` (NR/synth OFF en G/H).
 - q fijo y rate search sin cambios de defaults/VLC/DCT.
@@ -207,7 +207,7 @@ Hallazgos preliminares (medias A04, `sample_bytes`):
 
 - G1 ≡ EXP-002a `a75-dz50-q24` (sample + `candidate_sha256`).
 - **λ=0 no preserva la sparsidad del DZ**: minimiza D en el set de candidatos y **aumenta** bytes frente a G1.
-- Acercarse a ~5:1 exige λ alta (~100); PSNR/detail aún por debajo de G1 en esta rejilla.
+- Acercarse a ~5:1 exige λ alta (~100); **PSNR** queda por debajo de G1 (42.80 vs 43.23). El **detail** de λ=100 (0.760) es **mayor** que G1 (0.744); no afirmar que detail sea inferior.
 - Candidatos ~3:1: RDOQ λ baja @ q18; ~5:1: G1 o RDOQ λ≈100 @ q24.
 
 ### H2 — Rendimiento (wall, A04 completo)
@@ -231,10 +231,17 @@ Overhead ≈ **2.3×** a 1 worker; 2 workers mitigan parcialmente. Cuello: trell
 
 No atribuible a precomp distinta: mismos α/DZ en pares 3:1/5:1.
 
-### J — Límites
+### J — Límites (techo de compresión)
 
-- λ∈{130,160,200,250,300}: más compresión degradando detalle; sin mejora útil de frontera vs G1.
-- Rate search 3/5/6/8/12: DZ uniforme satura ~**5.06:1** (QMax); RDOQ λ=100 ~**4.84:1**. **No 6:1 ni 8:1** efectivos.
+Distinguir tres lecturas del ratio:
+
+| Lectura | Ratio | Condición |
+|---------|-------|-----------|
+| Máximo experimental (fixed q) | **~6.13:1** | Serie A, λ=250, q24 — **6/6 frames rechazados** por gate detail |
+| Máximo con gate Serie A aprobado | **~5.16:1** | λ≈130, `series_approved` |
+| Rate search (3/5/6/8/12) | satura ~**5.06:1** (DZ) / ~**4.84:1** (RDOQ λ=100) | QMax; **no** entrega 6:1 ni 8:1 útiles |
+
+6:1 **sí se alcanzó físicamente** en fixed-q (λ=250), pero **no** como candidato de fidelidad aprobada ni vía rate search. 8:1 no apareció en ningún modo medido.
 
 ### K — Serie A (cobertura estricta)
 
@@ -265,7 +272,9 @@ RDOQ no gana 3:1 ni 5:1 a igual `sample_bytes` frente a controles pareados; no j
 |----------|-----------|
 | ¿Justifica su complejidad? | **No** (para adopción general) |
 | ¿Mejora 3:1 o 5:1 a igual tasa? | **No** |
-| ¿Alcanza 6:1 / 8:1? | **No** (rate search satura ~5:1) |
+| ¿Alcanza 6:1 / 8:1 útiles? | **No** (6.13 físico rechazado; rate search ~5:1; sin 8:1) |
+
+**Cierre:** RDOQ permanece **experimental**, desactivado por defecto (`CDNG_RDOQ`). No adoptar en Maximum Fidelity / Production sin nueva evidencia. Sin más optimización del trellis.
 
 ### Recomendaciones EXP-004
 
