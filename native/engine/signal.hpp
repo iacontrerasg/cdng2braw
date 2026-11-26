@@ -97,11 +97,20 @@ void finishPlanes(Planes &planes, const SignalMap &map, Route route, double luma
 Planes imagePlanes(const RgbImage &rgb, const SignalMap &map);
 // canvas_planes: lienzo con bordes replicados, precompensación del filtro de desbloqueo (3,10,3)/16 en luma y
 // redondeo/recorte a 0…4095 (Y) y −4096…4095 (croma).
+// Configuración experimental de precompensación antibloques (solo Pocket OG en el worker).
+// enabled=false → ablación (sin tocar Y). bounded=true → estrategia restringida (Fase B).
+// Si !bounded && enabled → S + alpha·(Scomp−S) con alpha∈{0,0.25,0.5,0.75,1} (Fase A).
+struct DeblockPrecomp {
+    bool enabled = true;
+    double alpha = 1.0;
+    bool bounded = false;
+};
 CanvasPlanes canvasPlanes(const Planes &planes, const Geometry &geometry, bool deblock = true);
-// CDNG_OG_DEBLOCK_PRECOMP: precompensación antibloques en la ruta Pocket OG.
-// Ausente / 1 / on / true → activada (producción). 0 / off / false → desactivada (ablación).
-// Cualquier otro valor lanza Error. En rutas no OG el codificador ignora el valor tras validarlo.
+CanvasPlanes canvasPlanes(const Planes &planes, const Geometry &geometry, const DeblockPrecomp &precomp);
+// CDNG_OG_DEBLOCK_PRECOMP: ausente/1/on/true → on; 0/off/false → off. Otro valor → Error.
 bool ogDeblockPrecompensationEnabled();
+// Lee PRECOMP + CDNG_OG_DEBLOCK_ALPHA + CDNG_OG_DEBLOCK_BOUNDED; rechaza combinaciones contradictorias.
+DeblockPrecomp ogDeblockPrecompensation();
 
 // Instrumentación (no altera el códec): overshoot/clipping de un plano en coma flotante.
 struct RangeStats {
@@ -122,6 +131,8 @@ struct RangeStats {
 RangeStats measureCodeRange(const std::vector<double> &samples, double lo, double hi);
 // Mismos place (+ precomp Y) que canvasPlanes, sin nearbyint/clamp. Solo para trazas.
 void floatCanvasPlanes(const Planes &planes, const Geometry &geometry, bool deblock,
+                       std::vector<double> &y, std::vector<double> &cb, std::vector<double> &cr);
+void floatCanvasPlanes(const Planes &planes, const Geometry &geometry, const DeblockPrecomp &precomp,
                        std::vector<double> &y, std::vector<double> &cb, std::vector<double> &cr);
 // Inversa para la vista previa de la compresión: filtro antibloques del decodificador sobre la luma (DEBLOCK_TAPS
 // 3-10-3 en los dos píxeles de cada frontera de bloque; el inverso de la precompensación) y recorte al tamaño entregado.

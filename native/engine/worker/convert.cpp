@@ -406,8 +406,8 @@ int convert(const std::filesystem::path &requestPath) {
     const bool dropFrame = firstDng.timecodeDropFrame();
     const long long timecode = std::max<long long>(0, firstDng.timecodeFrames(nominalFps(*rate)).value_or(0) - (long long)firstGood);
     const int workers = request.options.workers;
-    // Valida CDNG_OG_DEBLOCK_PRECOMP una vez (valores inválidos abortan). En rutas no OG el flag se ignora.
-    const bool ogDeblockPrecomp = ogDeblockPrecompensationEnabled();
+    // Valida PRECOMP/ALPHA/BOUNDED una vez (valores inválidos o contradictorios abortan). En rutas no OG se ignora.
+    const DeblockPrecomp ogDeblock = ogDeblockPrecompensation();
     emit("started", json::Object()
         .integer("total", (long long)files.size()).integer("width", width).integer("height", height).integer("workers", workers)
         .num("fps", double(rate->num) / rate->den).str("compression", q ? "quality" : "ratio")
@@ -415,7 +415,9 @@ int convert(const std::filesystem::path &requestPath) {
         .num("noise_scale", std::round(noise.scale * 100) / 100)
         .raw("nr", "[" + json::number(request.options.nrLuma) + ", " + json::number(request.options.nrChroma) + "]")
         .boolean("noise_synthesis", request.options.noiseSynthesis)
-        .boolean("og_deblock_precomp", ogDeblockPrecomp)
+        .boolean("og_deblock_precomp", ogDeblock.enabled)
+        .num("og_deblock_alpha", ogDeblock.enabled && !ogDeblock.bounded ? ogDeblock.alpha : 0.0)
+        .boolean("og_deblock_bounded", ogDeblock.bounded)
         .str("build", trace::buildId()).str("trace", trace::path().string()));
     const auto start = std::chrono::steady_clock::now();
     auto seconds = [&] { return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count(); };
@@ -529,31 +531,34 @@ int convert(const std::filesystem::path &requestPath) {
                     }
                     if (trace::active() && result.replaced) trace::line("frame replaced with black: " + result.reason);
                     const auto encodeFrom = std::chrono::steady_clock::now();
-                    // Solo Pocket OG respeta CDNG_OG_DEBLOCK_PRECOMP; VA/Pocket 4K conservan la precompensación.
-                    const bool deblock = (route == Route::Og) ? ogDeblockPrecomp : true;
+                    // Solo Pocket OG respeta PRECOMP/ALPHA/BOUNDED; VA/Pocket 4K conservan la precompensación original.
+                    DeblockPrecomp deblockCfg;
+                    if (route == Route::Og) deblockCfg = ogDeblock;
+                    else { deblockCfg.enabled = true; deblockCfg.alpha = 1.0; deblockCfg.bounded = false; }
                     if (trace::active()) {
-                        trace::line(std::string("canvasPlanes: og_deblock_precomp=") + (ogDeblockPrecomp ? "on" : "off") +
-                                    " effective_deblock=" + (deblock ? "on" : "off") +
+                        trace::line(std::string("canvasPlanes: og_deblock_precomp=") + (ogDeblock.enabled ? "on" : "off") +
+                                    " alpha=" + std::to_string(deblockCfg.alpha) +
+                                    " bounded=" + (deblockCfg.bounded ? "on" : "off") +
                                     " route=" + (route == Route::Og ? "og" : route == Route::Va ? "va" : "pocket"));
                         std::vector<double> yf, cbf, crf;
-                        floatCanvasPlanes(planes, geometry, deblock, yf, cbf, crf);
+                        floatCanvasPlanes(planes, geometry, deblockCfg, yf, cbf, crf);
                         trace::rangeStats("Y before round/clamp (effective deblock path)", measureCodeRange(yf, 0, 4095));
                         trace::rangeStats("Cb before round/clamp", measureCodeRange(cbf, -4096, 4095));
                         trace::rangeStats("Cr before round/clamp", measureCodeRange(crf, -4096, 4095));
-                        // Contrafactual: misma señal con el otro estado de precompensación (no altera el códec).
+                        DeblockPrecomp offCfg; offCfg.enabled = false;
                         std::vector<double> yAlt, cbAlt, crAlt;
-                        floatCanvasPlanes(planes, geometry, !deblock, yAlt, cbAlt, crAlt);
-                        trace::rangeStats(deblock ? "Y before round (without deblock, counterfactual)"
-                                                  : "Y before round (with deblock, counterfactual)",
-                                          measureCodeRange(yAlt, 0, 4095));
+                        floatCanvasPlanes(planes, geometry, offCfg, yAlt, cbAlt, crAlt);
+                        trace::rangeStats("Y before round (without deblock, counterfactual)", measureCodeRange(yAlt, 0, 4095));
                     }
-                    const auto canvas = canvasPlanes(planes, geometry, deblock);
+                    const auto canvas = canvasPlanes(planes, geometry, deblockCfg);
                     if (trace::active()) {
                         trace::canvas("canvasPlanes (effective path: rounded/clamped, input to the codec)", canvas, geometry);
-                        if (deblock)
-                            trace::canvas("canvasPlanes without deblock precompensation (reference)", canvasPlanes(planes, geometry, false), geometry);
+                        DeblockPrecomp offCfg; offCfg.enabled = false;
+                        DeblockPrecomp onCfg; onCfg.enabled = true; onCfg.alpha = 1.0;
+                        if (deblockCfg.enabled)
+                            trace::canvas("canvasPlanes without deblock precompensation (reference)", canvasPlanes(planes, geometry, offCfg), geometry);
                         else
-                            trace::canvas("canvasPlanes with deblock precompensation (counterfactual)", canvasPlanes(planes, geometry, true), geometry);
+                            trace::canvas("canvasPlanes with deblock precompensation (counterfactual)", canvasPlanes(planes, geometry, onCfg), geometry);
                         trace::line("--- end of traced frame");
                         trace::setActive(false);
                     }

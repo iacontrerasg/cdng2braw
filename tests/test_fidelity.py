@@ -369,8 +369,13 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
         fb = braw_inspect.media_fingerprint(files[1])
         self.assertTrue(fa['mdat_sha256'])
         self.assertTrue(fa['frames'])
-        self.assertEqual(braw_inspect.same_media(files[0], files[1]),
-                         fa['mdat_sha256'] == fb['mdat_sha256'])
+        eq = braw_inspect.equivalence(files[0], files[1])
+        self.assertTrue(eq['payload_equal'])
+        self.assertTrue(eq['mdat_equal'])
+        # El moov completo puede diferir (UUID/tiempos); la metadata de revelado debe coincidir.
+        self.assertTrue(eq['decode_relevant_moov_equal'])
+        self.assertTrue(eq['binds_to_evaluated_image'])
+        self.assertEqual(braw_inspect.same_media(files[0], files[1]), True)
 
     def test_diagnostic_refresh_keeps_cached_completed(self):
         """Al regenerar trazas, compression/completed siguen siendo del BRAW cacheado."""
@@ -392,7 +397,7 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
             key = identity.sha256_json(material)
             directory = os.path.join(cache, 'braw', key[:24])
             os.makedirs(directory)
-            # BRAW mínimo: fingerprint fallará; mockeamos same_media.
+            # BRAW mínimo: fingerprint fallará; mockeamos equivalence.
             braw = os.path.join(directory, 'clip.braw')
             open(braw, 'wb').write(b'BRAW_CACHED')
             saved = {'material': material, 'sha256': identity.sha256_file(braw),
@@ -407,10 +412,12 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
                 open(os.path.join(tmp, 'convert.log'), 'w').write('ok\n')
                 return out, [{'event': 'started'}], instr_done, 3.0
 
+            eq = {'payload_equal': True, 'decode_relevant_meta_equal': True,
+                  'binds_to_evaluated_image': True, 'mdat_equal': True, 'moov_equal': False,
+                  'mdat_sha256_b': 'mdat', 'moov_sha256_b': 'moov'}
             logs = []
             with mock.patch.object(P, '_run_convert_worker', side_effect=fake_worker), \
-                 mock.patch.object(P.braw_inspect, 'same_media', return_value=True), \
-                 mock.patch.object(P.braw_inspect, 'atom_sha256', return_value='mdat'), \
+                 mock.patch.object(P.braw_inspect, 'equivalence', return_value=eq), \
                  mock.patch.object(P, 'ambient_cdng', return_value={}):
                 result = P.convert('/converter', conv_id, d, [a], 0, 1, enc, cache,
                                    log=logs.append, no_cache=False)
@@ -436,6 +443,8 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
     def test_og_deblock_precomp_in_output_env(self):
         from tools.fidelity import pipeline as P, identity
         self.assertIn('CDNG_OG_DEBLOCK_PRECOMP', P.OUTPUT_ENV)
+        self.assertIn('CDNG_OG_DEBLOCK_ALPHA', P.OUTPUT_ENV)
+        self.assertIn('CDNG_OG_DEBLOCK_BOUNDED', P.OUTPUT_ENV)
         enc = self._encode(experimental_env={'CDNG_OG_DEBLOCK_PRECOMP': '0'})
         req, eff, env, _ = P.encode_request(enc, environ={})
         self.assertEqual(eff['CDNG_OG_DEBLOCK_PRECOMP'], '0')
@@ -447,6 +456,30 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
             m0 = P.conversion_material(conv, d, [a, a], 0, req, eff)
             m1 = P.conversion_material(conv, d, [a, a], 0, req, on)
             self.assertNotEqual(identity.sha256_json(m0), identity.sha256_json(m1))
+
+    def test_og_deblock_alpha_and_bounded_validation(self):
+        from tools.fidelity import pipeline as P, identity
+        ok = P.encode_request(self._encode(experimental_env={
+            'CDNG_OG_DEBLOCK_PRECOMP': '1', 'CDNG_OG_DEBLOCK_ALPHA': '0.5'}), environ={})
+        self.assertEqual(ok[2]['CDNG_OG_DEBLOCK_ALPHA'], '0.5')
+        with self.assertRaises(P.PipelineError):
+            P.encode_request(self._encode(experimental_env={
+                'CDNG_OG_DEBLOCK_PRECOMP': '0', 'CDNG_OG_DEBLOCK_ALPHA': '0.5'}), environ={})
+        with self.assertRaises(P.PipelineError):
+            P.encode_request(self._encode(experimental_env={
+                'CDNG_OG_DEBLOCK_PRECOMP': '1', 'CDNG_OG_DEBLOCK_ALPHA': '0.3'}), environ={})
+        with self.assertRaises(P.PipelineError):
+            P.encode_request(self._encode(experimental_env={
+                'CDNG_OG_DEBLOCK_PRECOMP': '1', 'CDNG_OG_DEBLOCK_ALPHA': '0.5',
+                'CDNG_OG_DEBLOCK_BOUNDED': '1'}), environ={})
+        bd = P.encode_request(self._encode(experimental_env={
+            'CDNG_OG_DEBLOCK_PRECOMP': '1', 'CDNG_OG_DEBLOCK_BOUNDED': '1'}), environ={})[1]
+        with tempfile.TemporaryDirectory() as d:
+            a = os.path.join(d, 'a.dng'); open(a, 'wb').write(b'DNG')
+            conv = {'cdng_convert_sha256': 'w', 'model': {}}
+            m_alpha = P.conversion_material(conv, d, [a], 0, ok[0], ok[1])
+            m_bd = P.conversion_material(conv, d, [a], 0, ok[0], bd)
+            self.assertNotEqual(identity.sha256_json(m_alpha), identity.sha256_json(m_bd))
 
     def test_no_reference_skips_exr_requirement(self):
         from tools.fidelity import manifest as MF

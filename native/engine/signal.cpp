@@ -619,6 +619,7 @@ Planes imagePlanes(const RgbImage &rgb, const SignalMap &map) {
 namespace {
 
 // precompensate_deblock con DEBLOCK_TAPS = (3, 10, 3): filas (fronteras de columnas) y luego columnas.
+// No modificar: la interpolación proporcional y la variante restringida se aplican alrededor.
 void precompensate(std::vector<double> &p, int width, int height, int bw, int bh) {
     const double T = 16.0, t0 = 3, t1 = 10, det = t1 * t1 - t0 * t0;
     // NumPy indexa i + 1 en cada frontera i = bw, 2·bw…: falla si la última cae en el último píxel
@@ -644,6 +645,102 @@ void precompensate(std::vector<double> &p, int width, int height, int bw, int bh
     }
 }
 
+// Inversa exacta de un par (sin alterar el algoritmo global): a',b' tal que el filtro (3,10,3)/16 recupera a,b.
+void unconstrainedPair(double ain, double a, double b, double bin, double &ao, double &bo) {
+    const double T = 16.0, t0 = 3, t1 = 10, det = t1 * t1 - t0 * t0;
+    const double ra = T * a - t0 * ain, rb = T * b - t0 * bin;
+    ao = (t1 * ra - t0 * rb) / det;
+    bo = (t1 * rb - t0 * ra) / det;
+}
+
+// Error de reconstrucción ||A[x]−y||² para un par con exteriores fijos.
+double pairReconError(double ain, double a, double b, double bin, double xt, double yt) {
+    const double aOut = (3 * ain + 10 * a + 3 * b) / 16.0;
+    const double bOut = (3 * a + 10 * b + 3 * bin) / 16.0;
+    const double da = aOut - xt, db = bOut - yt;
+    return da * da + db * db;
+}
+
+// Mínimos cuadrados acotados 0…4095 para un par (estrategia B). Conserva la inversa si es representable.
+void boundedPair(double ain, double aTgt, double bTgt, double bin, double lo, double hi, double &ao, double &bo) {
+    unconstrainedPair(ain, aTgt, bTgt, bin, ao, bo);
+    if (ao >= lo && ao <= hi && bo >= lo && bo <= hi) return;
+    // Candidatos: proyección por aristas (una variable libre) y las cuatro esquinas.
+    double bestA = std::clamp(ao, lo, hi), bestB = std::clamp(bo, lo, hi);
+    double best = pairReconError(ain, bestA, bestB, bin, aTgt, bTgt);
+    auto consider = [&](double a, double b) {
+        a = std::clamp(a, lo, hi);
+        b = std::clamp(b, lo, hi);
+        const double e = pairReconError(ain, a, b, bin, aTgt, bTgt);
+        if (e < best) { best = e; bestA = a; bestB = b; }
+    };
+    // Aristas: fijar a∈{lo,hi} y optimizar b (y viceversa). 10 a + 3 b ≈ … → b = (16·tgt − 3·ain − 10·a)/3
+    for (double aFix : {lo, hi}) {
+        // Minimizar error en b dado a fijo: solución LS 1D del sistema acoplado.
+        // ∂/∂b ( (3ain+10a+3b)/16 − aT )² + ( (3a+10b+3bin)/16 − bT )² = 0
+        const double c0 = (3 * ain + 10 * aFix) / 16.0;
+        const double d0 = (3 * aFix + 3 * bin) / 16.0;
+        // (c0 + 3/16 b − aT) * (3/16) + (d0 + 10/16 b − bT) * (10/16) = 0
+        const double k3 = 3.0 / 16.0, k10 = 10.0 / 16.0;
+        const double num = -(k3 * (c0 - aTgt) + k10 * (d0 - bTgt));
+        const double den = k3 * k3 + k10 * k10;
+        consider(aFix, num / den);
+    }
+    for (double bFix : {lo, hi}) {
+        const double c0 = (3 * ain + 3 * bFix) / 16.0;
+        const double d0 = (10 * bFix + 3 * bin) / 16.0;
+        const double k10 = 10.0 / 16.0, k3 = 3.0 / 16.0;
+        const double num = -(k10 * (c0 - aTgt) + k3 * (d0 - bTgt));
+        const double den = k10 * k10 + k3 * k3;
+        consider(num / den, bFix);
+    }
+    consider(lo, lo); consider(lo, hi); consider(hi, lo); consider(hi, hi);
+    ao = bestA;
+    bo = bestB;
+}
+
+void precompensateBounded(std::vector<double> &p, int width, int height, int bw, int bh, double lo, double hi) {
+    if ((width > bw && (width - 1) % bw == 0) || (height > bh && (height - 1) % bh == 0))
+        throw Error("Canvas size incompatible with deblocking");
+    // Mismo orden que precompensate (H luego V): las intersecciones quedan acopladas secuencialmente.
+    for (int y = 0; y < height; ++y) {
+        double *row = p.data() + std::size_t(y) * width;
+        for (int i = bw; i < width; i += bw) {
+            const double ain = row[i - 2], a = row[i - 1], b = row[i], bin = row[i + 1];
+            double ao, bo;
+            boundedPair(ain, a, b, bin, lo, hi, ao, bo);
+            row[i - 1] = ao;
+            row[i] = bo;
+        }
+    }
+    for (int i = bh; i < height; i += bh) {
+        double *rin = p.data() + std::size_t(i - 2) * width, *ra_ = rin + width, *rb_ = ra_ + width, *rbin = rb_ + width;
+        for (int x = 0; x < width; ++x) {
+            const double ain = rin[x], a = ra_[x], b = rb_[x], bin = rbin[x];
+            double ao, bo;
+            boundedPair(ain, a, b, bin, lo, hi, ao, bo);
+            ra_[x] = ao;
+            rb_[x] = bo;
+        }
+    }
+}
+
+void applyDeblockPrecomp(std::vector<double> &y, int width, int height, const DeblockPrecomp &cfg) {
+    if (!cfg.enabled) return;
+    if (cfg.bounded) {
+        precompensateBounded(y, width, height, 8, 8, 0.0, 4095.0);
+        return;
+    }
+    if (cfg.alpha == 0.0) return;
+    if (cfg.alpha == 1.0) {
+        precompensate(y, width, height, 8, 8);
+        return;
+    }
+    // Salpha = S + alpha·(Scomp − S); no altera precompensate().
+    const std::vector<double> S = y;
+    precompensate(y, width, height, 8, 8);
+    for (std::size_t i = 0; i < y.size(); ++i) y[i] = S[i] + cfg.alpha * (y[i] - S[i]);
+}
 // Coloca un plano w × h en un lienzo ws × hs en (x0, y0) replicando los bordes, como canvas_planes.
 std::vector<double> place(const float *src, int w, int h, int ws, int hs, int x0, int y0) {
     if (x0 < 0 || y0 < 0 || x0 + w > ws || y0 + h > hs || w <= 0 || h <= 0) throw Error("Image does not fit in the canvas");
@@ -667,14 +764,67 @@ std::vector<int16_t> rounded(const std::vector<double> &p, double lo, double hi)
 
 }  // namespace
 
-bool ogDeblockPrecompensationEnabled() {
-    const char *value = std::getenv("CDNG_OG_DEBLOCK_PRECOMP");
-    if (!value || !*value) return true;
+namespace {
+
+std::string envLower(const char *value) {
     std::string s;
+    if (!value) return s;
     for (const char *p = value; *p; ++p) s.push_back(char(std::tolower(static_cast<unsigned char>(*p))));
+    return s;
+}
+
+bool parseOnOff(const char *value, const char *name, bool defaultOn) {
+    if (!value || !*value) return defaultOn;
+    const std::string s = envLower(value);
     if (s == "1" || s == "on" || s == "true" || s == "yes") return true;
     if (s == "0" || s == "off" || s == "false" || s == "no") return false;
-    throw Error("CDNG_OG_DEBLOCK_PRECOMP: unsupported value '" + std::string(value) + "' (use 0|1|off|on|false|true)");
+    throw Error(std::string(name) + ": unsupported value '" + value + "' (use 0|1|off|on|false|true)");
+}
+
+double parseAlpha(const char *value) {
+    if (!value || !*value) return 1.0;
+    // Solo los valores del diseño EXP-001b.
+    static const double allowed[] = {0.0, 0.25, 0.5, 0.75, 1.0};
+    char *end = nullptr;
+    const double v = std::strtod(value, &end);
+    if (end == value || (end && *end)) {
+        throw Error("CDNG_OG_DEBLOCK_ALPHA: unsupported value '" + std::string(value) +
+                    "' (use 0|0.25|0.5|0.75|1)");
+    }
+    for (double a : allowed) {
+        if (std::fabs(v - a) < 1e-12) return a;
+    }
+    throw Error("CDNG_OG_DEBLOCK_ALPHA: unsupported value '" + std::string(value) +
+                "' (use 0|0.25|0.5|0.75|1)");
+}
+
+}  // namespace
+
+bool ogDeblockPrecompensationEnabled() {
+    return parseOnOff(std::getenv("CDNG_OG_DEBLOCK_PRECOMP"), "CDNG_OG_DEBLOCK_PRECOMP", true);
+}
+
+DeblockPrecomp ogDeblockPrecompensation() {
+    const char *pre = std::getenv("CDNG_OG_DEBLOCK_PRECOMP");
+    const char *alphaEnv = std::getenv("CDNG_OG_DEBLOCK_ALPHA");
+    const char *boundedEnv = std::getenv("CDNG_OG_DEBLOCK_BOUNDED");
+    const bool enabled = parseOnOff(pre, "CDNG_OG_DEBLOCK_PRECOMP", true);
+    const bool bounded = parseOnOff(boundedEnv, "CDNG_OG_DEBLOCK_BOUNDED", false);
+    const bool alphaSet = alphaEnv && *alphaEnv;
+    if (!enabled && alphaSet) {
+        throw Error("CDNG_OG_DEBLOCK_ALPHA no admite valor con CDNG_OG_DEBLOCK_PRECOMP=0 (ablación)");
+    }
+    if (!enabled && bounded) {
+        throw Error("CDNG_OG_DEBLOCK_BOUNDED=1 contradice CDNG_OG_DEBLOCK_PRECOMP=0");
+    }
+    if (bounded && alphaSet) {
+        throw Error("CDNG_OG_DEBLOCK_BOUNDED y CDNG_OG_DEBLOCK_ALPHA son mutuamente excluyentes");
+    }
+    DeblockPrecomp cfg;
+    cfg.enabled = enabled;
+    cfg.bounded = bounded;
+    cfg.alpha = (!enabled || bounded) ? 0.0 : parseAlpha(alphaEnv);
+    return cfg;
 }
 
 RangeStats measureCodeRange(const std::vector<double> &samples, double lo, double hi) {
@@ -712,23 +862,32 @@ RangeStats measureCodeRange(const std::vector<double> &samples, double lo, doubl
     return s;
 }
 
-void floatCanvasPlanes(const Planes &planes, const Geometry &g, bool deblock,
+void floatCanvasPlanes(const Planes &planes, const Geometry &g, const DeblockPrecomp &precomp,
                        std::vector<double> &y, std::vector<double> &cb, std::vector<double> &cr) {
     if (planes.width != g.w || planes.height != g.h) throw Error("Planes do not match the frame geometry");
     y = place(planes.y.data(), g.w, g.h, g.ws, g.hs, g.x0, g.y0);
-    if (deblock) precompensate(y, g.ws, g.hs, 8, 8);
+    applyDeblockPrecomp(y, g.ws, g.hs, precomp);
     const int hx = g.x0 / 2, hy = g.y0 / 2, hw = g.w / 2, hh = g.h / 2;
     cb = place(planes.cb.data(), hw, hh, g.ws / 2, g.hs / 2, hx, hy);
     cr = place(planes.cr.data(), hw, hh, g.ws / 2, g.hs / 2, hx, hy);
 }
 
-CanvasPlanes canvasPlanes(const Planes &planes, const Geometry &g, bool deblock) {
+void floatCanvasPlanes(const Planes &planes, const Geometry &g, bool deblock,
+                       std::vector<double> &y, std::vector<double> &cb, std::vector<double> &cr) {
+    DeblockPrecomp cfg;
+    cfg.enabled = deblock;
+    cfg.alpha = 1.0;
+    cfg.bounded = false;
+    floatCanvasPlanes(planes, g, cfg, y, cb, cr);
+}
+
+CanvasPlanes canvasPlanes(const Planes &planes, const Geometry &g, const DeblockPrecomp &precomp) {
     if (planes.width != g.w || planes.height != g.h) throw Error("Planes do not match the frame geometry");
     CanvasPlanes out;
     out.ws = g.ws; out.hs = g.hs;
     {
         auto y = place(planes.y.data(), g.w, g.h, g.ws, g.hs, g.x0, g.y0);
-        if (deblock) precompensate(y, g.ws, g.hs, 8, 8);
+        applyDeblockPrecomp(y, g.ws, g.hs, precomp);
         out.y = rounded(y, 0, 4095);
     }
     const int hx = g.x0 / 2, hy = g.y0 / 2, hw = g.w / 2, hh = g.h / 2;
@@ -737,6 +896,13 @@ CanvasPlanes canvasPlanes(const Planes &planes, const Geometry &g, bool deblock)
     return out;
 }
 
+CanvasPlanes canvasPlanes(const Planes &planes, const Geometry &g, bool deblock) {
+    DeblockPrecomp cfg;
+    cfg.enabled = deblock;
+    cfg.alpha = 1.0;
+    cfg.bounded = false;
+    return canvasPlanes(planes, g, cfg);
+}
 // ---------------------------------------------------------------------------------------------------------------
 // Vista previa
 
