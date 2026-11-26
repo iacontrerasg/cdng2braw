@@ -52,6 +52,7 @@ OUTPUT_ENV = (
     'CDNG_OG_CHROMA_KERNEL',     # EXP-004: b3|b5|b7; obligatorio con c2|c4
     'CDNG_OG_CHROMA_PHASE',      # EXP-004: center|even|odd
     'CDNG_OG_DEBAYER',           # EXP-005: linear|vng|ppg|ahd|dcb|dht|aahd — solo Pocket OG; default AHD
+    'CDNG_OG_BAYER',             # EXP-005c: 1/on — mosaico lineal Pocket OG (no AHD, no VA ChannelCodec)
 )
 
 # Diagnóstico o i18n: no alteran el BRAW. No entran en la identidad de caché; se pasan al worker solo si se

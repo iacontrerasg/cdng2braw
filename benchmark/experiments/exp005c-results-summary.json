@@ -1,0 +1,186 @@
+{
+  "experiment": "EXP-005c",
+  "title": "Pocket OG Bayer-native Architecture Feasibility",
+  "branch": "experiment/pocket-og-bayer-native-feasibility",
+  "base": "main@62986b7 (PR #11 EXP-005b merged)",
+  "generated_utc": "2026-11-26T20:59:56Z",
+  "defaults_intact": true,
+  "no_sdk_or_format_change": true,
+  "no_exp006_007_008": true,
+  "ahd_default": true,
+  "inventory": {
+    "reusable_as_is": [
+      "Dng::cameraBayer() \u2014 unpack LibRaw, DefaultCrop, black/white, CFA 2\u00d72, muestras lineales",
+      "LibRaw unpack de DNG comprimido (tag 259\u22601) \u2192 raw_image",
+      "ogExposure / Camera Support / metadata de clip OG",
+      "imagePlanes + NativeSensor::map (YCC mezclado por matriz, C0)",
+      "canvasPlanes / DCT / VLC / contenedor BRAW (comunes)",
+      "decodedPlanes y brawdec SDK",
+      "green cubic direccional de bayerFields, aplicado a muestras lineales (no a c\u00f3digos VA)"
+    ],
+    "va_specific_not_reusable_for_og_ycc": [
+      "ChannelCodec VideoAssist (k0+s\u221ax, gain_rgb, toe SDK)",
+      "bayerFields ratios (B\u2212\u011c)/\u011c y sitios Cb DR / Cr UL",
+      "finishPlanes: sharpen luma 1.2 y conversi\u00f3n ratio\u2192c\u00f3digo con signal(Y)",
+      "noiseResolution crop/2 (cuarteto = 1 p\u00edxel VA)",
+      "perfil Camera Support SIGMA fp / analog_gain"
+    ],
+    "og_rgb_specific": [
+      "NativeSensor: scale \u2192 sensor_curve \u2192 offset \u2192 inv(code_from_ycc)",
+      "LibRaw AHD cameraRgb + cropSensor (default)",
+      "info.gain=1; ISO via post_gain al decodificar",
+      "CDNG_OG_CHROMA_MODE C0\u2013C4 sobre RGB ya mapeado"
+    ],
+    "semantic_difference": "VA: c\u00f3digos por fotosito, Y=(R+2G+B)/4 y croma como proporciones en dominio de se\u00f1al. OG: curva por canal sobre RGB completo y mezcla 3\u00d73 a YCbCr. No son la misma representaci\u00f3n interna."
+  },
+  "risks": [
+    "Enchufar cameraBayer en bayerPlanes/finishPlanes escribir\u00eda YCC estilo VA en un BRAW con perfil OG.",
+    "LibRaw AHD introduce zippering/halos; evitarlo no prueba que el SDK OG espere mosaico parcial.",
+    "cameraBayer recorta en el mosaico (par); cameraRgb recorta tras demosaic \u2014 hay que no recortar dos veces.",
+    "Interpolaci\u00f3n bilinear/c\u00fabica sigue siendo un demosaic: puede suavizar detalle y false color propio.",
+    "DNG OG comprimido: unpack OK, no se parchea el mosaico in-place (EXP-005).",
+    "Rango din\u00e1mico: highlight clip de LibRaw no aplica en cameraBayer; highlights pueden diferir."
+  ],
+  "routes": {
+    "og_rgb": {
+      "entry": "CFA DNG \u2192 LibRaw unpack \u2192 AHD (user_qual=3) \u2192 RGB lineal",
+      "normalize": "(count\u2212black)/ (white\u2212black); highlight clip LibRaw",
+      "crop": "DefaultCropOrigin/Size after demosaic (cropSensor)",
+      "map": "NativeSensor (curve + inv code_from_ycc)",
+      "planes": "imagePlanes C0 (Y full, Cb/Cr mean 2\u00d72)",
+      "channelCodec": null
+    },
+    "va_bayer": {
+      "entry": "CFA DNG \u2192 cameraBayer (crop in mosaic)",
+      "normalize": "same black/white linear",
+      "map": "ChannelCodec encode per photosite (sqrt/toe)",
+      "planes": "bayerFields \u2192 ratios \u2192 finishPlanes codes",
+      "channelCodec": "VideoAssist"
+    }
+  },
+  "mosaic_audit": {
+    "path": "BMPCC_1_2000-03-02_0756_C0039_000044.dng",
+    "compression": 7,
+    "photometric": 32803,
+    "cfa_repeat": [
+      2,
+      2
+    ],
+    "cfa_pattern": [
+      1,
+      2,
+      0,
+      1
+    ],
+    "black_level": [
+      256
+    ],
+    "white_level": [
+      51080
+    ],
+    "default_crop_origin": [
+      16,
+      16
+    ],
+    "default_crop_size": [
+      1920,
+      1080
+    ],
+    "active_area": null,
+    "image_width": 1952,
+    "image_length": 1112,
+    "bits": [
+      12
+    ],
+    "baseline_exposure": [
+      3.1
+    ],
+    "unique_camera_model": null,
+    "is_compressed": true,
+    "little_endian": false,
+    "status": "ok",
+    "clip": "BMPCC_1_2000-03-02_0756_C0039",
+    "frame": 44
+  },
+  "smoke": {
+    "status": "measured",
+    "q": 2,
+    "nr": 0,
+    "rdoq": false,
+    "frames": [
+      {
+        "id": "A04_f044",
+        "iso": 1600,
+        "c0_braw": "1a3f42cfe8fafc3d6ce7ec792e056a6b1ce95ce8d9c64428cd24d0947104d4dd",
+        "c0_reused": true,
+        "bayer_braw": "983fb08ec72658bf6178cb44077f2937e329acc9e4dca58a895b75678d7ffa52",
+        "bayer_reused": true,
+        "c0_halo_p99": 0.4368452327001663,
+        "bayer_halo_p99": 0.48409434603417817,
+        "halo_p99_reduction": -0.10815984654785482,
+        "psnr": -0.9824521830970254,
+        "psnr_c0": -1.0278296291297502,
+        "s9_exposure_rel": 7.003683340763871,
+        "luma_bayer_over_c0": 0.9998325797565253,
+        "exposure_rel": 7.003683340763871,
+        "exposure_fail": false,
+        "c0_ruler_left_p99": 0.5215701938546804,
+        "bayer_ruler_left_p99": 0.5308251729331714,
+        "ruler_p99_reduction": -0.017744455468384546,
+        "decode_fail": false
+      },
+      {
+        "id": "A04_f049",
+        "iso": 1600,
+        "c0_braw": "a8ca8ff528842f89b303fe2a1fb8e991e6adf59bd00f1c291873825729a8df7b",
+        "c0_reused": true,
+        "bayer_braw": "71348465085821c45c5fdf79f030917bedc1a64ad09eeab64affb0f8b22366a3",
+        "bayer_reused": true,
+        "c0_halo_p99": 0.20159939659071566,
+        "bayer_halo_p99": 0.41389986755059893,
+        "halo_p99_reduction": -1.0530808849140199,
+        "psnr": 22.53869003134534,
+        "psnr_c0": 24.65169200808639,
+        "s9_exposure_rel": 0.000458595553168184,
+        "luma_bayer_over_c0": 0.9998473281268112,
+        "exposure_rel": 0.000458595553168184,
+        "exposure_fail": false,
+        "c0_ruler_left_p99": 0.5211456087888002,
+        "bayer_ruler_left_p99": 0.5306970964564601,
+        "ruler_p99_reduction": -0.018327867503016293,
+        "decode_fail": false
+      },
+      {
+        "id": "A01_f052",
+        "iso": 200,
+        "c0_braw": "6c3054a8516c0dfeab28e627f58c98c5c81ea54c7f00117c1eca02ec2ee3526c",
+        "c0_reused": true,
+        "bayer_braw": "fbd390edf2deddefd8006609ebecfc20eb6ad56525fbbc3ff15057f7928d4c2b",
+        "bayer_reused": true,
+        "c0_halo_p99": 0.023345093737620722,
+        "bayer_halo_p99": 0.04768155947722743,
+        "halo_p99_reduction": -1.0424659679300574,
+        "psnr": 41.13676415245146,
+        "psnr_c0": 43.0797554530908,
+        "s9_exposure_rel": 0.000444391390715948,
+        "luma_bayer_over_c0": 0.999818769334041,
+        "exposure_rel": 0.000444391390715948,
+        "exposure_fail": false,
+        "c0_ruler_left_p99": 0.06415835566760629,
+        "bayer_ruler_left_p99": 0.06528110320851249,
+        "ruler_p99_reduction": -0.017499630862158666,
+        "decode_fail": false
+      }
+    ],
+    "note": "Comparaci\u00f3n S9 EXR vs C0 AHD vs CDNG_OG_BAYER. No se elige por PSNR global."
+  },
+  "prototype": {
+    "env": "CDNG_OG_BAYER",
+    "implemented": true,
+    "uses_va_finishPlanes": false
+  },
+  "feasibility": {
+    "class": "C",
+    "reason": "La ruta mosaico\u2192RGB lineal\u2192NativeSensor es viable (SDK, exposici\u00f3n, geometr\u00eda) pero no mejora sustancialmente BUG-002 frente a C0 AHD en las ROI medidas."
+  }
+}
