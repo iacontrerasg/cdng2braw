@@ -4,7 +4,7 @@
 **Base:** `main` @ `e1d69f3` (PR #12 EXP-005c **mergeada**). Este trabajo **no** fusiona PRs.  
 **Alcance:** auditoría A–D aceptada; implementación **E1** (viewing opt-in). **No** cambio de defaults. **No** perfiles Camera Support. **No** EXP-005d/006/007/008. **No** investigación de halos/compresión. **Sin merge.**
 
-Objetivo de producto: que el BRAW Pocket OG se comporte en DaVinci Resolve lo más parecido posible al CinemaDNG nativo, con el mínimo de CST, LUT y ajustes iniciales — **sin hornear** el look en los códigos de sensor.
+Objetivo de producto (corregido en **FEAT-001b**): equivalencia CinemaDNG **Gen 4 / Blackmagic Design / Blackmagic Design Film** frente a BRAW **Gen 5 / Blackmagic Design / Film**, con Gamma Controls activos. Gen 1 y DWG/Intermediate **no** son la referencia de grading. Este documento cubre A–E de FEAT-001 (LUT Gen 1 legacy). La caracterización Gen 4 y la lista de EXR están en [feat-001b-cinemadng-gen4-match.md](feat-001b-cinemadng-gen4-match.md).
 
 BUG-002 permanece P0 (véase [backlog.md](backlog.md)). Esta feature **no** lo corrige.
 
@@ -256,9 +256,11 @@ Sin un `.sidecar` LUT generado por Resolve para comparar, **no** se emite sideca
 
 ---
 
-## F — Validación manual en Resolve
+## F — Validación (FEAT-001, look Gen 1 / DWG — legacy)
 
-El banco S9 (P3 lineal) **no** es referencia Film Gen 1. Exportar EXR **adicionales**. Prioridad: **A01_f052**, **A03_f046**, **A04_f049**.
+El objetivo de producto vigente es **FEAT-001b** (Gen 4 Film). Lo que sigue documenta el puente Gen 1 + LUT DWG, no el flujo habitual del usuario.
+
+El banco S9 (P3 lineal) **no** es referencia Film. Exportar EXR **adicionales**. Prioridad FEAT-001b: **A01_f052**, **A03_f046**, **A04_f049** (nombres y Camera RAW en el doc 001b).
 
 ### Proyecto
 

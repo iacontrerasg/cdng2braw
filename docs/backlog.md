@@ -20,7 +20,8 @@ Cierre documentado de líneas ya evaluadas: compensación RGB post-AHD (EXP-004/
 
 ## Producto (otra línea)
 
-- **FEAT-001** Native CinemaDNG workflow compatibility (esta rama, fase E: viewing opt-in implementado; LUT embebida no viable en esta entrega).
+- **FEAT-001** Native CinemaDNG workflow compatibility (esta rama: viewing opt-in DWG/Intermediate; LUT embebida no viable). El look objetivo de producto **no** es Gen 1.
+- **FEAT-001b** Equivalencia CinemaDNG **Gen 4** / Blackmagic Design / Film frente a BRAW **Gen 5** / Blackmagic Design / Film, con Gamma Controls activos. Entrega A+B: [feat-001b-cinemadng-gen4-match.md](feat-001b-cinemadng-gen4-match.md). Sin LUT nueva, sin cambio de checkbox ni defaults hasta validar.
 - Perfiles máxima fidelidad / producción 3:1 y ratios 5:1–12:1 (fuera de alcance aquí).
 
 No EXP-005d / 006 / 007 / 008 en esta rama.
