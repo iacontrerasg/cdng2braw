@@ -17,6 +17,8 @@ AUTHORIZED_EXP_ENV = frozenset({
     'CDNG_OG_DEBLOCK_PRECOMP', 'CDNG_OG_DEBLOCK_ALPHA', 'CDNG_OG_DEBLOCK_BOUNDED', 'CDNG_RATE',
     'CDNG_DEADZONE',
     'CDNG_DEADZONE_POLICY',
+    'CDNG_RDOQ',
+    'CDNG_RDOQ_LAMBDA',
 })
 
 # Campos de encode (request o config.encode) que pueden diferir entre puntos RD.
@@ -870,7 +872,8 @@ def build_report(run_dirs, dest, analysis_cfg=None, expected=None, *, verify_fil
 
 
 def verify_run_matches_request(run_dir, *, q=None, ratio=None, alpha=None, bounded=False, ablation=False,
-                               expected_identity=None, deadzone=None, policy_sha=None):
+                               expected_identity=None, deadzone=None, policy_sha=None,
+                               rdoq=None, rdoq_lambda=None):
     """Para --skip-existing: todos los resultados deben coincidir con la config pedida."""
     run = load_run(run_dir)
     results = run['metrics'].get('results') or {}
@@ -909,6 +912,17 @@ def verify_run_matches_request(run_dir, *, q=None, ratio=None, alpha=None, bound
             pol = env.get('CDNG_DEADZONE_POLICY') or ''
             if policy_sha not in pol:
                 raise RdError('%s/%s: política SHA efectiva %r no contiene %s' % (run_dir, rk, pol, policy_sha))
+        if rdoq is not None:
+            got = env.get('CDNG_RDOQ')
+            if rdoq and got not in ('1', 'on', 'true', 'yes'):
+                raise RdError('%s/%s: CDNG_RDOQ efectivo %s ≠ on' % (run_dir, rk, got))
+            if not rdoq and got not in (None, '0', 'off', 'false', 'no'):
+                raise RdError('%s/%s: se esperaba RDOQ off, got %s' % (run_dir, rk, got))
+        if rdoq_lambda is not None:
+            got = env.get('CDNG_RDOQ_LAMBDA')
+            if got is None or abs(float(got) - float(rdoq_lambda)) > 1e-12:
+                raise RdError('%s/%s: CDNG_RDOQ_LAMBDA efectivo %s ≠ %s' % (
+                    run_dir, rk, got, rdoq_lambda))
         # Identidades por fotograma: entradas y referencia por SHA, no por ruta
         if not cfg.get('inputs'):
             raise RdError('%s/%s: inputs ausentes' % (run_dir, rk))

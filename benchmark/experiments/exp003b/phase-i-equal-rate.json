@@ -1,0 +1,9 @@
+{
+  "ctrl_3to1": "exp003b-i-ctrl-q18-dz50",
+  "rdoq_3to1": "exp003b-h-q18-l70",
+  "ctrl_5to1": "exp003b-g1-a75-dz50",
+  "best_match_5to1": "exp003b-i-rdoq-q24-l130",
+  "tol_pct": 2.0,
+  "target_5to1_sample": 615256.0,
+  "note": "3:1 pair uses \u03bb=70 @q18 vs matched ctrl same \u03b1/DZ; 5:1 uses \u03bb=130 @q24 vs G1"
+}

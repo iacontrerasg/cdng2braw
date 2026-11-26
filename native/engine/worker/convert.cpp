@@ -2,6 +2,7 @@
 #include "gyro.hpp"
 #include "encode_stats.hpp"
 #include "deadzone_policy.hpp"
+#include "rdoq.hpp"
 #include "signal_internal.hpp"
 
 #include <simdjson.h>
@@ -422,6 +423,11 @@ int convert(const std::filesystem::path &requestPath) {
         if (const char *dz = std::getenv("CDNG_DEADZONE"); dz && *dz)
             throw Error("CDNG_DEADZONE and CDNG_DEADZONE_POLICY are mutually exclusive");
     }
+    // EXP-003b RDOQ: parseo estricto en rdoqConfigFromEnv (sin normalizar inválidos);
+    // solo Pocket OG.
+    const RdoqConfig rdoqCfg = rdoqConfigFromEnv();
+    if (rdoqCfg.enabled && route != Route::Og)
+        throw Error("CDNG_RDOQ is only supported on Pocket OG");
     // Carga una sola vez antes de los workers: tablas inmutables, sin mutex por coeficiente.
     deadzonePolicyEnsureLoaded();
     const auto &dzPol = deadzonePolicy();
@@ -439,6 +445,8 @@ int convert(const std::filesystem::path &requestPath) {
         .str("deadzone_policy_name", dzPol.name)
         .str("deadzone_policy_sha256", dzPol.sha256)
         .str("deadzone_policy_path", dzPol.path)
+        .boolean("rdoq", rdoqCfg.enabled)
+        .num("rdoq_lambda", rdoqCfg.enabled ? rdoqCfg.lambda : 0.0)
         .str("build", trace::buildId()).str("trace", trace::path().string()));
     const auto start = std::chrono::steady_clock::now();
     auto seconds = [&] { return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count(); };

@@ -36,6 +36,15 @@ if(BUILD_TESTING)
         target_link_options(cdng_native_tests PRIVATE -fsanitize=address,undefined)
     endif()
     add_test(NAME native_entropy COMMAND cdng_native_tests)
+
+    add_executable(cdng_ac_cost_tests tests/ac_cost_test.cpp)
+    target_link_libraries(cdng_ac_cost_tests PRIVATE cdng_native)
+    target_compile_features(cdng_ac_cost_tests PRIVATE cxx_std_17)
+    set_target_properties(cdng_ac_cost_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+    foreach(config DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+        set_target_properties(cdng_ac_cost_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY_${config} "${CMAKE_BINARY_DIR}/lib")
+    endforeach()
+    add_test(NAME native_ac_cost COMMAND cdng_ac_cost_tests)
 endif()
 
 # Motor de conversión completo en C++ (sustituye al proceso Python de la app). Ver native/engine/README.md.
@@ -56,7 +65,8 @@ add_library(cdng_engine STATIC
     engine/dng.cpp engine/resize.cpp engine/wav.cpp
     engine/signal.cpp engine/nr.cpp
     engine/signal_asshot.cpp engine/signal_scatter.cpp engine/signal_source.cpp engine/signal_util.cpp
-    engine/codec.cpp engine/codec_tables.cpp engine/encode_stats.cpp engine/deadzone_policy.cpp src/entropy.cpp
+    engine/codec.cpp engine/codec_tables.cpp engine/encode_stats.cpp engine/deadzone_policy.cpp
+    engine/rdoq.cpp src/entropy.cpp
     engine/container.cpp)
 target_compile_features(cdng_engine PUBLIC cxx_std_17)
 target_include_directories(cdng_engine PUBLIC engine include)
@@ -165,7 +175,7 @@ else()
 endif()
 
 if(BUILD_TESTING)
-    foreach(module geometry dng signal codec container json)
+    foreach(module geometry dng signal codec container json rdoq)
         add_executable(engine_${module}_test engine/tests/${module}_test.cpp)
         target_link_libraries(engine_${module}_test PRIVATE cdng_engine)
         set_target_properties(engine_${module}_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")

@@ -13,6 +13,7 @@
 #include "codec.hpp"
 #include "codec_tables.hpp"
 #include "deadzone_policy.hpp"
+#include "rdoq.hpp"
 
 #include "cdng_native.h"
 #include "cdng_bit_budget.h"
@@ -303,6 +304,7 @@ EncodedFrame Codec::encode(const CanvasPlanes &planes, int q, const Geometry &g,
         planes.cb.size() != std::size_t(g.ws / 2) * (g.hs / 2) || planes.cr.size() != planes.cb.size())
         throw Error("Unsupported frame geometry.");
     if (cdng_bit_budget_enabled()) cdng_bit_budget_reset();
+    const RdoqConfig rdoq = rdoqConfigFromEnv();
     CoeffHist hist{};
     const bool wantHist = coeffStatsEnabled();
     EncodedFrame frame;
@@ -334,10 +336,18 @@ EncodedFrame Codec::encode(const CanvasPlanes &planes, int q, const Geometry &g,
                     dct8x8(block, coef);
                     target[b] = (coef[0] / 8.0 - 2048.0) / st.yUnit;
                     int64_t *ac = y.ac.data() + b * 63;
+                    double coefScan[63];
                     double ein = 0, eout = 0;
                     for (int i = 0; i < 63; ++i) {
                         const double c = coef[ScanY[i]];
+                        coefScan[i] = c;
                         ac[i] = quantizeAc(c, st.qY, DeadzonePlane::Y, ScanY[i]);
+                    }
+                    if (rdoq.enabled)
+                        rdoqOptimizeBlock(coefScan, st.qY, ac, 63, impl_->native, rdoq,
+                                          DeadzonePlane::Y, ScanY.data());
+                    for (int i = 0; i < 63; ++i) {
+                        const double c = coefScan[i];
                         const double r = double(ac[i]) * st.qY;
                         ein += c * c; eout += r * r;
                         if (wantHist) hist.acYlevel(ac[i], ScanY[i], c, st.qY);
@@ -361,11 +371,18 @@ EncodedFrame Codec::encode(const CanvasPlanes &planes, int q, const Geometry &g,
                         dct4x8(block, coef);
                         target[b] = coef[0] / st.cUnit;
                         int64_t *ac = out.ac.data() + b * 31;
+                        const auto pl = s ? DeadzonePlane::Cr : DeadzonePlane::Cb;
+                        double coefScan[31];
                         double ein = 0, eout = 0;
                         for (int i = 0; i < 31; ++i) {
                             const double c = coef[ScanC[i]];
-                            const auto pl = s ? DeadzonePlane::Cr : DeadzonePlane::Cb;
+                            coefScan[i] = c;
                             ac[i] = quantizeAc(c, st.qC, pl, ScanC[i]);
+                        }
+                        if (rdoq.enabled)
+                            rdoqOptimizeBlock(coefScan, st.qC, ac, 31, impl_->native, rdoq, pl, ScanC.data());
+                        for (int i = 0; i < 31; ++i) {
+                            const double c = coefScan[i];
                             const double r = double(ac[i]) * st.qC;
                             ein += c * c; eout += r * r;
                             if (wantHist) hist.acClevel(ac[i], ScanC[i], c, st.qC);
@@ -584,6 +601,7 @@ int Codec::nextQuantiser(int q, std::size_t size, std::size_t target, int qMin) 
 CanvasPlanes Codec::reconstruct(const CanvasPlanes &planes, int q, const Geometry &g) const {
     const auto &st = impl_->tables.steps(q);
     if (planes.ws != g.ws || planes.hs != g.hs) throw Error("Unsupported frame geometry.");
+    const RdoqConfig rdoq = rdoqConfigFromEnv();
     CanvasPlanes out = planes;
     const int wc = g.ws / 2;
     double block[64], coef[64];
@@ -599,8 +617,16 @@ CanvasPlanes Codec::reconstruct(const CanvasPlanes &planes, int q, const Geometr
                     dct8x8(block, coef);
                     double rec[64] = {};
                     rec[0] = (std::nearbyint((coef[0] / 8.0 - 2048.0) / st.yUnit) * st.yUnit + 2048.0) * 8.0;
-                    for (int i = 0; i < 63; ++i)
-                        rec[ScanY[i]] = double(quantizeAc(coef[ScanY[i]], st.qY, DeadzonePlane::Y, ScanY[i])) * st.qY;
+                    double coefScan[63];
+                    int64_t ac[63];
+                    for (int i = 0; i < 63; ++i) {
+                        coefScan[i] = coef[ScanY[i]];
+                        ac[i] = quantizeAc(coefScan[i], st.qY, DeadzonePlane::Y, ScanY[i]);
+                    }
+                    if (rdoq.enabled)
+                        rdoqOptimizeBlock(coefScan, st.qY, ac, 63, impl_->native, rdoq,
+                                          DeadzonePlane::Y, ScanY.data());
+                    for (int i = 0; i < 63; ++i) rec[ScanY[i]] = double(ac[i]) * st.qY;
                     idct8x8(rec, block);
                     for (int i = 0; i < 8; ++i)
                         for (int j = 0; j < 8; ++j)
@@ -617,8 +643,15 @@ CanvasPlanes Codec::reconstruct(const CanvasPlanes &planes, int q, const Geometr
                         double rec[64] = {};
                         rec[0] = std::nearbyint(coef[0] / st.cUnit) * st.cUnit;
                         const auto pl = s ? DeadzonePlane::Cr : DeadzonePlane::Cb;
-                        for (int i = 0; i < 31; ++i)
-                            rec[ScanC[i]] = double(quantizeAc(coef[ScanC[i]], st.qC, pl, ScanC[i])) * st.qC;
+                        double coefScan[31];
+                        int64_t ac[31];
+                        for (int i = 0; i < 31; ++i) {
+                            coefScan[i] = coef[ScanC[i]];
+                            ac[i] = quantizeAc(coefScan[i], st.qC, pl, ScanC[i]);
+                        }
+                        if (rdoq.enabled)
+                            rdoqOptimizeBlock(coefScan, st.qC, ac, 31, impl_->native, rdoq, pl, ScanC.data());
+                        for (int i = 0; i < 31; ++i) rec[ScanC[i]] = double(ac[i]) * st.qC;
                         idct4x8(rec, block);
                         for (int i = 0; i < 4; ++i)
                             for (int j = 0; j < 8; ++j)

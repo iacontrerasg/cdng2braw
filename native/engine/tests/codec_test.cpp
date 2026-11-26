@@ -5,8 +5,12 @@
 #include "../codec_tables.hpp"
 #include "../deadzone_policy.hpp"
 #include "../encode_stats.hpp"
+#include "../rdoq.hpp"
+#include "cdng_ac_cost.h"
 #include "check.hpp"
 
+#include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
@@ -324,6 +328,46 @@ void autonomous(const Codec &codec, const CodecTables &t) {
         // quantizeAc con z=0 ≡ nearbyint.
         CHECK(quantizeAc(1.5, 1.0, DeadzonePlane::Y, 1) == int64_t(std::nearbyint(1.5)));
         CHECK(quantizeAc(-1.5, 1.0, DeadzonePlane::Y, 1) == int64_t(std::nearbyint(-1.5)));
+    }
+
+    // EXP-003b RDOQ: candidatos incluyen legacy; λ=0 no empeora D del modelo.
+    {
+        const double step = 1.0, coef = 2.4;
+        const int64_t legacy = 2;
+        RdoqConfig cfg;
+        cfg.enabled = true;
+        cfg.lambda = 0;
+        auto cands = rdoqCandidates(coef, step, legacy, cfg);
+        CHECK(std::find(cands.begin(), cands.end(), legacy) != cands.end());
+        CHECK(std::find(cands.begin(), cands.end(), int64_t(0)) != cands.end());
+        double best = 1e300;
+        for (int64_t k : cands) best = std::min(best, distortionDct(coef, k, step));
+        CHECK(best <= distortionDct(coef, legacy, step) + 1e-15);
+
+        CdngEntropyTables native{t.preVal.data(), t.preLen.data(), t.finVal.data(), t.finLen.data(),
+                                 t.drop.data(), t.adjust.data(), t.eobValue, uint8_t(t.eobLength)};
+        CdngAcBlockCost cost{};
+        std::array<int64_t, 63> zeros{};
+        CHECK(cdng_ac_block_cost(zeros.data(), 63, &native, &cost, nullptr) == 0);
+        CHECK(cost.total_bits == uint64_t(t.eobLength) && cost.ac_coded == 0);
+
+        // Trellis λ=0 sobre un bloque sintético: D_opt ≤ D_legacy.
+        double coefScan[63] = {};
+        int64_t ac[63] = {};
+        coefScan[0] = 2.4; ac[0] = 2;
+        coefScan[3] = -1.2; ac[3] = -1;
+        double Dleg = 0;
+        for (int i = 0; i < 63; ++i) Dleg += distortionDct(coefScan[i], ac[i], step);
+        int64_t acOpt[63];
+        std::copy(ac, ac + 63, acOpt);
+        rdoqOptimizeBlock(coefScan, step, acOpt, 63, native, cfg, DeadzonePlane::Y, ScanY.data());
+        double Dopt = 0;
+        for (int i = 0; i < 63; ++i) Dopt += distortionDct(coefScan[i], acOpt[i], step);
+        CHECK(Dopt <= Dleg + 1e-9);
+
+        // Sin CDNG_RDOQ el encode por defecto no cambia (mismo lienzo → mismos slices).
+        unsetenv("CDNG_RDOQ");
+        unsetenv("CDNG_RDOQ_LAMBDA");
     }
 
     // Hilos: el mismo Codec desde varios hilos a la vez da lo mismo que en serie.
