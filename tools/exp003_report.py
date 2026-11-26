@@ -166,6 +166,7 @@ def aggregate(rows):
             and len(valid) == len(expected)
             and all(r.get('result') in expected for r in valid)
         )
+        all_m = metric_bundle(measurable)
         out.append({
             'run': run,
             'expected_frames': expected,
@@ -182,22 +183,22 @@ def aggregate(rows):
             'series_approved': series_approved,
             # Conservado como experimental aunque falle algún frame.
             'experimental_retained': len(measurable) > 0,
-            'all_frames': metric_bundle(measurable),
+            'all_frames': all_m,
             'valid_frames_only': metric_bundle(valid),
             'worst_case': worst_case(measurable),
             # Compat: medias principales = todos los medibles (sin sesgo de selección).
-            'psnr_mean': metric_bundle(measurable)['psnr_mean'],
-            'duv_edges_mean': metric_bundle(measurable)['duv_edges_mean'],
-            'grad_mean': metric_bundle(measurable)['grad_mean'],
-            'lap_mean': metric_bundle(measurable)['lap_mean'],
-            'detail_corr_mean': metric_bundle(measurable)['detail_corr_mean'],
-            'sample_bytes_mean': metric_bundle(measurable)['sample_bytes_mean'],
-            'payload_bytes_mean': metric_bundle(measurable)['payload_bytes_mean'],
-            'sdk_frame_bytes_mean': metric_bundle(measurable)['sdk_frame_bytes_mean'],
-            'ratio_sample_mean': metric_bundle(measurable)['ratio_sample_mean'],
-            'ratio_payload_mean': metric_bundle(measurable)['ratio_payload_mean'],
-            'ratio_sdk_mean': metric_bundle(measurable)['ratio_sdk_mean'],
-            'q_eff': metric_bundle(measurable)['q_eff_mean'],
+            'psnr_mean': all_m['psnr_mean'],
+            'duv_edges_mean': all_m['duv_edges_mean'],
+            'grad_mean': all_m['grad_mean'],
+            'lap_mean': all_m['lap_mean'],
+            'detail_corr_mean': all_m['detail_corr_mean'],
+            'sample_bytes_mean': all_m['sample_bytes_mean'],
+            'payload_bytes_mean': all_m['payload_bytes_mean'],
+            'sdk_frame_bytes_mean': all_m['sdk_frame_bytes_mean'],
+            'ratio_sample_mean': all_m['ratio_sample_mean'],
+            'ratio_payload_mean': all_m['ratio_payload_mean'],
+            'ratio_sdk_mean': all_m['ratio_sdk_mean'],
+            'q_eff': all_m['q_eff_mean'],
             # Resultados individuales (campos esenciales; sin volcar todo RD).
             'frames': [_slim_frame(r) for r in rs],
         })
