@@ -163,13 +163,32 @@ def extract_kernel(resid, lx, ly, amp, radius=28):
     return patch, (y0, x0, ly - y0, lx - x0)
 
 
+def signed_channel_stats(k):
+    """Lóbulos sobre el kernel firmado, no sobre hypot."""
+    k = np.asarray(k, dtype=np.float64)
+    pos, neg = float(np.max(k)), float(np.min(k))
+    amp = max(abs(pos), abs(neg), 1e-12)
+    return {
+        'max': pos, 'min': neg,
+        'has_negative_lobes': neg < -0.05 * amp,
+        'neg_energy_frac': float(np.sum(np.clip(-k, 0, None)) / (np.sum(np.abs(k)) + 1e-12)),
+        'support_pos': int(np.sum(k > 0.01 * amp)),
+        'support_neg': int(np.sum(k < -0.01 * amp)),
+    }
+
+
 def kernel_stats(patch, peak_yx):
-    cr, cb = rgb_chroma(patch) if patch.ndim == 3 else (patch, np.zeros_like(patch))
-    mag = np.hypot(cr, cb) if patch.ndim == 3 else np.abs(patch)
+    rg, bg = rgb_chroma(patch) if patch.ndim == 3 else (patch, np.zeros_like(patch))
+    mag = np.hypot(rg, bg) if patch.ndim == 3 else np.abs(patch)
     py, px = peak_yx
     cls = classify_operator(mag)
-    cls['cross_rg_at_peak'] = float(cr[py, px]) if cr.shape == mag.shape else 0.0
-    cls['cross_bg_at_peak'] = float(cb[py, px]) if cb.shape == mag.shape else 0.0
+    srg, sbg = signed_channel_stats(rg), signed_channel_stats(bg)
+    cls['has_negative_lobes'] = bool(srg['has_negative_lobes'] or sbg['has_negative_lobes'])
+    cls['signed_rg'] = srg
+    cls['signed_bg'] = sbg
+    cls['min_lobe'] = min(srg['min'], sbg['min'])
+    cls['cross_rg_at_peak'] = float(rg[py, px]) if rg.shape == mag.shape else 0.0
+    cls['cross_bg_at_peak'] = float(bg[py, px]) if bg.shape == mag.shape else 0.0
     cls['rgb_peak'] = [float(v) for v in patch[py, px]] if patch.ndim == 3 else float(patch[py, px])
     return cls
 
@@ -248,12 +267,25 @@ def stripe_layout():
     return [(n, i * 192, 192) for i, n in enumerate(names)]
 
 
+def match_codec_y(sensor, rgb, y_tgt, iters=12, tol=0.5):
+    """Iguala Y del mapa NativeSensor (post-curva), no una escala lineal RGB."""
+    rgb = np.asarray(rgb, dtype=np.float64).copy()
+    hist = []
+    for _ in range(iters):
+        y = float(sensor.map_rgb(rgb)[0])
+        hist.append(y)
+        if abs(y - y_tgt) <= tol:
+            break
+        if abs(y) < 1e-9:
+            break
+        rgb *= y_tgt / y
+    return rgb, {'y_final': float(sensor.map_rgb(rgb)[0]), 'y_target': float(y_tgt),
+                 'iters': len(hist), 'y_path': hist}
+
+
 def scale_to_y(sensor, rgb, y_tgt):
-    rgb = np.asarray(rgb, dtype=np.float64)
-    y = float(sensor.map_rgb(rgb)[0])
-    if abs(y) < 1e-9:
-        return rgb
-    return rgb * (y_tgt / y)
+    rgb, _ = match_codec_y(sensor, rgb, y_tgt)
+    return rgb
 
 
 def build_edge_rgb(sensor):
@@ -297,17 +329,26 @@ def stripe_metrics(s8, sensor, pairs):
         ref = band.copy()
         ref[:, :split] = np.median(left.reshape(-1, 3), axis=0)
         ref[:, split:] = np.median(right.reshape(-1, 3), axis=0)
-        h = halo_stats(band, ref)
+        h_spatial = halo_stats(band, ref)  # error vs mesetas SDK (croma constante de cada lado)
+        alg_ref = np.empty_like(band)
+        alg_ref[:, :split] = apply_rgb(lo, sensor.camera_to_p3())
+        alg_ref[:, split:] = apply_rgb(hi, sensor.camera_to_p3())
+        h_alg = halo_stats(band, alg_ref)
         mid = band[H // 4: 3 * H // 4, max(0, split - 10): split + 10]
-        mag = p3_chroma_field(mid)
-        y_lo = float(np.mean(sensor.map_rgb(lo)[0]))
-        y_hi = float(np.mean(sensor.map_rgb(hi)[0]))
+        mag_abs = p3_chroma_field(mid)
+        y_lo = float(sensor.map_rgb(lo)[0])
+        y_hi = float(sensor.map_rgb(hi)[0])
         dist = float(np.mean(np.abs(lo / (lo[1] + 1e-12) - n) + np.abs(hi / (hi[1] + 1e-12) - n)))
         out.append({
             'name': name, 'x0': x0, 'edge': edge,
-            'halo_p99': h['p99'], 'halo_peak': h['peak'], 'halo_integrated': h['integrated'],
-            'edge_chroma_p99': float(np.percentile(mag, 99)),
+            'halo_p99': h_spatial['p99'], 'halo_peak': h_spatial['peak'],
+            'halo_integrated': h_spatial['integrated'],
+            'spatial_vs_plateau': h_spatial,
+            'error_vs_algebraic_p3': h_alg,
+            'absolute_chroma_p99': float(np.percentile(mag_abs, 99)),
+            'codec_y_lo': y_lo, 'codec_y_hi': y_hi,
             'luma_contrast': abs(y_hi - y_lo),
+            'isoluminant_codec_y_err': abs(y_hi - y_lo) if name == 'isoluminant' else None,
             'dist_to_asn': dist,
             'cam_equal': name.startswith('cam_equal'),
             'p3_neutral': name.startswith('p3'),

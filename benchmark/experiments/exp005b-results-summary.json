@@ -3,7 +3,7 @@
   "title": "Decoder-aware Chroma Reconstruction: Feasibility",
   "branch": "experiment/pocket-og-decoder-aware-chroma",
   "base": "main@81cc49a (PR #10 merged)",
-  "generated_utc": "2026-11-26T20:31:40Z",
+  "generated_utc": "2026-11-26T20:38:23Z",
   "defaults_intact": true,
   "aahd_experimental_only": true,
   "ahd_default": true,
@@ -549,7 +549,7 @@
       "n_chroma_sites": 16,
       "n_y_sites": 4,
       "mean_support_px": 52.5,
-      "negative_lobes": false,
+      "negative_lobes": true,
       "sites": [
         {
           "peak": [
@@ -557,7 +557,7 @@
             29
           ],
           "peak_value": 0.004830132048980215,
-          "min_lobe": 0.0,
+          "min_lobe": -0.0008094139397144316,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 77,
@@ -565,7 +565,23 @@
           "separable_fro_err": 0.000511282696021676,
           "linear_separable": false,
           "linear_nonseparable": true,
-          "has_negative_lobes": false,
+          "has_negative_lobes": true,
+          "signed_rg": {
+            "max": 4.119127988815307e-05,
+            "min": -0.0008094139397144316,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.8672862428192104,
+            "support_pos": 39,
+            "support_neg": 38
+          },
+          "signed_bg": {
+            "max": 0.004761829972267151,
+            "min": -0.0002336867153644562,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.13059191414952565,
+            "support_pos": 38,
+            "support_neg": 39
+          },
           "cross_rg_at_peak": -0.00020642206072807312,
           "cross_bg_at_peak": 0.0011838145554065704,
           "rgb_peak": [
@@ -587,7 +603,7 @@
             29
           ],
           "peak_value": 0.004389578742612776,
-          "min_lobe": 0.0,
+          "min_lobe": -0.0007875043898820876,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 75,
@@ -595,7 +611,23 @@
           "separable_fro_err": 0.00048209287816843125,
           "linear_separable": false,
           "linear_nonseparable": true,
-          "has_negative_lobes": false,
+          "has_negative_lobes": true,
+          "signed_rg": {
+            "max": 4.122219979763031e-05,
+            "min": -0.0007875043898820876,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.8345053890663089,
+            "support_pos": 49,
+            "support_neg": 26
+          },
+          "signed_bg": {
+            "max": 0.0043183606117963794,
+            "min": -0.00023471228778362274,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.16818815168022797,
+            "support_pos": 26,
+            "support_neg": 49
+          },
           "cross_rg_at_peak": -0.00019538216292858126,
           "cross_bg_at_peak": 0.0011008810251951218,
           "rgb_peak": [
@@ -617,7 +649,7 @@
             29
           ],
           "peak_value": 0.005365778986351666,
-          "min_lobe": 0.0,
+          "min_lobe": -0.0008426897848645845,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 12,
@@ -625,7 +657,23 @@
           "separable_fro_err": 0.00018014472178122198,
           "linear_separable": false,
           "linear_nonseparable": true,
-          "has_negative_lobes": false,
+          "has_negative_lobes": true,
+          "signed_rg": {
+            "max": 1.0298192501068116e-05,
+            "min": -0.0008426897848645845,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.9582286524681327,
+            "support_pos": 2,
+            "support_neg": 10
+          },
+          "signed_bg": {
+            "max": 0.005299194095035395,
+            "min": -5.8453530073165894e-05,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.039538633389684656,
+            "support_pos": 10,
+            "support_neg": 2
+          },
           "cross_rg_at_peak": -0.00020719431340694426,
           "cross_bg_at_peak": 0.0012094474087158838,
           "rgb_peak": [
@@ -647,7 +695,7 @@
             28
           ],
           "peak_value": 0.004701905166183289,
-          "min_lobe": 0.0,
+          "min_lobe": -0.00023016370832920077,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 77,
@@ -655,7 +703,23 @@
           "separable_fro_err": 0.0004964258132000577,
           "linear_separable": false,
           "linear_nonseparable": true,
-          "has_negative_lobes": false,
+          "has_negative_lobes": true,
+          "signed_rg": {
+            "max": 0.004699376970529556,
+            "min": -0.00023016370832920077,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.13047370634038188,
+            "support_pos": 38,
+            "support_neg": 39
+          },
+          "signed_bg": {
+            "max": 8.467957377433771e-06,
+            "min": -0.00015416964888572695,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.8628238742771777,
+            "support_pos": 39,
+            "support_neg": 38
+          },
           "cross_rg_at_peak": 0.004699376970529556,
           "cross_bg_at_peak": -0.00015416964888572695,
           "rgb_peak": [
@@ -677,7 +741,7 @@
             28
           ],
           "peak_value": 0.004248531934890256,
-          "min_lobe": 0.0,
+          "min_lobe": -0.0002312205731868744,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 75,
@@ -685,7 +749,23 @@
           "separable_fro_err": 0.00046798574694865394,
           "linear_separable": false,
           "linear_nonseparable": true,
-          "has_negative_lobes": false,
+          "has_negative_lobes": true,
+          "signed_rg": {
+            "max": 0.0042450234293937685,
+            "min": -0.0002312205731868744,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.16834034048580424,
+            "support_pos": 26,
+            "support_neg": 49
+          },
+          "signed_bg": {
+            "max": 8.412450551986697e-06,
+            "min": -0.00017262585461139677,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.8396121279874179,
+            "support_pos": 49,
+            "support_neg": 26
+          },
           "cross_rg_at_peak": 0.0042450234293937685,
           "cross_bg_at_peak": -0.00017262585461139677,
           "rgb_peak": [
@@ -707,7 +787,7 @@
             28
           ],
           "peak_value": 0.005249588175319093,
-          "min_lobe": 0.0,
+          "min_lobe": -0.0001359339182575544,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 12,
@@ -715,7 +795,23 @@
           "separable_fro_err": 0.00017563479156207097,
           "linear_separable": false,
           "linear_nonseparable": true,
-          "has_negative_lobes": false,
+          "has_negative_lobes": true,
+          "signed_rg": {
+            "max": 0.005247827929755052,
+            "min": -5.7573864857355754e-05,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.039420377672251684,
+            "support_pos": 10,
+            "support_neg": 2
+          },
+          "signed_bg": {
+            "max": 2.114723126093546e-06,
+            "min": -0.0001359339182575544,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.9529240283065602,
+            "support_pos": 8,
+            "support_neg": 13
+          },
           "cross_rg_at_peak": 0.005247827929755052,
           "cross_bg_at_peak": -0.0001359339182575544,
           "rgb_peak": [
@@ -737,7 +833,7 @@
             29
           ],
           "peak_value": 0.004830132048980215,
-          "min_lobe": 0.0,
+          "min_lobe": -0.0008094139397144316,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 73,
@@ -745,7 +841,23 @@
           "separable_fro_err": 0.0005432301822450566,
           "linear_separable": false,
           "linear_nonseparable": true,
-          "has_negative_lobes": false,
+          "has_negative_lobes": true,
+          "signed_rg": {
+            "max": 4.119127988815307e-05,
+            "min": -0.0008094139397144316,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.8674575568704069,
+            "support_pos": 39,
+            "support_neg": 34
+          },
+          "signed_bg": {
+            "max": 0.004761829972267151,
+            "min": -0.0002336867153644562,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.1304364036234397,
+            "support_pos": 34,
+            "support_neg": 39
+          },
           "cross_rg_at_peak": -0.0001857448369264603,
           "cross_bg_at_peak": 0.001064278557896614,
           "rgb_peak": [
@@ -767,7 +879,7 @@
             28
           ],
           "peak_value": 0.004701905166183289,
-          "min_lobe": 0.0,
+          "min_lobe": -0.00023016370832920077,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 73,
@@ -775,7 +887,23 @@
           "separable_fro_err": 0.0005273542785873056,
           "linear_separable": false,
           "linear_nonseparable": true,
-          "has_negative_lobes": false,
+          "has_negative_lobes": true,
+          "signed_rg": {
+            "max": 0.004699376970529556,
+            "min": -0.00023016370832920077,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.1303190361970076,
+            "support_pos": 34,
+            "support_neg": 39
+          },
+          "signed_bg": {
+            "max": 8.467957377433771e-06,
+            "min": -0.00015416964888572695,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.8630294610057542,
+            "support_pos": 39,
+            "support_neg": 34
+          },
           "cross_rg_at_peak": 0.004699376970529556,
           "cross_bg_at_peak": -0.00015416964888572695,
           "rgb_peak": [
@@ -797,7 +925,7 @@
             29
           ],
           "peak_value": 0.0035763651746748846,
-          "min_lobe": 0.0,
+          "min_lobe": -0.0008023075759410858,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 25,
@@ -805,7 +933,23 @@
           "separable_fro_err": 0.00032423057102763095,
           "linear_separable": false,
           "linear_nonseparable": true,
-          "has_negative_lobes": false,
+          "has_negative_lobes": true,
+          "signed_rg": {
+            "max": 1.0304773847262066e-05,
+            "min": -0.0008023075759410858,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.9322302691496888,
+            "support_pos": 3,
+            "support_neg": 10
+          },
+          "signed_bg": {
+            "max": 0.0034852102398872375,
+            "min": -5.86458792289098e-05,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.07404839694760147,
+            "support_pos": 11,
+            "support_neg": 14
+          },
           "cross_rg_at_peak": -0.00020147922138373056,
           "cross_bg_at_peak": 0.0011143005142609278,
           "rgb_peak": [
@@ -827,7 +971,7 @@
             28
           ],
           "peak_value": 0.00397025888772869,
-          "min_lobe": 0.0,
+          "min_lobe": -0.00020070026318232223,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 13,
@@ -835,7 +979,23 @@
           "separable_fro_err": 0.0001908907299117957,
           "linear_separable": false,
           "linear_nonseparable": true,
-          "has_negative_lobes": false,
+          "has_negative_lobes": true,
+          "signed_rg": {
+            "max": 0.003965182850758235,
+            "min": -5.777167777220408e-05,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.07207744385595978,
+            "support_pos": 10,
+            "support_neg": 3
+          },
+          "signed_bg": {
+            "max": 2.1051615476608273e-06,
+            "min": -0.00020070026318232223,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.9391063408562992,
+            "support_pos": 3,
+            "support_neg": 10
+          },
           "cross_rg_at_peak": 0.003965182850758235,
           "cross_bg_at_peak": -0.00020070026318232223,
           "rgb_peak": [
@@ -857,7 +1017,7 @@
             29
           ],
           "peak_value": 0.011321940447795237,
-          "min_lobe": 0.0,
+          "min_lobe": -0.0019343554973602298,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 77,
@@ -865,7 +1025,23 @@
           "separable_fro_err": 0.0012252989476261075,
           "linear_separable": false,
           "linear_nonseparable": true,
-          "has_negative_lobes": false,
+          "has_negative_lobes": true,
+          "signed_rg": {
+            "max": 9.889006614685058e-05,
+            "min": -0.0019343554973602298,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.8669973250445157,
+            "support_pos": 39,
+            "support_neg": 38
+          },
+          "signed_bg": {
+            "max": 0.011155474185943603,
+            "min": -0.0005615711212158203,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.13207989414834437,
+            "support_pos": 38,
+            "support_neg": 39
+          },
           "cross_rg_at_peak": -0.0004948645830154419,
           "cross_bg_at_peak": 0.0028232067823410036,
           "rgb_peak": [
@@ -887,7 +1063,7 @@
             29
           ],
           "peak_value": 0.010798160292067078,
-          "min_lobe": 0.0,
+          "min_lobe": -0.0018980383872985837,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 75,
@@ -895,7 +1071,23 @@
           "separable_fro_err": 0.0011575107294011947,
           "linear_separable": false,
           "linear_nonseparable": true,
-          "has_negative_lobes": false,
+          "has_negative_lobes": true,
+          "signed_rg": {
+            "max": 9.890794754028321e-05,
+            "min": -0.0018980383872985837,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.8348343826120111,
+            "support_pos": 49,
+            "support_neg": 26
+          },
+          "signed_bg": {
+            "max": 0.010630038380622864,
+            "min": -0.000562584400177002,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.16628222080591815,
+            "support_pos": 26,
+            "support_neg": 49
+          },
           "cross_rg_at_peak": -0.00046941339969635014,
           "cross_bg_at_peak": 0.0026583105325698854,
           "rgb_peak": [
@@ -917,7 +1109,7 @@
             28
           ],
           "peak_value": 0.01100397048235035,
-          "min_lobe": 0.0,
+          "min_lobe": -0.0005531281232833863,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 77,
@@ -925,7 +1117,23 @@
           "separable_fro_err": 0.0011895356805688192,
           "linear_separable": false,
           "linear_nonseparable": true,
-          "has_negative_lobes": false,
+          "has_negative_lobes": true,
+          "signed_rg": {
+            "max": 0.010997247695922852,
+            "min": -0.0005531281232833863,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.13202761109331604,
+            "support_pos": 38,
+            "support_neg": 39
+          },
+          "signed_bg": {
+            "max": 2.0286440849304194e-05,
+            "min": -0.0003845900297164916,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.8652770438678955,
+            "support_pos": 39,
+            "support_neg": 38
+          },
           "cross_rg_at_peak": 0.010997247695922852,
           "cross_bg_at_peak": -0.0003845900297164916,
           "rgb_peak": [
@@ -947,7 +1155,7 @@
             28
           ],
           "peak_value": 0.010469791629899073,
-          "min_lobe": 0.0,
+          "min_lobe": -0.0005541890859603882,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 75,
@@ -955,7 +1163,23 @@
           "separable_fro_err": 0.0011236219267604466,
           "linear_separable": false,
           "linear_nonseparable": true,
-          "has_negative_lobes": false,
+          "has_negative_lobes": true,
+          "signed_rg": {
+            "max": 0.010462144017219543,
+            "min": -0.0005541890859603882,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.1663441194637208,
+            "support_pos": 26,
+            "support_neg": 49
+          },
+          "signed_bg": {
+            "max": 2.0232796669006337e-05,
+            "min": -0.0004000991582870485,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.8368881633730307,
+            "support_pos": 49,
+            "support_neg": 26
+          },
           "cross_rg_at_peak": 0.010462144017219543,
           "cross_bg_at_peak": -0.0004000991582870485,
           "rgb_peak": [
@@ -977,7 +1201,7 @@
             29
           ],
           "peak_value": 0.012023689291689557,
-          "min_lobe": 0.0,
+          "min_lobe": -0.0019964829087257383,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 12,
@@ -985,7 +1209,23 @@
           "separable_fro_err": 0.0004201948072589631,
           "linear_separable": false,
           "linear_nonseparable": true,
-          "has_negative_lobes": false,
+          "has_negative_lobes": true,
+          "signed_rg": {
+            "max": 2.4719039599100747e-05,
+            "min": -0.0019964829087257383,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.9579325202508586,
+            "support_pos": 2,
+            "support_neg": 10
+          },
+          "signed_bg": {
+            "max": 0.011856776972611744,
+            "min": -0.0001404215892155965,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.041085662615976584,
+            "support_pos": 10,
+            "support_neg": 2
+          },
           "cross_rg_at_peak": -0.0004956424236297606,
           "cross_bg_at_peak": 0.0028488437334696455,
           "rgb_peak": [
@@ -1007,7 +1247,7 @@
             28
           ],
           "peak_value": 0.011713099801162192,
-          "min_lobe": 0.0,
+          "min_lobe": -0.00037226279576619463,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 12,
@@ -1015,7 +1255,23 @@
           "separable_fro_err": 0.0004082970481016693,
           "linear_separable": false,
           "linear_nonseparable": true,
-          "has_negative_lobes": false,
+          "has_negative_lobes": true,
+          "signed_rg": {
+            "max": 0.01170718272527059,
+            "min": -0.00013831456502278646,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.041031833086053196,
+            "support_pos": 10,
+            "support_neg": 2
+          },
+          "signed_bg": {
+            "max": 5.068381627400718e-06,
+            "min": -0.00037226279576619463,
+            "has_negative_lobes": true,
+            "neg_energy_frac": 0.9558849386287545,
+            "support_pos": 2,
+            "support_neg": 10
+          },
           "cross_rg_at_peak": 0.01170718272527059,
           "cross_bg_at_peak": -0.00037226279576619463,
           "rgb_peak": [
@@ -1039,7 +1295,7 @@
             28
           ],
           "peak_value": 0.0011837010974239737,
-          "min_lobe": 0.0,
+          "min_lobe": -1.337110996246338e-05,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 13,
@@ -1048,6 +1304,22 @@
           "linear_separable": false,
           "linear_nonseparable": true,
           "has_negative_lobes": false,
+          "signed_rg": {
+            "max": 0.0009873610734939574,
+            "min": -1.337110996246338e-05,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.20651927082928587,
+            "support_pos": 10,
+            "support_neg": 3
+          },
+          "signed_bg": {
+            "max": 0.0006528908014297487,
+            "min": -8.841753005981446e-06,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.2065016197736671,
+            "support_pos": 10,
+            "support_neg": 3
+          },
           "cross_rg_at_peak": 0.0009873610734939574,
           "cross_bg_at_peak": 0.0006528908014297487,
           "rgb_peak": [
@@ -1067,7 +1339,7 @@
             28
           ],
           "peak_value": 0.0009675054154444924,
-          "min_lobe": 0.0,
+          "min_lobe": -1.3411194086074829e-05,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 49,
@@ -1076,6 +1348,22 @@
           "linear_separable": false,
           "linear_nonseparable": true,
           "has_negative_lobes": false,
+          "signed_rg": {
+            "max": 0.0008070260286331177,
+            "min": -1.3411194086074829e-05,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.26470219623845453,
+            "support_pos": 21,
+            "support_neg": 28
+          },
+          "signed_bg": {
+            "max": 0.0005336438119411469,
+            "min": -8.867532014846804e-06,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.26470844864716864,
+            "support_pos": 21,
+            "support_neg": 28
+          },
           "cross_rg_at_peak": 0.0008070260286331177,
           "cross_bg_at_peak": 0.0005336438119411469,
           "rgb_peak": [
@@ -1095,7 +1383,7 @@
             28
           ],
           "peak_value": 0.002689548341881126,
-          "min_lobe": 0.0,
+          "min_lobe": -4.281759262084962e-05,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 15,
@@ -1104,6 +1392,22 @@
           "linear_separable": false,
           "linear_nonseparable": true,
           "has_negative_lobes": false,
+          "signed_rg": {
+            "max": 0.002243436574935913,
+            "min": -4.281759262084962e-05,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.3134863143646412,
+            "support_pos": 9,
+            "support_neg": 6
+          },
+          "signed_bg": {
+            "max": 0.0014834630489349364,
+            "min": -2.831459045410156e-05,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.31353851904337704,
+            "support_pos": 9,
+            "support_neg": 6
+          },
           "cross_rg_at_peak": 0.002243436574935913,
           "cross_bg_at_peak": 0.0014834630489349364,
           "rgb_peak": [
@@ -1123,7 +1427,7 @@
             28
           ],
           "peak_value": 0.002485107921560574,
-          "min_lobe": 0.0,
+          "min_lobe": -3.2159090042114256e-05,
           "overshoot": 0.0,
           "undershoot": 0.0,
           "support_px": 44,
@@ -1132,6 +1436,22 @@
           "linear_separable": false,
           "linear_nonseparable": true,
           "has_negative_lobes": false,
+          "signed_rg": {
+            "max": 0.0020729041099548343,
+            "min": -3.2159090042114256e-05,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.17059315151029222,
+            "support_pos": 29,
+            "support_neg": 15
+          },
+          "signed_bg": {
+            "max": 0.001370704174041748,
+            "min": -2.1263360977172852e-05,
+            "has_negative_lobes": false,
+            "neg_energy_frac": 0.17054247670935707,
+            "support_pos": 29,
+            "support_neg": 15
+          },
           "cross_rg_at_peak": 0.0020729041099548343,
           "cross_bg_at_peak": 0.001370704174041748,
           "rgb_peak": [
@@ -1251,8 +1571,79 @@
         "halo_p99": 0.15980953559709732,
         "halo_peak": 0.18109472391133097,
         "halo_integrated": 410.19724934965325,
-        "edge_chroma_p99": 5.067793980307674,
+        "spatial_vs_plateau": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.18109472391133097,
+          "p95": 0.003262916224177928,
+          "p99": 0.15980953559709732,
+          "p99_9": 0.18109472391133097,
+          "integrated": 410.19724934965325,
+          "mean": 0.0019781888953976333,
+          "n_valid": 207360,
+          "peak_duv": 1.7297224321641695e-08,
+          "peak_rel_y": 0.8328799640691504,
+          "peak_at": {
+            "y": 0,
+            "x": 96
+          },
+          "peak_y_ref": 5.269866043544143,
+          "peak_y_cand": 5.465160985994226,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 0.15980953559709732,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 1.0,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "error_vs_algebraic_p3": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 4.49983738258823,
+          "p95": 4.318742663036427,
+          "p99": 4.318742663036427,
+          "p99_9": 4.49983738258823,
+          "integrated": 464404.22514476825,
+          "mean": 2.239603709224384,
+          "n_valid": 207360,
+          "peak_duv": 0.00015493910246496245,
+          "peak_rel_y": 14.205579305115371,
+          "peak_at": {
+            "y": 0,
+            "x": 96
+          },
+          "peak_y_ref": 0.6138247304302505,
+          "peak_y_cand": 5.465160985994226,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 4.49983738258823,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.4479166666666667,
+            "hot_on_edges_fraction": 0.023255813953488372,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "absolute_chroma_p99": 5.067793980307674,
+        "codec_y_lo": 704.7152122445826,
+        "codec_y_hi": 3049.0989355281476,
         "luma_contrast": 2344.383723283565,
+        "isoluminant_codec_y_err": null,
         "dist_to_asn": 0.39773333331606064,
         "cam_equal": true,
         "p3_neutral": false
@@ -1264,8 +1655,79 @@
         "halo_p99": 0.0028896186967622963,
         "halo_peak": 0.004184942000812901,
         "halo_integrated": 36.63635656927098,
-        "edge_chroma_p99": 1.957218547181806,
+        "spatial_vs_plateau": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.004184942000812901,
+          "p95": 0.002090901741076258,
+          "p99": 0.0028896186967622963,
+          "p99_9": 0.004184942000812901,
+          "integrated": 36.63635656927098,
+          "mean": 0.00017667996030705526,
+          "n_valid": 207360,
+          "peak_duv": 2.2721430546822885e-08,
+          "peak_rel_y": 0.0030152123886438235,
+          "peak_at": {
+            "y": 0,
+            "x": 187
+          },
+          "peak_y_ref": 2.1084287873972287,
+          "peak_y_cand": 2.1129414901819126,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": "nan",
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.015625,
+            "hot_on_edges_fraction": 0.0,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "error_vs_algebraic_p3": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 1.732129124089761,
+          "p95": 1.7279441821834536,
+          "p99": 1.7300359098238214,
+          "p99_9": 1.732129124089761,
+          "integrated": 260575.86907126656,
+          "mean": 1.2566351710612778,
+          "n_valid": 207360,
+          "peak_duv": 0.0001549339518556958,
+          "peak_rel_y": 7.054656802747476,
+          "peak_at": {
+            "y": 0,
+            "x": 187
+          },
+          "peak_y_ref": 0.2455298921721002,
+          "peak_y_cand": 2.1129414901819126,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 1.732129124089761,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.020833333333333332,
+            "hot_on_edges_fraction": 0.0,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "absolute_chroma_p99": 1.957218547181806,
+        "codec_y_lo": 1350.9192776165753,
+        "codec_y_hi": 1953.847983093064,
         "luma_contrast": 602.9287054764886,
+        "isoluminant_codec_y_err": null,
         "dist_to_asn": 0.39773333332848476,
         "cam_equal": true,
         "p3_neutral": false
@@ -1277,8 +1739,79 @@
         "halo_p99": 0.07020608752276034,
         "halo_peak": 0.07020608752276034,
         "halo_integrated": 221.57564663311396,
-        "edge_chroma_p99": 0.07203008670098528,
+        "spatial_vs_plateau": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.07020608752276034,
+          "p95": 0.0004847790410726061,
+          "p99": 0.07020608752276034,
+          "p99_9": 0.07020608752276034,
+          "integrated": 221.57564663311396,
+          "mean": 0.0010685553946427177,
+          "n_valid": 207360,
+          "peak_duv": 0.011559179102239022,
+          "peak_rel_y": 0.300141642077212,
+          "peak_at": {
+            "y": 0,
+            "x": 96
+          },
+          "peak_y_ref": 4.71379778674494,
+          "peak_y_cand": 4.867503400753869,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 0.05137396847964038,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 0.5,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "error_vs_algebraic_p3": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.07203414559200204,
+          "p95": 0.003660308207583214,
+          "p99": 0.07203414559200204,
+          "p99_9": 0.07203414559200204,
+          "integrated": 705.5277856354817,
+          "mean": 0.0034024295217760497,
+          "n_valid": 207360,
+          "peak_duv": 0.011497888689354752,
+          "peak_rel_y": 2.5453591466886802,
+          "peak_at": {
+            "y": 0,
+            "x": 96
+          },
+          "peak_y_ref": 0.5500000000000002,
+          "peak_y_cand": 4.867503400753869,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 0.07203414559200204,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 0.5,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "absolute_chroma_p99": 0.07203008670098528,
+        "codec_y_lo": 667.4806938267986,
+        "codec_y_hi": 2804.853400401581,
         "luma_contrast": 2137.3727065747826,
+        "isoluminant_codec_y_err": null,
         "dist_to_asn": 4.1513089262442314e-11,
         "cam_equal": false,
         "p3_neutral": false
@@ -1290,8 +1823,79 @@
         "halo_p99": 0.07020608752276034,
         "halo_peak": 0.07962046944430991,
         "halo_integrated": 234.46447085960054,
-        "edge_chroma_p99": 0.07203008670098528,
+        "spatial_vs_plateau": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.07962046944430991,
+          "p95": 0.0015027159715666652,
+          "p99": 0.07020608752276034,
+          "p99_9": 0.07962046944430991,
+          "integrated": 234.46447085960054,
+          "mean": 0.001130712147278166,
+          "n_valid": 207360,
+          "peak_duv": 0.01557454774833913,
+          "peak_rel_y": 0.46516590306711963,
+          "peak_at": {
+            "y": 0,
+            "x": 0
+          },
+          "peak_y_ref": 0.1711657473587898,
+          "peak_y_cand": 0.31295422772409437,
+          "peak_in_highlight": false,
+          "peak_clipped": false,
+          "peak_excl_highlight": 0.07962046944430991,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 0.5,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "error_vs_algebraic_p3": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.07848005851589859,
+          "p95": 0.0044831867750097405,
+          "p99": 0.07203008670098533,
+          "p99_9": 0.07848005851589859,
+          "integrated": 706.5833289296304,
+          "mean": 0.0034075199118905786,
+          "n_valid": 207360,
+          "peak_duv": 0.015190518034251943,
+          "peak_rel_y": 3.924002925402529,
+          "peak_at": {
+            "y": 0,
+            "x": 0
+          },
+          "peak_y_ref": 0.020000000002,
+          "peak_y_cand": 0.31295422772409437,
+          "peak_in_highlight": false,
+          "peak_clipped": false,
+          "peak_excl_highlight": 0.07848005851589859,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 0.5,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "absolute_chroma_p99": 0.07203008670098528,
+        "codec_y_lo": 667.4879374940547,
+        "codec_y_hi": 2804.899992278902,
         "luma_contrast": 2137.4120547848474,
+        "isoluminant_codec_y_err": null,
         "dist_to_asn": 9.094249033207251e-05,
         "cam_equal": false,
         "p3_neutral": true
@@ -1303,8 +1907,79 @@
         "halo_p99": 0.0009979006210516137,
         "halo_peak": 0.02265809127204571,
         "halo_integrated": 35.660119056004646,
-        "edge_chroma_p99": 0.006335856713822843,
+        "spatial_vs_plateau": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.02265809127204571,
+          "p95": 0.000729712015001383,
+          "p99": 0.0009979006210516137,
+          "p99_9": 0.02265809127204571,
+          "integrated": 35.660119056004646,
+          "mean": 0.00017197202476854092,
+          "n_valid": 207360,
+          "peak_duv": 0.0007472395432884509,
+          "peak_rel_y": 0.012004611168386482,
+          "peak_at": {
+            "y": 0,
+            "x": 191
+          },
+          "peak_y_ref": 1.8874489939094916,
+          "peak_y_cand": 1.8878177321874008,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": "nan",
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.020833333333333332,
+            "hot_on_edges_fraction": 0.25,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "error_vs_algebraic_p3": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.02814612236303018,
+          "p95": 0.005488405044592906,
+          "p99": 0.0063358567138228974,
+          "p99_9": 0.02814612236303018,
+          "integrated": 717.582117962744,
+          "mean": 0.003460561911471566,
+          "n_valid": 207360,
+          "peak_duv": 0.0009274784065948662,
+          "peak_rel_y": 0.1279369198191617,
+          "peak_at": {
+            "y": 0,
+            "x": 191
+          },
+          "peak_y_ref": 0.22000000002199996,
+          "peak_y_cand": 1.8878177321874008,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 0.02814612236303018,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.020833333333333332,
+            "hot_on_edges_fraction": 0.25,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "absolute_chroma_p99": 0.006335856713822843,
+        "codec_y_lo": 1251.4659492886503,
+        "codec_y_hi": 1801.8225944319745,
         "luma_contrast": 550.3566451433242,
+        "isoluminant_codec_y_err": null,
         "dist_to_asn": 9.094247967659601e-05,
         "cam_equal": false,
         "p3_neutral": true
@@ -1315,9 +1990,80 @@
         "edge": 1056,
         "halo_p99": 0.011866569519042969,
         "halo_peak": 0.19727659225463867,
-        "halo_integrated": 302.988338470459,
-        "edge_chroma_p99": 8.50742244720459,
+        "halo_integrated": 302.991943359375,
+        "spatial_vs_plateau": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.19727659225463867,
+          "p95": 0.005218029022216797,
+          "p99": 0.011866569519042969,
+          "p99_9": 0.19727659225463867,
+          "integrated": 302.991943359375,
+          "mean": 0.0014611879984537761,
+          "n_valid": 207360,
+          "peak_duv": 1.1102230246251565e-16,
+          "peak_rel_y": 0.3318963777352781,
+          "peak_at": {
+            "y": 0,
+            "x": 96
+          },
+          "peak_y_ref": 0.5943921220254693,
+          "peak_y_cand": 0.578750669801435,
+          "peak_in_highlight": false,
+          "peak_clipped": true,
+          "peak_excl_highlight": 0.19727659225463867,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 0.5,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "error_vs_algebraic_p3": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 7.4827062833559035,
+          "p95": 7.4708398072098525,
+          "p99": 7.476772568412423,
+          "p99_9": 7.4827062833559035,
+          "integrated": 1458217.1902483134,
+          "mean": 7.032297406675894,
+          "n_valid": 207360,
+          "peak_duv": 0.06847267475563062,
+          "peak_rel_y": 189.8883449012346,
+          "peak_at": {
+            "y": 0,
+            "x": 90
+          },
+          "peak_y_ref": 0.20178122686791,
+          "peak_y_cand": 1.9479833464632261,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 7.4827062833559035,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.03125,
+            "hot_on_edges_fraction": 0.16666666666666666,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "absolute_chroma_p99": 8.50742244720459,
+        "codec_y_lo": 1417.1300309357953,
+        "codec_y_hi": 1455.9923757432562,
         "luma_contrast": 38.862344807460886,
+        "isoluminant_codec_y_err": null,
         "dist_to_asn": 4.942177777681148,
         "cam_equal": false,
         "p3_neutral": false
@@ -1326,12 +2072,83 @@
         "name": "isoluminant",
         "x0": 1152,
         "edge": 1248,
-        "halo_p99": 0.5520052058840473,
-        "halo_peak": 0.558991506121037,
-        "halo_integrated": 1244.589446865362,
-        "edge_chroma_p99": 5.3441657117925185,
-        "luma_contrast": 19.239546747257236,
-        "dist_to_asn": 2.0222222222052486,
+        "halo_p99": 1.6970260084993667,
+        "halo_peak": 2.129979402793027,
+        "halo_integrated": 4165.397243557527,
+        "spatial_vs_plateau": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 2.129979402793027,
+          "p95": 0.0026209798416538914,
+          "p99": 1.6970260084993667,
+          "p99_9": 2.129979402793027,
+          "integrated": 4165.397243557527,
+          "mean": 0.020087756768699495,
+          "n_valid": 207360,
+          "peak_duv": 0.12914972961770033,
+          "peak_rel_y": 3.9537168618932683,
+          "peak_at": {
+            "y": 0,
+            "x": 95
+          },
+          "peak_y_ref": 1.0216057945600534,
+          "peak_y_cand": 0.8676958602127829,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 1.6970260084993667,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 1.0,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "error_vs_algebraic_p3": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 3.3385478338664862,
+          "p95": 3.332115226855118,
+          "p99": 3.3353314284811053,
+          "p99_9": 3.3385478338664862,
+          "integrated": 614793.1596702805,
+          "mean": 2.9648589876074487,
+          "n_valid": 207360,
+          "peak_duv": 0.1376992173717813,
+          "peak_rel_y": 57.40679519096649,
+          "peak_at": {
+            "y": 0,
+            "x": 1
+          },
+          "peak_y_ref": 0.1188514352328978,
+          "peak_y_cand": 1.0246771870457918,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 3.3385478338664862,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 0.0,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "absolute_chroma_p99": 3.7726157217797427,
+        "codec_y_lo": 1200.3164739480317,
+        "codec_y_hi": 1200.3375048608023,
+        "luma_contrast": 0.02103091277058411,
+        "isoluminant_codec_y_err": 0.02103091277058411,
+        "dist_to_asn": 2.022222222197954,
         "cam_equal": false,
         "p3_neutral": false
       },
@@ -1341,9 +2158,80 @@
         "edge": 1440,
         "halo_p99": 0.0009979006210516137,
         "halo_peak": 0.0009979006210516137,
-        "halo_integrated": 10.403639101557593,
-        "edge_chroma_p99": 0.006335856713822843,
+        "halo_integrated": 10.402465303775688,
+        "spatial_vs_plateau": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.0009979006210516137,
+          "p95": 0.0007286251652033254,
+          "p99": 0.0009979006210516137,
+          "p99_9": 0.0009979006210516137,
+          "integrated": 10.402465303775688,
+          "mean": 5.01662099912022e-05,
+          "n_valid": 207360,
+          "peak_duv": 4.8335409770011146e-05,
+          "peak_rel_y": 0.0008514623946496984,
+          "peak_at": {
+            "y": 0,
+            "x": 98
+          },
+          "peak_y_ref": 1.8874489939094916,
+          "peak_y_cand": 1.889578708952737,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": "nan",
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.015625,
+            "hot_on_edges_fraction": 0.3333333333333333,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "error_vs_algebraic_p3": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.00630852792614379,
+          "p95": 0.0054570151693569035,
+          "p99": 0.00630852792614379,
+          "p99_9": 0.00630852792614379,
+          "integrated": 689.0503830155445,
+          "mean": 0.0033229667390795936,
+          "n_valid": 207360,
+          "peak_duv": 0.00019196754781209796,
+          "peak_rel_y": 0.028675126937017226,
+          "peak_at": {
+            "y": 0,
+            "x": 98
+          },
+          "peak_y_ref": 0.22,
+          "peak_y_cand": 1.889578708952737,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 0.00630852792614379,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.015625,
+            "hot_on_edges_fraction": 0.3333333333333333,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "absolute_chroma_p99": 0.006335856713822843,
+        "codec_y_lo": 1251.4468780817895,
+        "codec_y_hi": 1801.7935362303556,
         "luma_contrast": 550.3466581485661,
+        "isoluminant_codec_y_err": null,
         "dist_to_asn": 1.165286385903149e-11,
         "cam_equal": false,
         "p3_neutral": false
@@ -1355,8 +2243,79 @@
         "halo_p99": 0.033434180784489904,
         "halo_peak": 0.21436847609160745,
         "halo_integrated": 326.31400682225393,
-        "edge_chroma_p99": 4.886699256397547,
+        "spatial_vs_plateau": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.21436847609160745,
+          "p95": 0.003262916224177928,
+          "p99": 0.033434180784489904,
+          "p99_9": 0.21436847609160745,
+          "integrated": 326.31400682225393,
+          "mean": 0.0015736593693202832,
+          "n_valid": 207360,
+          "peak_duv": 1.7162048067462674e-08,
+          "peak_rel_y": 0.17424904706983718,
+          "peak_at": {
+            "y": 0,
+            "x": 191
+          },
+          "peak_y_ref": 5.269866043544143,
+          "peak_y_cand": 5.501043596426742,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 0.033434180784489904,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 0.5,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "error_vs_algebraic_p3": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 4.533111134080579,
+          "p95": 4.318742663036427,
+          "p99": 4.325270875358773,
+          "p99_9": 4.533111134080579,
+          "integrated": 459834.62986161205,
+          "mean": 2.217566694934472,
+          "n_valid": 207360,
+          "peak_duv": 0.00015493910246496245,
+          "peak_rel_y": 8.543829214774703,
+          "peak_at": {
+            "y": 0,
+            "x": 191
+          },
+          "peak_y_ref": 0.6138247304302505,
+          "peak_y_cand": 5.501043596426742,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 4.533111134080579,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 0.0,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "absolute_chroma_p99": 4.886699256397547,
+        "codec_y_lo": 704.7152122445826,
+        "codec_y_hi": 3049.0989355281476,
         "luma_contrast": 2344.383723283565,
+        "isoluminant_codec_y_err": null,
         "dist_to_asn": 0.39773333331606064,
         "cam_equal": true,
         "p3_neutral": false
@@ -1368,8 +2327,79 @@
         "halo_p99": 0.34182618189155545,
         "halo_peak": 0.6864023045225355,
         "halo_integrated": 1832.3471704037167,
-        "edge_chroma_p99": 0.6899432255134192,
+        "spatial_vs_plateau": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.6864023045225355,
+          "p95": 0.011696980623338455,
+          "p99": 0.34182618189155545,
+          "p99_9": 0.6864023045225355,
+          "integrated": 1832.3471704037167,
+          "mean": 0.008836550783196936,
+          "n_valid": 207360,
+          "peak_duv": 0.07779520402455249,
+          "peak_rel_y": 1.6795168893685513,
+          "peak_at": {
+            "y": 0,
+            "x": 97
+          },
+          "peak_y_ref": 4.71379778674494,
+          "peak_y_cand": 4.608865439171239,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 0.287475763570478,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 1.0,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "error_vs_algebraic_p3": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.6899432255134195,
+          "p95": 0.011878059983210773,
+          "p99": 0.3453672778351819,
+          "p99_9": 0.6899432255134195,
+          "integrated": 2291.1993272701757,
+          "mean": 0.011049379471789042,
+          "n_valid": 207360,
+          "peak_duv": 0.07815900129963342,
+          "peak_rel_y": 14.428685231126211,
+          "peak_at": {
+            "y": 0,
+            "x": 97
+          },
+          "peak_y_ref": 0.550000000055,
+          "peak_y_cand": 4.608865439171239,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 0.6899432255134195,
+          "spatial": {
+            "edge_mask_fraction": 0.03125,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 1.0,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "absolute_chroma_p99": 0.6899432255134192,
+        "codec_y_lo": 667.4879374940547,
+        "codec_y_hi": 2804.899992278902,
         "luma_contrast": 2137.4120547848474,
+        "isoluminant_codec_y_err": null,
         "dist_to_asn": 9.094249033207251e-05,
         "cam_equal": false,
         "p3_neutral": true
@@ -1381,9 +2411,12 @@
       "cam_equal_hi_p99": 0.15980953559709732,
       "p3_hi_p99": 0.07020608752276034,
       "asn_hi_p99": 0.07020608752276034,
-      "isoluminant_p99": 0.5520052058840473,
-      "corr_contrast_p99": -0.061742758256123895,
-      "corr_asn_dist_p99": 0.0914035572475038,
+      "isoluminant_p99": 1.6970260084993667,
+      "corr_contrast_p99": -0.33275774317309215,
+      "corr_asn_dist_p99": 0.21835300093388116,
+      "isoluminant_codec_y_err": 0.02103091277058411,
+      "isoluminant_codec_y_lo": 1200.3164739480317,
+      "isoluminant_codec_y_hi": 1200.3375048608023,
       "note": "Si cam_equal (Cb=Cr=0 en c\u00f3dec) tiene halo S8, el SDK introduce croma desde luma. Si p3/asn dominan, el origen principal es croma de c\u00f3digo por la curva.",
       "confirmed_exclusive_wb": false
     },
@@ -1545,11 +2578,11 @@
       },
       "edges": {
         "run_id": "s8-edges",
-        "braw_sha256": "e0a54bd2d40df3e1345b2a3a8e85263984a88b2b253ac750faa7eb37c2b283f2",
-        "reused_braw": true,
-        "reused_decode": true,
-        "seconds_braw": 0.5081780840000001,
-        "seconds_decode": 0.04012770900000007
+        "braw_sha256": "c9a073eb61f1fc55ca24f774f42195ae0c2c86e476c937596a3a5a5b524448ae",
+        "reused_braw": false,
+        "reused_decode": false,
+        "seconds_braw": 0.519994292,
+        "seconds_decode": 0.14816325000000008
       },
       "p3_c0": {
         "run_id": "s8-p3-c0",
@@ -1569,7 +2602,634 @@
       }
     },
     "q18": "not_run_no_promising_production_candidate",
-    "wb_exposure_sweep": "not_run; no EXR equivalentes"
+    "wb_exposure_sweep": "not_run; no EXR equivalentes",
+    "held_out_peak_not_operator_validation": true,
+    "closed_loop": {
+      "budget_max": 100,
+      "evals_counted": 23,
+      "evals_log": [
+        {
+          "tag": "c0",
+          "counted": true,
+          "n": 1,
+          "reused_braw": false,
+          "seconds": 0.5277895000000008
+        },
+        {
+          "tag": "intA",
+          "counted": true,
+          "n": 2,
+          "reused_braw": false,
+          "seconds": 0.5295622080000015
+        },
+        {
+          "tag": "intB",
+          "counted": true,
+          "n": 3,
+          "reused_braw": false,
+          "seconds": 0.5564883750000007
+        },
+        {
+          "tag": "intAB",
+          "counted": true,
+          "n": 4,
+          "reused_braw": false,
+          "seconds": 0.5080069169999994
+        },
+        {
+          "tag": "fd0",
+          "counted": true,
+          "n": 5,
+          "reused_braw": false,
+          "seconds": 0.5245348330000006
+        },
+        {
+          "tag": "fd1",
+          "counted": true,
+          "n": 6,
+          "reused_braw": false,
+          "seconds": 0.5200917920000023
+        },
+        {
+          "tag": "fd2",
+          "counted": true,
+          "n": 7,
+          "reused_braw": false,
+          "seconds": 0.5135307089999976
+        },
+        {
+          "tag": "fd3",
+          "counted": true,
+          "n": 8,
+          "reused_braw": false,
+          "seconds": 0.5206405409999988
+        },
+        {
+          "tag": "fd4",
+          "counted": true,
+          "n": 9,
+          "reused_braw": false,
+          "seconds": 0.513990291999999
+        },
+        {
+          "tag": "fd5",
+          "counted": true,
+          "n": 10,
+          "reused_braw": false,
+          "seconds": 0.5076804169999996
+        },
+        {
+          "tag": "fd6",
+          "counted": true,
+          "n": 11,
+          "reused_braw": false,
+          "seconds": 0.4958714999999998
+        },
+        {
+          "tag": "fd7",
+          "counted": true,
+          "n": 12,
+          "reused_braw": false,
+          "seconds": 0.7647364999999979
+        },
+        {
+          "tag": "fd8",
+          "counted": true,
+          "n": 13,
+          "reused_braw": false,
+          "seconds": 0.5180433750000013
+        },
+        {
+          "tag": "fd9",
+          "counted": true,
+          "n": 14,
+          "reused_braw": false,
+          "seconds": 0.5026346250000024
+        },
+        {
+          "tag": "fd10",
+          "counted": true,
+          "n": 15,
+          "reused_braw": false,
+          "seconds": 0.5018590839999995
+        },
+        {
+          "tag": "fd11",
+          "counted": true,
+          "n": 16,
+          "reused_braw": false,
+          "seconds": 0.49516741699999756
+        },
+        {
+          "tag": "gn0",
+          "counted": true,
+          "n": 17,
+          "reused_braw": false,
+          "seconds": 0.509112708
+        },
+        {
+          "tag": "fd0",
+          "counted": false,
+          "n": 17,
+          "reused_braw": true,
+          "seconds": 0.5245348330000006
+        },
+        {
+          "tag": "fd1",
+          "counted": false,
+          "n": 17,
+          "reused_braw": true,
+          "seconds": 0.5200917920000023
+        },
+        {
+          "tag": "fd2",
+          "counted": false,
+          "n": 17,
+          "reused_braw": true,
+          "seconds": 0.5135307089999976
+        },
+        {
+          "tag": "fd3",
+          "counted": false,
+          "n": 17,
+          "reused_braw": true,
+          "seconds": 0.5206405409999988
+        },
+        {
+          "tag": "fd4",
+          "counted": false,
+          "n": 17,
+          "reused_braw": true,
+          "seconds": 0.513990291999999
+        },
+        {
+          "tag": "fd5",
+          "counted": false,
+          "n": 17,
+          "reused_braw": true,
+          "seconds": 0.5076804169999996
+        },
+        {
+          "tag": "fd6",
+          "counted": false,
+          "n": 17,
+          "reused_braw": true,
+          "seconds": 0.4958714999999998
+        },
+        {
+          "tag": "fd7",
+          "counted": false,
+          "n": 17,
+          "reused_braw": true,
+          "seconds": 0.7647364999999979
+        },
+        {
+          "tag": "fd8",
+          "counted": false,
+          "n": 17,
+          "reused_braw": true,
+          "seconds": 0.5180433750000013
+        },
+        {
+          "tag": "fd9",
+          "counted": false,
+          "n": 17,
+          "reused_braw": true,
+          "seconds": 0.5026346250000024
+        },
+        {
+          "tag": "fd10",
+          "counted": false,
+          "n": 17,
+          "reused_braw": true,
+          "seconds": 0.5018590839999995
+        },
+        {
+          "tag": "fd11",
+          "counted": false,
+          "n": 17,
+          "reused_braw": true,
+          "seconds": 0.49516741699999756
+        },
+        {
+          "tag": "gn1",
+          "counted": true,
+          "n": 18,
+          "reused_braw": false,
+          "seconds": 0.5086533750000015
+        },
+        {
+          "tag": "fd0",
+          "counted": false,
+          "n": 18,
+          "reused_braw": true,
+          "seconds": 0.5245348330000006
+        },
+        {
+          "tag": "fd1",
+          "counted": false,
+          "n": 18,
+          "reused_braw": true,
+          "seconds": 0.5200917920000023
+        },
+        {
+          "tag": "fd2",
+          "counted": false,
+          "n": 18,
+          "reused_braw": true,
+          "seconds": 0.5135307089999976
+        },
+        {
+          "tag": "fd3",
+          "counted": false,
+          "n": 18,
+          "reused_braw": true,
+          "seconds": 0.5206405409999988
+        },
+        {
+          "tag": "fd4",
+          "counted": false,
+          "n": 18,
+          "reused_braw": true,
+          "seconds": 0.513990291999999
+        },
+        {
+          "tag": "fd5",
+          "counted": false,
+          "n": 18,
+          "reused_braw": true,
+          "seconds": 0.5076804169999996
+        },
+        {
+          "tag": "fd6",
+          "counted": false,
+          "n": 18,
+          "reused_braw": true,
+          "seconds": 0.4958714999999998
+        },
+        {
+          "tag": "fd7",
+          "counted": false,
+          "n": 18,
+          "reused_braw": true,
+          "seconds": 0.7647364999999979
+        },
+        {
+          "tag": "fd8",
+          "counted": false,
+          "n": 18,
+          "reused_braw": true,
+          "seconds": 0.5180433750000013
+        },
+        {
+          "tag": "fd9",
+          "counted": false,
+          "n": 18,
+          "reused_braw": true,
+          "seconds": 0.5026346250000024
+        },
+        {
+          "tag": "fd10",
+          "counted": false,
+          "n": 18,
+          "reused_braw": true,
+          "seconds": 0.5018590839999995
+        },
+        {
+          "tag": "fd11",
+          "counted": false,
+          "n": 18,
+          "reused_braw": true,
+          "seconds": 0.49516741699999756
+        },
+        {
+          "tag": "fd12",
+          "counted": true,
+          "n": 19,
+          "reused_braw": false,
+          "seconds": 0.5021270829999978
+        },
+        {
+          "tag": "fd13",
+          "counted": true,
+          "n": 20,
+          "reused_braw": false,
+          "seconds": 0.49871879199999825
+        },
+        {
+          "tag": "fd14",
+          "counted": true,
+          "n": 21,
+          "reused_braw": false,
+          "seconds": 0.5077571249999977
+        },
+        {
+          "tag": "fd15",
+          "counted": true,
+          "n": 22,
+          "reused_braw": false,
+          "seconds": 0.5001038330000007
+        },
+        {
+          "tag": "joint",
+          "counted": true,
+          "n": 23,
+          "reused_braw": false,
+          "seconds": 0.49715662500000235
+        }
+      ],
+      "seconds": 12.807977627999993,
+      "wall_seconds": 16.190873458000002,
+      "n_cb": 6,
+      "n_cr": 6,
+      "eps_c": 64.0,
+      "interference": {
+        "rel_err": 0.0,
+        "grouped_ok": true,
+        "note": "agrupar perturbaciones solo si rel_err<0.15; esta campa\u00f1a no agrupa el jacobiano"
+      },
+      "svd": {
+        "singular_values": [
+          0.31670617322360434,
+          0.24901675794657468,
+          0.24034010438313289,
+          0.2388906994075407,
+          0.21827824835231346,
+          0.12455546752898357,
+          0.08817011578453551,
+          0.07112636338858569,
+          0.07025562668900573,
+          0.06762931390118684,
+          0.04804035932175901,
+          0.0025021061877788255
+        ],
+        "smax": 0.31670617322360434,
+        "smin": 0.0025021061877788255,
+        "cond": 126.57583230100691,
+        "effective_rank_1e3": 12
+      },
+      "lambda": 0.16,
+      "gauss_newton": [
+        {
+          "iter": 0,
+          "pred_drop": 0.397453130293285,
+          "actual_drop": 0.0,
+          "rho": 0.0,
+          "red": {
+            "p99": 0.0,
+            "integrated": 0.0
+          },
+          "lam": 0.01,
+          "x_rms": 0.6690598295395876
+        },
+        {
+          "iter": 1,
+          "pred_drop": 0.33327631172089967,
+          "actual_drop": 0.0,
+          "rho": 0.0,
+          "red": {
+            "p99": 0.0,
+            "integrated": 0.0
+          },
+          "lam": 0.04,
+          "x_rms": 0.450264831469008
+        }
+      ],
+      "baseline_plateau": {
+        "units": {
+          "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+          "percentiles": "same field, common luma mask",
+          "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+          "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+          "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+        },
+        "peak": 0.031770729224928414,
+        "p95": 0.0015027159715666652,
+        "p99": 0.031770729224928414,
+        "p99_9": 0.031770729224928414,
+        "integrated": 57.30606593641678,
+        "mean": 0.0007244395471331004,
+        "n_valid": 79104,
+        "peak_duv": 0.004729757444201353,
+        "peak_rel_y": 0.0857707780716369,
+        "peak_at": {
+          "y": 0,
+          "x": 48
+        },
+        "peak_y_ref": 4.71379778674494,
+        "peak_y_cand": 4.783664726018947,
+        "peak_in_highlight": true,
+        "peak_clipped": true,
+        "peak_excl_highlight": 0.02210074236842914,
+        "spatial": {
+          "edge_mask_fraction": 0.0625,
+          "hot_p99_fraction": 0.010416666666666666,
+          "hot_on_edges_fraction": 1.0,
+          "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+        },
+        "extent_px": "nan"
+      },
+      "baseline_algebraic": {
+        "units": {
+          "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+          "percentiles": "same field, common luma mask",
+          "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+          "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+          "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+        },
+        "peak": 0.03367047913666227,
+        "p95": 0.004483216035083283,
+        "p99": 0.03367047913666227,
+        "p99_9": 0.03367047913666227,
+        "integrated": 267.2019929872367,
+        "mean": 0.003377856909729428,
+        "n_valid": 79104,
+        "peak_duv": 0.005239462386865556,
+        "peak_rel_y": 0.8023469037181566,
+        "peak_at": {
+          "y": 0,
+          "x": 48
+        },
+        "peak_y_ref": 0.5500000132487527,
+        "peak_y_cand": 4.783664726018947,
+        "peak_in_highlight": true,
+        "peak_clipped": true,
+        "peak_excl_highlight": 0.03367047913666227,
+        "spatial": {
+          "edge_mask_fraction": 0.0625,
+          "hot_p99_fraction": 0.010416666666666666,
+          "hot_on_edges_fraction": 1.0,
+          "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+        },
+        "extent_px": "nan"
+      },
+      "best": {
+        "kind": "c0",
+        "red_plateau": {
+          "p99": 0.0,
+          "integrated": 0.0
+        },
+        "halo_plateau": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.031770729224928414,
+          "p95": 0.0015027159715666652,
+          "p99": 0.031770729224928414,
+          "p99_9": 0.031770729224928414,
+          "integrated": 57.30606593641678,
+          "mean": 0.0007244395471331004,
+          "n_valid": 79104,
+          "peak_duv": 0.004729757444201353,
+          "peak_rel_y": 0.0857707780716369,
+          "peak_at": {
+            "y": 0,
+            "x": 48
+          },
+          "peak_y_ref": 4.71379778674494,
+          "peak_y_cand": 4.783664726018947,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 0.02210074236842914,
+          "spatial": {
+            "edge_mask_fraction": 0.0625,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 1.0,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "halo_algebraic": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.03367047913666227,
+          "p95": 0.004483216035083283,
+          "p99": 0.03367047913666227,
+          "p99_9": 0.03367047913666227,
+          "integrated": 267.2019929872367,
+          "mean": 0.003377856909729428,
+          "n_valid": 79104,
+          "peak_duv": 0.005239462386865556,
+          "peak_rel_y": 0.8023469037181566,
+          "peak_at": {
+            "y": 0,
+            "x": 48
+          },
+          "peak_y_ref": 0.5500000132487527,
+          "peak_y_cand": 4.783664726018947,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 0.03367047913666227,
+          "spatial": {
+            "edge_mask_fraction": 0.0625,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 1.0,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "x_chroma": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "joint": {
+        "red": {
+          "p99": 0.0,
+          "integrated": 0.0
+        },
+        "halo": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.031770729224928414,
+          "p95": 0.0015027159715666652,
+          "p99": 0.031770729224928414,
+          "p99_9": 0.031770729224928414,
+          "integrated": 57.30606593641678,
+          "mean": 0.0007244395471331004,
+          "n_valid": 79104,
+          "peak_duv": 0.004729757444201353,
+          "peak_rel_y": 0.0857707780716369,
+          "peak_at": {
+            "y": 0,
+            "x": 48
+          },
+          "peak_y_ref": 4.71379778674494,
+          "peak_y_cand": 4.783664726018947,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 0.02210074236842914,
+          "spatial": {
+            "edge_mask_fraction": 0.0625,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 1.0,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "sv": {
+          "singular_values": [
+            0.3168526243270617,
+            0.24910692963643596,
+            0.24205799324601818,
+            0.24045005912692027,
+            0.21862796717164457,
+            0.12542802412608367,
+            0.08820827793826996,
+            0.07156086351269801,
+            0.07037120041125718,
+            0.06850173550591791,
+            0.04831433876031626,
+            0.011432564174300143
+          ],
+          "smax": 0.3168526243270617,
+          "smin": 0.00039225280960110566,
+          "cond": 807.7765578002594,
+          "effective_rank_1e3": 16
+        },
+        "delta_y_code_rms": 0.02018125095933706,
+        "delta_y_code": [
+          0.00048093111488677157,
+          -0.0021586897488088583,
+          -0.04030031582874545,
+          -0.0003533681783383779
+        ],
+        "s8_luma_rms": 0.0,
+        "grad_rel": 0.0,
+        "clip_frac": 0.5,
+        "not_blur": true
+      },
+      "validation": {
+        "ran": false
+      },
+      "stopped": "no_descent",
+      "not_bilinear": true,
+      "held_out_peak_not_used_as_operator_proof": true
+    }
   },
   "robustness_f": {
     "status": "not_run; no EXR equivalentes",
@@ -1577,15 +3237,164 @@
   },
   "feasibility": {
     "class": "D",
-    "reason": "Sin mejora \u00fatil en los candidatos S8 evaluados (no imposibilidad global).",
-    "p99_reduction": -1.3288575209744886,
-    "integrated_reduction": -4.969416435142491
+    "reason": "Ning\u00fan candidato S8 (mismo par p99+integral) es \u00fatil. No es inviabilidad global.",
+    "p99_reduction": 0.0,
+    "integrated_reduction": 0.0,
+    "limitations": [
+      "parametrization",
+      "optimizer",
+      "quantization",
+      "conditioning"
+    ],
+    "h6": {
+      "observed_irreducible": {
+        "kind": "c0",
+        "red_plateau": {
+          "p99": 0.0,
+          "integrated": 0.0
+        },
+        "halo_plateau": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.031770729224928414,
+          "p95": 0.0015027159715666652,
+          "p99": 0.031770729224928414,
+          "p99_9": 0.031770729224928414,
+          "integrated": 57.30606593641678,
+          "mean": 0.0007244395471331004,
+          "n_valid": 79104,
+          "peak_duv": 0.004729757444201353,
+          "peak_rel_y": 0.0857707780716369,
+          "peak_at": {
+            "y": 0,
+            "x": 48
+          },
+          "peak_y_ref": 4.71379778674494,
+          "peak_y_cand": 4.783664726018947,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 0.02210074236842914,
+          "spatial": {
+            "edge_mask_fraction": 0.0625,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 1.0,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "halo_algebraic": {
+          "units": {
+            "peak": "hypot(\u0394(B\u2212G), \u0394(R\u2212G)) in linear P3 channel units (not \u0394E*)",
+            "percentiles": "same field, common luma mask",
+            "integrated": "sum of magnitude over valid pixels (channel-units \u00b7 pixel)",
+            "extent_px": "consecutive pixels on an edge profile above 20% of that profile peak",
+            "peak_duv": "CIE 1976 \u0394u\u2032v\u2032 on the same mask (scale-invariant)"
+          },
+          "peak": 0.03367047913666227,
+          "p95": 0.004483216035083283,
+          "p99": 0.03367047913666227,
+          "p99_9": 0.03367047913666227,
+          "integrated": 267.2019929872367,
+          "mean": 0.003377856909729428,
+          "n_valid": 79104,
+          "peak_duv": 0.005239462386865556,
+          "peak_rel_y": 0.8023469037181566,
+          "peak_at": {
+            "y": 0,
+            "x": 48
+          },
+          "peak_y_ref": 0.5500000132487527,
+          "peak_y_cand": 4.783664726018947,
+          "peak_in_highlight": true,
+          "peak_clipped": true,
+          "peak_excl_highlight": 0.03367047913666227,
+          "spatial": {
+            "edge_mask_fraction": 0.0625,
+            "hot_p99_fraction": 0.010416666666666666,
+            "hot_on_edges_fraction": 1.0,
+            "note": "fracci\u00f3n de p\u00edxeles p99-halo que caen en bordes (gradiente log Y p90, dilatados)"
+          },
+          "extent_px": "nan"
+        },
+        "x_chroma": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "parametrization": {
+        "n_cb": 6,
+        "n_cr": 6
+      },
+      "optimizer": [
+        {
+          "iter": 0,
+          "pred_drop": 0.397453130293285,
+          "actual_drop": 0.0,
+          "rho": 0.0,
+          "red": {
+            "p99": 0.0,
+            "integrated": 0.0
+          },
+          "lam": 0.01,
+          "x_rms": 0.6690598295395876
+        },
+        {
+          "iter": 1,
+          "pred_drop": 0.33327631172089967,
+          "actual_drop": 0.0,
+          "rho": 0.0,
+          "red": {
+            "p99": 0.0,
+            "integrated": 0.0
+          },
+          "lam": 0.04,
+          "x_rms": 0.450264831469008
+        }
+      ],
+      "quantization_note": "GN step rms < 1 codec unit at q=2; residual unchanged",
+      "conditioning": {
+        "singular_values": [
+          0.31670617322360434,
+          0.24901675794657468,
+          0.24034010438313289,
+          0.2388906994075407,
+          0.21827824835231346,
+          0.12455546752898357,
+          0.08817011578453551,
+          0.07112636338858569,
+          0.07025562668900573,
+          0.06762931390118684,
+          0.04804035932175901,
+          0.0025021061877788255
+        ],
+        "smax": 0.31670617322360434,
+        "smin": 0.0025021061877788255,
+        "cond": 126.57583230100691,
+        "effective_rank_1e3": 12
+      },
+      "not_global_impossibility": true
+    }
   },
   "next_if_ab": "Si A/B: experimento de implementaci\u00f3n eficiente (predicci\u00f3n local 4:2:0 condicionada a Y y a la curva, sin or\u00e1culo por ROI). No iniciado.",
   "remaining_if_cde": [
-    "Revelado SDK no lineal / no separable no capturado por bilinear.",
+    "Parametrizaci\u00f3n m\u00e1s rica que 6+6 columnas Cb/Cr compartidas y 4 \u0394Y pares (filas independientes, soporte m\u00e1s ancho).",
+    "Pasos del optimizador por encima del bin de cuantizaci\u00f3n (esta campa\u00f1a: rms \u0394c\u00f3digo < 1).",
     "DCT/QMax residual a q>2.",
-    "Cambio de representaci\u00f3n (no 4:2:0) \u2014 fuera de alcance; no implementado.",
-    "Or\u00e1culo por iteraci\u00f3n encode/decode SDK acotada."
+    "Cambio de representaci\u00f3n (no 4:2:0) \u2014 fuera de alcance; no implementado."
   ]
 }

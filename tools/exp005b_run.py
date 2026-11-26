@@ -17,6 +17,7 @@ if ROOT not in sys.path:
 from tools.exp005_metrics import halo_stats
 from tools.exp005b_io import write_brwp
 from tools.exp005b_oracle import bilinear_chroma
+from tools.exp005b_loop import run_closed_loop
 from tools.exp005b_report import JSON_OUT, build_payload, write_doc, write_visuals
 from tools.exp005b_sdk import (
     CLIP, FRAME0, FRAME1, H, W, apply_e2, build_control_planes, build_edge_rgb, build_impulse_planes,
@@ -126,6 +127,9 @@ def run_sdk(args):
         'isoluminant_p99': next(r['halo_p99'] for r in a2 if r['name'] == 'isoluminant'),
         'corr_contrast_p99': corr(contrast, p99),
         'corr_asn_dist_p99': corr(dist, p99),
+        'isoluminant_codec_y_err': next((r.get('isoluminant_codec_y_err') for r in a2 if r['name'] == 'isoluminant'), None),
+        'isoluminant_codec_y_lo': next((r.get('codec_y_lo') for r in a2 if r['name'] == 'isoluminant'), None),
+        'isoluminant_codec_y_hi': next((r.get('codec_y_hi') for r in a2 if r['name'] == 'isoluminant'), None),
         'note': (
             'Si cam_equal (Cb=Cr=0 en códec) tiene halo S8, el SDK introduce croma desde luma. '
             'Si p3/asn dominan, el origen principal es croma de código por la curva.'
@@ -249,6 +253,7 @@ def run_sdk(args):
         'meta': {'ctrl': m_ctrl, 'imp': m_imp, 'edges': m_edges, 'p3_c0': m_c0, 'p3_o1': m_o1},
         'q18': 'not_run_no_promising_production_candidate' if not promising else 'not_run_this_pass',
         'wb_exposure_sweep': 'not_run; no EXR equivalentes',
+        'held_out_peak_not_operator_validation': True,
     }
 
 
@@ -263,6 +268,8 @@ def main():
         sdk = {'status': 'skipped', 'reason': 'faltan: ' + ', '.join(missing)}
     else:
         sdk = run_sdk(args)
+        vis = os.path.join(args.out, 'experiments', 'exp005b', 'visuals')
+        sdk['closed_loop'] = run_closed_loop(args, FIXT, vis)
     os.makedirs(MAN_DIR, exist_ok=True)
     payload = build_payload(sdk)
     os.makedirs(os.path.dirname(JSON_OUT), exist_ok=True)

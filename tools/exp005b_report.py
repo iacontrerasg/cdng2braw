@@ -40,39 +40,55 @@ def classify(oracle, sdk):
             ),
             'approx_o3_p99_reduction': red.get('o3_p99'),
         }
+    def pair(red):
+        if not red:
+            return 0.0, 0.0
+        return float(red.get('p99') or red.get('o1_p99_reduction') or 0), float(
+            red.get('integrated') or red.get('o1_integrated_reduction') or 0)
+
+    candidates = []
+    loop = sdk.get('closed_loop') or {}
+    if loop.get('best') and loop['best'].get('red_plateau'):
+        p, i = pair(loop['best']['red_plateau'])
+        candidates.append({'name': loop['best'].get('kind', 'loop'), 'p99': p, 'integrated': i,
+                           'joint': loop['best'].get('kind') == 'joint_y'})
     o = sdk.get('oracle_s8') or {}
-    p99 = float(o.get('o1_p99_reduction') or 0)
-    integ = float(o.get('o1_integrated_reduction') or 0)
-    if o.get('e2_p99_reduction'):
-        p99 = max(p99, float(o['e2_p99_reduction']))
-        integ = max(integ, float(o.get('e2_integrated_reduction') or 0))
-    j = sdk.get('joint_y') or {}
-    jp, ji = float(j.get('p99_reduction') or 0), float(j.get('integrated_reduction') or 0)
-    reject = o.get('redistribution_rejected') or o.get('excessive_chroma_loss')
-    if p99 >= 0.5 and integ >= 0.5 and not reject:
-        return {'class': 'A',
-                'reason': 'Reducción ≥50 % p99 e integral con Y fija, verificada S8.',
-                'p99_reduction': p99, 'integrated_reduction': integ}
-    if (jp >= 0.5 and ji >= 0.5) and not j.get('blur'):
-        return {'class': 'B',
-                'reason': 'Y conjunta acotada alcanza el umbral en S8 (no es desenfoque).',
-                'p99_reduction': jp, 'integrated_reduction': ji}
-    best_p, best_i = max(p99, jp), max(integ, ji)
-    if 0.15 <= best_p < 0.5 and not reject:
-        return {'class': 'C',
-                'reason': 'Mejora S8 parcial por debajo del umbral exploratorio.',
-                'p99_reduction': best_p, 'integrated_reduction': best_i}
-    if reject and best_p > 0:
-        return {'class': 'C',
-                'reason': 'El p99 baja pero hay redistribución espacial o pérdida cromática; no es eliminación.',
-                'p99_reduction': best_p, 'integrated_reduction': best_i}
-    if best_p < 0.15:
-        return {'class': 'D',
-                'reason': 'Sin mejora útil en los candidatos S8 evaluados (no imposibilidad global).',
-                'p99_reduction': best_p, 'integrated_reduction': best_i}
-    return {'class': 'E',
-            'reason': 'S8 medido pero el umbral p99+integral no es concluyente.',
-            'p99_reduction': best_p, 'integrated_reduction': best_i}
+    candidates.append({'name': 'bilinear_o1_diag', 'p99': float(o.get('o1_p99_reduction') or 0),
+                       'integrated': float(o.get('o1_integrated_reduction') or 0), 'joint': False})
+    if loop.get('joint') and loop['joint'].get('red'):
+        p, i = pair(loop['joint']['red'])
+        candidates.append({'name': 'joint_reported', 'p99': p, 'integrated': i, 'joint': True})
+
+    def ok_pair(c):
+        return c['p99'] >= 0.5 and c['integrated'] >= 0.5
+
+    def reject_redist(c):
+        return c['p99'] > 0.15 and c['integrated'] < 0
+
+    chroma = [c for c in candidates if not c['joint']]
+    joint = [c for c in candidates if c['joint']]
+    for c in chroma:
+        if ok_pair(c) and not reject_redist(c):
+            return {'class': 'A', 'reason': 'Un candidato Cb/Cr S8 reduce ≥50 % p99 e integral (mismo candidato).',
+                    'candidate': c['name'], 'p99_reduction': c['p99'], 'integrated_reduction': c['integrated']}
+    for c in joint:
+        if ok_pair(c) and not reject_redist(c):
+            return {'class': 'B', 'reason': 'Un candidato conjunto Y/Cb/Cr S8 alcanza el umbral (mismo candidato).',
+                    'candidate': c['name'], 'p99_reduction': c['p99'], 'integrated_reduction': c['integrated']}
+    scored = chroma + joint
+    # no mezclar p99 de uno con integral de otro
+    partial = [c for c in scored if 0.15 <= c['p99'] < 0.5 and c['integrated'] > -0.05]
+    if partial:
+        c = max(partial, key=lambda z: min(z['p99'], max(z['integrated'], 0)))
+        return {'class': 'C', 'reason': 'Mejora parcial de un único candidato, bajo el umbral.',
+                'candidate': c['name'], 'p99_reduction': c['p99'], 'integrated_reduction': c['integrated']}
+    loop_best = loop.get('best') or {}
+    rp = (loop_best.get('red_plateau') or {})
+    return {'class': 'D',
+            'reason': 'Ningún candidato S8 (mismo par p99+integral) es útil. No es inviabilidad global.',
+            'p99_reduction': float(rp.get('p99') or 0),
+            'integrated_reduction': float(rp.get('integrated') or 0),
+            'limitations': ['parametrization', 'optimizer', 'quantization', 'conditioning']}
 
 
 def build_payload(sdk=None):
@@ -83,6 +99,16 @@ def build_payload(sdk=None):
     nnerr = model_vs_nn_error()
     sdk = sdk or {'status': 'not_run', 'reason': 'campaña S8 no ejecutada en este informe'}
     decision = classify(oracle, sdk)
+    loop = sdk.get('closed_loop') if isinstance(sdk, dict) else None
+    if loop:
+        decision['h6'] = {
+            'observed_irreducible': loop.get('best'),
+            'parametrization': {'n_cb': loop.get('n_cb'), 'n_cr': loop.get('n_cr')},
+            'optimizer': loop.get('gauss_newton'),
+            'quantization_note': 'GN step rms < 1 codec unit at q=2; residual unchanged',
+            'conditioning': loop.get('svd'),
+            'not_global_impossibility': True,
+        }
     return {
         'experiment': 'EXP-005b',
         'title': 'Decoder-aware Chroma Reconstruction: Feasibility',
@@ -120,10 +146,10 @@ def build_payload(sdk=None):
             'condicionada a Y y a la curva, sin oráculo por ROI). No iniciado.'
         ),
         'remaining_if_cde': [
-            'Revelado SDK no lineal / no separable no capturado por bilinear.',
+            'Parametrización más rica que 6+6 columnas Cb/Cr compartidas y 4 ΔY pares (filas independientes, soporte más ancho).',
+            'Pasos del optimizador por encima del bin de cuantización (esta campaña: rms Δcódigo < 1).',
             'DCT/QMax residual a q>2.',
             'Cambio de representación (no 4:2:0) — fuera de alcance; no implementado.',
-            'Oráculo por iteración encode/decode SDK acotada.',
         ],
     }
 
@@ -271,11 +297,13 @@ def write_doc(p):
             '',
             '### A2 — bordes en S8',
             '',
-            'Hipótesis del usuario (halo exclusivo blanco/negro): **%s**. Más fuerte: `%s`. cam_equal_hi p99=%s, p3_hi=%s, asn_hi=%s, isoluminante=%s. corr(contraste, p99)=%.3g; corr(dist ASN, p99)=%.3g.'
+            'Hipótesis del usuario (halo exclusivo blanco/negro): **%s**. Más fuerte: `%s`. cam_equal_hi p99=%s, p3_hi=%s, asn_hi=%s, isoluminante=%s. corr(contraste, p99)=%.3g; corr(dist ASN, p99)=%.3g. Isoluminante en Y de códec: |ΔY|=%s (lo=%s, hi=%s).'
             % (uh.get('confirmed_exclusive_wb'), uh.get('strongest'),
                uh.get('cam_equal_hi_p99'), uh.get('p3_hi_p99'), uh.get('asn_hi_p99'),
                uh.get('isoluminant_p99'), float(uh.get('corr_contrast_p99') or 0),
-               float(uh.get('corr_asn_dist_p99') or 0)),
+               float(uh.get('corr_asn_dist_p99') or 0),
+               uh.get('isoluminant_codec_y_err'), uh.get('isoluminant_codec_y_lo'),
+               uh.get('isoluminant_codec_y_hi')),
             '',
             '### C2 — oráculo S8 (borde P3, Y fija, O1 bilinear en ROI)',
             '',
@@ -296,6 +324,59 @@ def write_doc(p):
         if s.get('a04'):
             lines += ['A04_f044 ROI white_strip p99 croma S8 C0 = %s. %s'
                       % (s['a04'].get('white_strip_p99_chroma'), s['a04'].get('limitation')), '']
+        cl = s.get('closed_loop') or {}
+        if cl:
+            b = cl.get('best') or {}
+            rp = b.get('red_plateau') or {}
+            sv = cl.get('svd') or {}
+            lines += [
+                '### H2 — oráculo de baja dimensión (SDK, no bilinear)',
+                '',
+                'Evaluaciones contadas: %s / %s. cond(J)=%s, rango efectivo@1e-3=%s. Interferencia rel=%s.'
+                % (cl.get('evals_counted'), cl.get('budget_max'), sv.get('cond'),
+                   sv.get('effective_rank_1e3'), (cl.get('interference') or {}).get('rel_err')),
+                '',
+                'Mejor candidato `%s`: p99 red. %.1f %% ; integral %.1f %% (mismo par; mesetas SDK).'
+                % (b.get('kind'), 100 * float(rp.get('p99') or 0), 100 * float(rp.get('integrated') or 0)),
+                '',
+                'Parada: %s. Gauss-Newton: %s.'
+                % (cl.get('stopped'), cl.get('gauss_newton')),
+                '',
+            ]
+            if cl.get('joint'):
+                j = cl['joint']
+                lines += ['H3 conjunto: ΔY rms código=%.4g, grad_rel=%.4g, p99 red. %.1f %%.'
+                          % (float(j.get('delta_y_code_rms') or 0), float(j.get('grad_rel') or 0),
+                             100 * float((j.get('red') or {}).get('p99') or 0)), '']
+            gn = cl.get('gauss_newton') or []
+            pred = [g.get('pred_drop') for g in gn]
+            act = [g.get('actual_drop') for g in gn]
+            xrms = [g.get('x_rms') for g in gn]
+            svj = (cl.get('joint') or {}).get('sv') or {}
+            h4 = cl.get('validation') or {}
+            lines += [
+                'H4: %s (sin mejora sustancial; no se barrió fase/horizontal/q18/WB).'
+                % ('ejecutada' if h4.get('ran') else 'omitida'),
+                '',
+                '### H6 — Cierre (no imposibilidad global)',
+                '',
+                '- **Error irreducible observado (esta parametrización, q2, fixture P3 vertical):** C0 sigue siendo el mejor candidato medido; p99 mesetas=%.4g, p99 vs cameraToP3=%.4g.'
+                % (float((cl.get('baseline_plateau') or {}).get('p99') or 0),
+                   float((cl.get('baseline_algebraic') or {}).get('p99') or 0)),
+                '- **Parametrización:** %d columnas Cb + %d Cr compartidas en una banda vertical; H3 añadió 4 ΔY pares. No cubre filas independientes ni un soporte más ancho.'
+                % (cl.get('n_cb') or 0, cl.get('n_cr') or 0),
+                '- **Optimizador:** Gauss-Newton regularizado predijo descenso %s; descenso real %s (ρ=0). Parada `%s` tras intentos acotados.'
+                % (pred, act, cl.get('stopped')),
+                '- **Cuantización:** rms |Δcódigo| propuesto %s frente a ε_C=%s. Por debajo de un código a q=2 el encode/decode no movió el residuo.'
+                % (xrms, cl.get('eps_c')),
+                '- **Condicionamiento:** Cb/Cr cond(J)=%.4g, rango efectivo@1e-3=%s, smin=%.4g. Conjunto Y cond=%.4g, smin=%.4g. No se invirtió un operador singular sin λ.'
+                % (float(sv.get('cond') or 0), sv.get('effective_rank_1e3'), float(sv.get('smin') or 0),
+                   float(svj.get('cond') or 0), float(svj.get('smin') or 0)),
+                '- Interferencia espacial rel=%s (agrupación de FD no usada). Evaluaciones contadas %s/%s, %.1f s de encode/decode.'
+                % ((cl.get('interference') or {}).get('rel_err'), cl.get('evals_counted'),
+                   cl.get('budget_max'), float(cl.get('seconds') or 0)),
+                '',
+            ]
     else:
         lines += ['Campaña S8 no medida en este informe.', '']
     lines += [

@@ -6,8 +6,12 @@ import unittest
 import numpy as np
 
 from tools.exp005b_io import read_brwp, write_brwp
+from tools.exp005b_loop import solve_gn, svd_report
 from tools.exp005b_oracle import characterize_upsamplers, run_oracle_suite, solve_o1
-from tools.exp005b_sdk import W, H, build_impulse_planes, impulse_sites, stripe_layout
+from tools.exp005b_report import classify
+from tools.exp005b_sdk import (
+    W, H, build_impulse_planes, impulse_sites, match_codec_y, signed_channel_stats, stripe_layout,
+)
 from tools.exp005b_signal import NativeSensor, analyze_hypothesis_a, nn_chroma
 from tools.fidelity import pipeline as P
 from tools.fidelity import images
@@ -138,6 +142,48 @@ class PackedFixturesTests(unittest.TestCase):
     def test_stripes_fill_1080p(self):
         last = stripe_layout()[-1]
         self.assertEqual(last[1] + last[2], W)
+
+
+class MethodH1Tests(unittest.TestCase):
+    def test_signed_lobes_not_hypot(self):
+        k = np.zeros((9, 9))
+        k[4, 4] = 1.0
+        k[4, 6] = -0.4
+        s = signed_channel_stats(k)
+        self.assertTrue(s['has_negative_lobes'])
+        mag = np.hypot(k, np.zeros_like(k))
+        self.assertGreaterEqual(mag.min(), 0.0)
+
+    def test_match_codec_y_beats_one_shot_scale(self):
+        s = NativeSensor()
+        rgb = np.array([0.40, 0.10, 0.06], dtype=np.float64)
+        y_tgt = 1200.0
+        one = rgb * (y_tgt / float(s.map_rgb(rgb)[0]))
+        y_one = float(s.map_rgb(one)[0])
+        matched, info = match_codec_y(s, rgb, y_tgt)
+        self.assertLess(abs(info['y_final'] - y_tgt), abs(y_one - y_tgt) + 1e-6)
+        self.assertLess(abs(info['y_final'] - y_tgt), 1.0)
+
+    def test_classify_does_not_mix_pairs(self):
+        sdk = {
+            'status': 'measured',
+            'oracle_s8': {'o1_p99_reduction': 0.7, 'o1_integrated_reduction': 0.05},
+            'closed_loop': {'best': {'kind': 'cbcr_gn',
+                                     'red_plateau': {'p99': 0.1, 'integrated': 0.8}}},
+        }
+        d = classify({'reduction_vs_c0': {'o3_p99': 0}}, sdk)
+        self.assertNotEqual(d['class'], 'A')
+        self.assertNotEqual(d['class'], 'B')
+
+    def test_gn_recovers_linear(self):
+        rng = np.random.default_rng(0)
+        J = rng.normal(size=(40, 6))
+        x = rng.normal(size=6)
+        r = J @ (-x)
+        dx = solve_gn(J, r, 1e-8, (-10 * np.ones(6), 10 * np.ones(6)))
+        self.assertLess(np.max(np.abs(dx - x)), 1e-4)
+        sv = svd_report(J)
+        self.assertGreater(sv['smax'], sv['smin'])
 
 
 if __name__ == '__main__':

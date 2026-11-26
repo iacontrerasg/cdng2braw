@@ -13,7 +13,7 @@ Leyenda: **[código]** en el árbol; **[exp]** medido; **[lim]** limitación.
 
 ## Decisión
 
-**Clase D.** Sin mejora útil en los candidatos S8 evaluados (no imposibilidad global).
+**Clase D.** Ningún candidato S8 (mismo par p99+integral) es útil. No es inviabilidad global.
 
 No se declara imposibilidad matemática global a partir de un oráculo local o un modelo aproximado.
 
@@ -102,14 +102,14 @@ Impulsos empaquetados en un frame 1920×1080, restando control plano. q=2, clip 
 |----|-------|
 | sitios croma | 16 |
 | soporte medio (px) | 52.5 |
-| lóbulos negativos | False |
+| lóbulos negativos | True |
 | acoplamiento Y→croma | 0.002538 |
 
 No se asume bilinear. S7 sigue siendo NN 2×2.
 
 ### A2 — bordes en S8
 
-Hipótesis del usuario (halo exclusivo blanco/negro): **False**. Más fuerte: `isoluminant`. cam_equal_hi p99=0.15980953559709732, p3_hi=0.07020608752276034, asn_hi=0.07020608752276034, isoluminante=0.5520052058840473. corr(contraste, p99)=-0.0617; corr(dist ASN, p99)=0.0914.
+Hipótesis del usuario (halo exclusivo blanco/negro): **False**. Más fuerte: `isoluminant`. cam_equal_hi p99=0.15980953559709732, p3_hi=0.07020608752276034, asn_hi=0.07020608752276034, isoluminante=1.6970260084993667. corr(contraste, p99)=-0.333; corr(dist ASN, p99)=0.218. Isoluminante en Y de códec: |ΔY|=0.02103091277058411 (lo=1200.3164739480317, hi=1200.3375048608023).
 
 ### C2 — oráculo S8 (borde P3, Y fija, O1 bilinear en ROI)
 
@@ -119,13 +119,34 @@ D2 ΔY rms=2.587e-08 max=9.501e-07, fracción tocada=0.00104, p99 red. -132.9 %.
 
 A04_f044 ROI white_strip p99 croma S8 C0 = 0.4850063645645431. ROI BUG-002 medido sobre S8 C0; sin EXR de WB/EV variantes.
 
+### H2 — oráculo de baja dimensión (SDK, no bilinear)
+
+Evaluaciones contadas: 23 / 100. cond(J)=126.57583230100691, rango efectivo@1e-3=12. Interferencia rel=0.0.
+
+Mejor candidato `c0`: p99 red. 0.0 % ; integral 0.0 % (mismo par; mesetas SDK).
+
+Parada: no_descent. Gauss-Newton: [{'iter': 0, 'pred_drop': 0.397453130293285, 'actual_drop': 0.0, 'rho': 0.0, 'red': {'p99': 0.0, 'integrated': 0.0}, 'lam': 0.01, 'x_rms': 0.6690598295395876}, {'iter': 1, 'pred_drop': 0.33327631172089967, 'actual_drop': 0.0, 'rho': 0.0, 'red': {'p99': 0.0, 'integrated': 0.0}, 'lam': 0.04, 'x_rms': 0.450264831469008}].
+
+H3 conjunto: ΔY rms código=0.02018, grad_rel=0, p99 red. 0.0 %.
+
+H4: omitida (sin mejora sustancial; no se barrió fase/horizontal/q18/WB).
+
+### H6 — Cierre (no imposibilidad global)
+
+- **Error irreducible observado (esta parametrización, q2, fixture P3 vertical):** C0 sigue siendo el mejor candidato medido; p99 mesetas=0.03177, p99 vs cameraToP3=0.03367.
+- **Parametrización:** 6 columnas Cb + 6 Cr compartidas en una banda vertical; H3 añadió 4 ΔY pares. No cubre filas independientes ni un soporte más ancho.
+- **Optimizador:** Gauss-Newton regularizado predijo descenso [0.397453130293285, 0.33327631172089967]; descenso real [0.0, 0.0] (ρ=0). Parada `no_descent` tras intentos acotados.
+- **Cuantización:** rms |Δcódigo| propuesto [0.6690598295395876, 0.450264831469008] frente a ε_C=64.0. Por debajo de un código a q=2 el encode/decode no movió el residuo.
+- **Condicionamiento:** Cb/Cr cond(J)=126.6, rango efectivo@1e-3=12, smin=0.002502. Conjunto Y cond=807.8, smin=0.0003923. No se invirtió un operador singular sin λ.
+- Interferencia espacial rel=0.0 (agrupación de FD no usada). Evaluaciones contadas 23/100, 12.8 s de encode/decode.
+
 ---
 
 ## G — Viabilidad
 
-Clase **D**. Sin mejora útil en los candidatos S8 evaluados (no imposibilidad global).
+Clase **D**. Ningún candidato S8 (mismo par p99+integral) es útil. No es inviabilidad global.
 
-Opciones restantes (no implementadas): Revelado SDK no lineal / no separable no capturado por bilinear.; DCT/QMax residual a q>2.; Cambio de representación (no 4:2:0) — fuera de alcance; no implementado.; Oráculo por iteración encode/decode SDK acotada.
+Opciones restantes (no implementadas): Parametrización más rica que 6+6 columnas Cb/Cr compartidas y 4 ΔY pares (filas independientes, soporte más ancho).; Pasos del optimizador por encima del bin de cuantización (esta campaña: rms Δcódigo < 1).; DCT/QMax residual a q>2.; Cambio de representación (no 4:2:0) — fuera de alcance; no implementado.
 
 BUG-002 sigue P0.
 
