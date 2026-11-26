@@ -457,6 +457,29 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
             m1 = P.conversion_material(conv, d, [a, a], 0, req, on)
             self.assertNotEqual(identity.sha256_json(m0), identity.sha256_json(m1))
 
+    def test_rd_parse_and_storage(self):
+        from tools.fidelity import rd as RD
+        meta = RD.parse_exp002_id('exp002-a04-a050-q18')
+        self.assertEqual(meta['alpha'], 0.5)
+        self.assertEqual(meta['q'], 18)
+        meta2 = RD.parse_exp002_id('exp002-a04-a1-r03')
+        self.assertEqual(meta2['ratio'], 3)
+        self.assertEqual(meta2['alpha'], 1.0)
+        # 1 MB/frame → 24 MB/s → 86.4 GB/h; 500 GB ≈ 5.79 h
+        rows = [{'alpha': 1.0, 'q': 18, 'mode': 'quality', 'tag': None, 'ratio': None,
+                 'frame_bytes': 1_000_000, 'psnr': 40.0, 'duv_edges': 0.01, 'grad': 1.0,
+                 'block_bmi': 0.0, 'bits_per_site': 8 * 1e6 / RD.PHOTOSITES_1080P,
+                 'mb_s_24fps': 24.0, 'gb_h_24fps': 24 * 3600 / 1e3,
+                 'rmse': 0.01, 'duv_neutral': 0.01, 'lap': 1.0, 'braw_bytes': 2e6,
+                 'ratio_achieved': 3.0, 'frame_ratio': 3.0, 'q_eff': 18,
+                 'run_seconds': 1, 'fresh_convert_seconds': 1}]
+        # Correct gb/h from bytes: fb*24*3600/1e9
+        rows[0]['gb_h_24fps'] = 1_000_000 * 24 * 3600 / 1e9
+        agg = RD.aggregate(rows)
+        self.assertAlmostEqual(agg[0]['gb_h_24fps'], 86.4, places=3)
+        hours_500 = 500 / agg[0]['gb_h_24fps']
+        self.assertAlmostEqual(hours_500, 500 / 86.4, places=3)
+
     def test_og_deblock_alpha_and_bounded_validation(self):
         from tools.fidelity import pipeline as P, identity
         ok = P.encode_request(self._encode(experimental_env={
