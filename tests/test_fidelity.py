@@ -457,6 +457,294 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
             m1 = P.conversion_material(conv, d, [a, a], 0, req, on)
             self.assertNotEqual(identity.sha256_json(m0), identity.sha256_json(m1))
 
+    def test_rd_parse_and_storage(self):
+        from tools.fidelity import rd as RD
+        meta = RD.parse_exp002_id('exp002-a04-a050-q18')
+        self.assertEqual(meta['alpha'], 0.5)
+        self.assertEqual(meta['q'], 18)
+        meta2 = RD.parse_exp002_id('exp002-a04-a1-r03')
+        self.assertEqual(meta2['ratio'], 3)
+        self.assertEqual(meta2['alpha'], 1.0)
+        bd = RD.parse_exp002_id('exp002-a04-bd-q18')
+        self.assertEqual(bd['tag'], 'bounded')
+        self.assertIsNone(bd['alpha'])
+        self.assertEqual(bd['q'], 18)
+        # No confundir «bd» con un patrón «abd»
+        self.assertNotEqual(RD.parse_exp002_id('exp002-a04-a0-q04')['tag'], 'bounded')
+        # 1 MB/frame → 24 MB/s → 86.4 GB/h; 500 GB ≈ 5.79 h
+        rows = [{'alpha': 1.0, 'q': 18, 'mode': 'quality', 'tag': None, 'ratio': None,
+                 'frame_bytes': 1_000_000, 'psnr': 40.0, 'duv_edges': 0.01, 'grad': 1.0,
+                 'block_bmi': 0.0, 'bits_per_site': 8 * 1e6 / RD.PHOTOSITES_1080P,
+                 'mb_s_24fps': 24.0, 'gb_h_24fps': 24 * 3600 / 1e3,
+                 'rmse': 0.01, 'duv_neutral': 0.01, 'lap': 1.0, 'braw_bytes': 2e6,
+                 'ratio_achieved': 3.0, 'frame_ratio': 3.0, 'q_eff': 18,
+                 'run_seconds': 1, 'fresh_convert_seconds': 1}]
+        # Correct gb/h from bytes: fb*24*3600/1e9
+        rows[0]['gb_h_24fps'] = 1_000_000 * 24 * 3600 / 1e9
+        agg = RD.aggregate(rows)
+        self.assertAlmostEqual(agg[0]['gb_h_24fps'], 86.4, places=3)
+        hours_500 = 500 / agg[0]['gb_h_24fps']
+        self.assertAlmostEqual(hours_500, 500 / 86.4, places=3)
+
+    def test_rd_config_from_setup_not_name(self):
+        from tools.fidelity import rd as RD
+        result = {
+            'frame': 44,
+            'setup': {
+                'clip': 'A04', 'frame': 44, 'iso': 1600, 'range': [44, 2],
+                'inputs': [{'index': 44, 'sha256': 'abc'}],
+                'decode': {'exposure': -3}, 'reference': {'path': 'x.exr'},
+                'dng_sha256': 'abc',
+                'encode': {
+                    'request': {'compression': 'quality', 'q': 0, 'ratio': None,
+                                'noise_synthesis': False, 'nr_luma': 0, 'nr_chroma': 0},
+                    'experimental_env': {
+                        'CDNG_OG_DEBLOCK_PRECOMP': '1', 'CDNG_OG_DEBLOCK_ALPHA': None,
+                        'CDNG_OG_DEBLOCK_BOUNDED': '1', 'CDNG_RATE': None,
+                    },
+                },
+            },
+            'compression': {'q_min': 1, 'q_max': 1, 'frame_bytes': 100, 'braw_bytes': 200},
+        }
+        cfg = RD.config_from_result(result)
+        self.assertTrue(cfg['bounded'])
+        self.assertEqual(cfg['tag'], 'bounded')
+        self.assertEqual(cfg['q_requested'], 0)
+        label = RD.parse_exp002_id('exp002-a04-bd-q00')
+        self.assertEqual(RD.label_matches_config(label, cfg), [])
+        bad = RD.parse_exp002_id('exp002-a04-a1-q00')
+        self.assertTrue(RD.label_matches_config(bad, cfg))  # a1 ≠ bd
+
+    def test_rd_html_omits_missing_as_zero_and_is_self_contained(self):
+        from tools.fidelity import rd as RD
+        with tempfile.TemporaryDirectory() as d:
+            agg = [
+                {'alpha': 1.0, 'mode': 'quality', 'q': 0, 'q_requested': 0, 'ratio_requested': None,
+                 'tag': 'control', 'psnr': 40.0, 'duv_edges': 0.01, 'grad': 1.0, 'lap': 0.9,
+                 'block_bmi': 0.001, 'bits_per_site': 4.0, 'sample_bytes': 1e6,
+                 'ratio_sample_12bit': 3.0, 'gb_h_24fps': 80.0, 'q_eff': 1.0,
+                 'n_codec_range_fallback': 1},
+                {'alpha': 1.0, 'mode': 'quality', 'q': 4, 'q_requested': 4, 'ratio_requested': None,
+                 'tag': 'control', 'psnr': 39.5, 'duv_edges': 0.012, 'grad': 0.99, 'lap': 0.88,
+                 'block_bmi': 0.002, 'bits_per_site': 3.5, 'sample_bytes': 9e5,
+                 'ratio_sample_12bit': 3.4, 'gb_h_24fps': 70.0, 'q_eff': 4.0,
+                 'n_codec_range_fallback': 0},
+                {'alpha': 1.0, 'mode': 'quality', 'q': 1, 'q_requested': 1, 'ratio_requested': None,
+                 'tag': 'control', 'psnr': None, 'duv_edges': None, 'grad': None, 'lap': None,
+                 'block_bmi': None, 'bits_per_site': None, 'sample_bytes': None,
+                 'ratio_sample_12bit': None, 'gb_h_24fps': None, 'q_eff': None,
+                 'n_codec_range_fallback': 0},
+            ]
+            path = os.path.join(d, 'rd.html')
+            RD.write_html(path, 'test', agg)
+            html = open(path, encoding='utf-8').read()
+            self.assertNotIn('cdn.jsdelivr', html.lower())
+            self.assertNotIn('chart.js', html.lower())
+            self.assertIn('<svg', html)
+            self.assertIn('—', html)
+            # No cell should invent PSNR 0.000 for the missing row
+            self.assertNotIn('>0.000</td>', html)
+
+    def test_rd_incremental_rejects_missing_frame(self):
+        from tools.fidelity import rd_incremental as RI
+        with tempfile.TemporaryDirectory() as d:
+            base = os.path.join(d, 'base')
+            cand = os.path.join(d, 'cand')
+            for name, results in (
+                (base, {'A04_f044': self._inc_result(q=0)}),
+                (cand, {'A04_f044': self._inc_result(q=4), 'A04_f049': self._inc_result(q=4, frame=49)}),
+            ):
+                os.makedirs(os.path.join(name, 'frames'))
+                open(os.path.join(name, 'metrics.json'), 'w').write(json.dumps({
+                    'results': results}))
+                open(os.path.join(name, 'run.json'), 'w').write(json.dumps({
+                    'converter': {'cdng_convert_sha256': 'w'}, 'dataset': '/d', 'references': '/r',
+                    'timing': {'conversions': [], 'total_seconds': 1}, 'cache': []}))
+            with self.assertRaises(RI.IncrementalError) as cm:
+                RI.analyze_pair(base, cand, {'normalize_to_iso': 200, 'psnr_peak': 1.0,
+                                             'error_percentiles': [50], 'luminance_bins': [0, 1e9],
+                                             'chroma_min_luminance': 0.005,
+                                             'edge_mask': {'percentile': 90, 'dilate': 0, 'min_luminance': 0},
+                                             'neutral_mask': {'max_duv': 0.01, 'min_luminance': 0},
+                                             'ceiling_margin': 0.9999})
+            self.assertIn('fotogramas no coinciden', str(cm.exception))
+
+    def _inc_result(self, q=0, frame=44):
+        return {
+            'frame': frame, 'candidate_sha256': None,
+            'setup': {
+                'clip': 'A04', 'frame': frame, 'iso': 1600, 'range': [44, 2],
+                'inputs': [{'index': 44, 'sha256': 'a'}, {'index': 49, 'sha256': 'b'}],
+                'decode': {'exposure': -3}, 'reference': {'id': 'r'},
+                'dng_sha256': 'a' if frame == 44 else 'b',
+                'encode': {
+                    'request': {'compression': 'quality', 'q': q, 'ratio': None,
+                                'noise_synthesis': False, 'nr_luma': 0, 'nr_chroma': 0},
+                    'experimental_env': {'CDNG_OG_DEBLOCK_PRECOMP': '1',
+                                         'CDNG_OG_DEBLOCK_ALPHA': None,
+                                         'CDNG_OG_DEBLOCK_BOUNDED': None},
+                },
+            },
+            'reference_fidelity': {'normalized': {'psnr_db': 40.0}, 'raw': {'psnr_db': 30.0}},
+        }
+
+    def test_rd_size_fields_distinct(self):
+        from tools.fidelity import rd as RD
+        self.assertGreater(RD.RAW_BYTES_12BIT, 0)
+        # sample ratio y payload ratio no deben compartir denominador distinto silenciosamente
+        sample, payload = 1_000_000, 900_000
+        self.assertNotAlmostEqual(RD.RAW_BYTES_12BIT / sample, RD.RAW_BYTES_12BIT / payload)
+
+    def test_rd_braw_binding_rejects_ambiguous_same_range_two_clips(self):
+        """Dos clips distintos con el mismo start/count no pueden resolverse solo por range."""
+        from tools.fidelity import rd as RD, identity
+        with tempfile.TemporaryDirectory() as d:
+            cache = os.path.join(d, 'cache', 'braw')
+            runs = os.path.join(d, 'runs', 'fake')
+            os.makedirs(runs)
+            model = {'quant_steps.json': 'x'}
+            worker = 'w' * 64
+            # Materiales distintos (clip/inputs) → keys distintos, mismo range [10, 2]
+            mats = []
+            keys = []
+            for clip, sha in (('CLIP_A', 'aa'), ('CLIP_B', 'bb')):
+                mat = {
+                    'kind': 'braw', 'info_schema': 2,
+                    'converter': {'cdng_convert_sha256': worker, 'model': model},
+                    'clip': clip, 'first_frame': 10,
+                    'inputs': [{'index': 10, 'name': 'f.dng', 'sha256': sha},
+                               {'index': 11, 'name': 'g.dng', 'sha256': sha + '2'}],
+                    'request': {'compression': 'quality', 'q': 4, 'noise_synthesis': False,
+                                'nr_luma': 0, 'nr_chroma': 0},
+                    'experimental_env': {'CDNG_OG_DEBLOCK_PRECOMP': '1'},
+                }
+                key = identity.sha256_json(mat)
+                mats.append(mat)
+                keys.append(key)
+                bdir = os.path.join(cache, key[:24])
+                os.makedirs(bdir)
+                # Payload mínimo: no hace falta BRAW real para probar ambigüedad de timing
+                open(os.path.join(bdir, 'clip.braw'), 'wb').write(b'not-a-braw')
+                with open(os.path.join(bdir, 'identity.json'), 'w') as f:
+                    json.dump({'material': mat, 'sha256': identity.sha256_file(
+                        os.path.join(bdir, 'clip.braw'))}, f)
+
+            # Run con timing ambiguo si solo se mira range (ambos [10,2])
+            run_doc = {
+                'converter': {'cdng_convert_sha256': worker, 'model': model},
+                'decoder': {'brawdec_sha256': 'd' * 64, 'framework_sha256': 'f' * 64,
+                            'camera_support': {'p.json': 'c' * 64}},
+                'config': {
+                    'manifest_analysis': {'normalize_to_iso': 200},
+                    'rois': {}, 'decode': {'gamma': 'Linear'},
+                    'encode': {'compression': 'quality', 'q': 4, 'noise_synthesis': False,
+                               'nr_luma': 0, 'nr_chroma': 0},
+                },
+                'timing': {'conversions': [
+                    {'test': 'T1', 'range': [10, 2], 'reused': False, 'seconds': 1},
+                    {'test': 'T2', 'range': [10, 2], 'reused': False, 'seconds': 1},
+                ]},
+                'cache': [
+                    {'kind': 'braw', 'key': keys[0], 'reused': False},
+                    {'kind': 'braw', 'key': keys[1], 'reused': False},
+                ],
+                'dataset': '/data', 'references': '/refs',
+            }
+            with open(os.path.join(runs, 'run.json'), 'w') as f:
+                json.dump(run_doc, f)
+            with open(os.path.join(runs, 'metrics.json'), 'w') as f:
+                json.dump({'results': {}}, f)
+            # Enlazar cache relativa: rd espera out/benchmark/cache desde runs/../..
+            # runs = d/runs/fake → cache = d/cache  (pardir×2 = d)
+            run = RD.load_run(runs)
+            # Resultado del clip A / test T1
+            result_a = {
+                'test': 'T1', 'frame': 10,
+                'setup': {
+                    'clip': 'CLIP_A', 'range': [10, 2], 'frame': 10, 'iso': 400,
+                    'inputs': mats[0]['inputs'], 'dng_sha256': 'aa',
+                    'decode': {'exposure': 0},
+                    'reference': {'sha256': 'refa', 'file': 'a.exr'},
+                    'encode': {'request': mats[0]['request'],
+                               'experimental_env': mats[0]['experimental_env']},
+                },
+            }
+            bind = RD.resolve_braw_binding(run, result_a, 'T1_f010', verify_file_sha=True)
+            self.assertEqual(bind['conversion_key'], keys[0])
+            self.assertEqual(bind['clip'], 'CLIP_A')
+            self.assertEqual(bind['test'], 'T1')
+            # Mismo range, otro clip → otra conversion_key (no se elige la primera por range)
+            result_b = json.loads(json.dumps(result_a))
+            result_b['test'] = 'T2'
+            result_b['setup']['clip'] = 'CLIP_B'
+            result_b['setup']['inputs'] = mats[1]['inputs']
+            result_b['setup']['dng_sha256'] = 'bb'
+            result_b['setup']['encode']['request'] = mats[1]['request']
+            result_b['setup']['encode']['experimental_env'] = mats[1]['experimental_env']
+            result_b['setup']['reference'] = {'sha256': 'refb', 'file': 'b.exr'}
+            bind_b = RD.resolve_braw_binding(run, result_b, 'T2_f010', verify_file_sha=True)
+            self.assertEqual(bind_b['conversion_key'], keys[1])
+            self.assertNotEqual(bind['conversion_key'], bind_b['conversion_key'])
+            # Si se corrompe el test ID y solo queda range, timing es ambiguo al recuperar
+            # (forzar fallo: key inexistente + timing duplicado sin test usable)
+            bad = json.loads(json.dumps(result_a))
+            bad['setup']['inputs'] = [{'index': 10, 'name': 'f.dng', 'sha256': 'ZZ'},
+                                      {'index': 11, 'name': 'g.dng', 'sha256': 'YY'}]
+            with self.assertRaises(RD.RdError) as cm:
+                RD.resolve_braw_binding(run, bad, 'T1_f010', verify_file_sha=False)
+            msg = str(cm.exception)
+            self.assertTrue('ambiguo' in msg or '≠' in msg or 'sin conversion_key' in msg or
+                            'material' in msg, msg)
+
+    def test_rd_coverage_uses_test_and_frame(self):
+        from tools.fidelity import rd as RD
+        rows = [
+            {'alpha': 1.0, 'q_requested': 0, 'mode': 'quality', 'test': 'A01', 'frame': 10, 'run': 'r1'},
+            {'alpha': 1.0, 'q_requested': 0, 'mode': 'quality', 'test': 'A02', 'frame': 10, 'run': 'r2'},
+        ]
+        cov = RD.coverage_report(rows, expected_q=[0], expected_alphas=[1.0],
+                                 expected_test_frames=[('A01', 10), ('A02', 10), ('A03', 10)])
+        self.assertEqual(len(cov['missing']), 1)
+        self.assertEqual(cov['missing'][0]['test'], 'A03')
+        # Mismo frame en dos tests no es duplicado
+        cov2 = RD.coverage_report(rows)
+        self.assertEqual(cov2['duplicates'], [])
+
+    def test_rd_run_identity_requires_critical_fields(self):
+        from tools.fidelity import rd as RD
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, 'metrics.json'), 'w') as f:
+                json.dump({'results': {}}, f)
+            with open(os.path.join(d, 'run.json'), 'w') as f:
+                json.dump({'converter': {'cdng_convert_sha256': 'w'}, 'decoder': {}}, f)
+            run = RD.load_run(d)
+            with self.assertRaises(RD.RdError) as cm:
+                RD.run_identity(run)
+            self.assertIn('identidad crítica', str(cm.exception))
+
+    def test_rd_html_overlays_alphas_common_scale(self):
+        from tools.fidelity import rd as RD
+        with tempfile.TemporaryDirectory() as d:
+            agg = []
+            for a, psnr0 in ((1.0, 40.0), (0.5, 41.0), (0.75, 40.5)):
+                for q in (0, 12, 24):
+                    agg.append({
+                        'alpha': a, 'mode': 'quality', 'q': q, 'q_requested': q,
+                        'ratio_requested': None, 'tag': 'control',
+                        'psnr': psnr0 - q * 0.01, 'duv_edges': 0.01, 'grad': 1.0,
+                        'lap': 0.9, 'block_bmi': 0.001, 'bits_per_site': 4.0 - q * 0.05,
+                        'sample_bytes': 1e6, 'ratio_sample_12bit': 3.0, 'gb_h_24fps': 80.0,
+                        'q_eff': float(q) or 1.0, 'n_codec_range_fallback': 0,
+                    })
+            path = os.path.join(d, 'rd.html')
+            RD.write_html(path, 'overlay', agg)
+            html = open(path, encoding='utf-8').read()
+            self.assertIn('escala común', html)
+            self.assertIn('α=1.0', html)
+            self.assertIn('α=0.5', html)
+            # Una sola SVG por métrica (overlay), no una por alpha
+            self.assertEqual(html.count('<svg'), 6)
+
     def test_og_deblock_alpha_and_bounded_validation(self):
         from tools.fidelity import pipeline as P, identity
         ok = P.encode_request(self._encode(experimental_env={

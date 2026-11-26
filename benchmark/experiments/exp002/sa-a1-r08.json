@@ -1,0 +1,19 @@
+{
+  "base": "../../manifest.json",
+  "encode": {
+    "compression": "ratio",
+    "q": null,
+    "ratio": 8,
+    "rate_search": true,
+    "noise_synthesis": false,
+    "nr_luma": 0,
+    "nr_chroma": 0,
+    "workers": 2,
+    "experimental_env": {
+      "CDNG_OG_DEBLOCK_PRECOMP": "1"
+    },
+    "notes": [
+      "EXP-002 serie A 8:1 alpha=1"
+    ]
+  }
+}

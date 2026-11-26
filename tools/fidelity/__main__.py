@@ -67,6 +67,12 @@ def main(argv=None):
     c.add_argument('--allow-setup-differences', action='store_true', help='comparar aunque cambie la configuración (p. ej. q)')
     e = sub.add_parser('equivalence', help='brawdec frente al render EXR de Resolve del mismo BRAW')
     common(e); tools(e)
+    rd = sub.add_parser('rd', help='EXP-002: agrega corridas rate–distortion y genera curvas HTML/CSV')
+    rd.add_argument('--runs-glob', required=True, help="glob de directorios de run (p. ej. 'out/benchmark/runs/exp002-a04-*')")
+    rd.add_argument('--dest', required=True, help='directorio del informe')
+    rd.add_argument('--expected-q-grid', action='store_true',
+                    help='exige cobertura q=0..24 × α∈{1,0.5,0.75} (barrido A04)')
+    rd.add_argument('--expected-ratios', help='lista de ratios esperados p.ej. 3,5,8,12')
     args = ap.parse_args(argv)
     if not args.cmd:
         ap.print_help()
@@ -94,6 +100,29 @@ def main(argv=None):
         elif args.cmd == 'equivalence':
             check_tools(args, needs_converter=False)
             print(runner.equivalence(args))
+        elif args.cmd == 'rd':
+            import glob
+            from . import rd as RD
+            dirs = sorted(d for d in glob.glob(args.runs_glob) if os.path.isdir(d) and
+                          os.path.isfile(os.path.join(d, 'metrics.json')))
+            if not dirs:
+                raise runner.RunError('ninguna corrida coincide con %s' % args.runs_glob)
+            expected = {}
+            if args.expected_q_grid:
+                expected['expected_q'] = list(range(0, 25))
+                expected['expected_alphas'] = [1.0, 0.5, 0.75]
+            if args.expected_ratios:
+                expected['expected_ratios'] = [float(x) for x in args.expected_ratios.split(',')]
+                expected.setdefault('expected_alphas', [1.0, 0.5, 0.75])
+            try:
+                summary = RD.build_report(dirs, args.dest, expected=expected or None)
+            except RD.RdError as e:
+                raise runner.RunError(str(e)) from e
+            cov = summary.get('coverage') or {}
+            print('%s (%d runs, %d frames; missing=%d dupes=%d q0_fallback=%d)' % (
+                args.dest, summary['n_runs'], summary['n_frames'],
+                len(cov.get('missing') or []), len(cov.get('duplicates') or []),
+                len(cov.get('q0_codec_range_fallbacks') or [])))
     except (runner.RunError, MF.ManifestError, R.RoiError) as err:
         print('error: %s' % err, file=sys.stderr)
         return 1
