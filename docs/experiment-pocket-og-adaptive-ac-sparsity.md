@@ -15,7 +15,7 @@
 | Ratio sample (3110400/sample) | **5.055:1** |
 | Ratio SDK | **≈4.87:1** |
 
-La cifra 5.055:1 de EXP-002a y la 4.87:1 reportada inicialmente en EXP-003 miden cosas distintas. No hay regresión: `candidate_sha256`, `sample_bytes`, `payload_bytes`, `q_eff` y PSNR coinciden con `exp002a-f-a04-a75-dz50-q24`.
+La cifra 5.055:1 de EXP-002a y la 4.87:1 reportada inicialmente en EXP-003 miden cosas distintas (sample vs SDK). La equivalencia histórica se **deriva** de hashes/tamaños verificados en cada ejecución del informe; si falta el artefacto EXP-002a, se reporta `not_verifiable`.
 
 Los informes oficiales usan **sample_bytes** vía `tools/fidelity/rd.py` + `braw_inspect`.
 
@@ -31,10 +31,15 @@ Los informes oficiales usan **sample_bytes** vía `tools/fidelity/rd.py` + `braw
 | Stages | `chunk_built` → `sample_written` (tras `mux.addFrame`) → `conversion_completed`; informes = `sample_written` |
 | JSON | Validación estricta C++ y Python (`tools/fidelity/deadzone_policy.py`) |
 
-## 3. Geometría de frecuencias
+## 3. Geometría de frecuencias y croma
 
-Normalización **relativa al bloque del plano**: `‖(u/umax,v/vmax)‖/√2`.  
-Y: 8×8 (`umax=7`); Cb/Cr: 4×8 (`umax=3`, 4:2:2). El mismo `(u,v)` **no** es equivalente perceptual entre planos.  
+| Aspecto | Hecho en el pipeline |
+|---------|----------------------|
+| Resolución de planos | Y: `width×height`; Cb/Cr: `width/2×height/2` → **4:2:0 espacial** (no 4:2:2) |
+| Bloques DCT | Y `8×8`; Cb/Cr `4×8` (un bloque croma ≈ dos Y en horizontal) |
+| Frecuencia normalizada | `‖(u/umax,v/vmax)‖/√2` **relativa al bloque del plano** (`umax` 7 / 3) |
+| Frecuencia espacial imagen | Distinta: el mismo `(u,v)` no es equivalente entre Y y croma |
+
 Bandas AC: low `[0,0.25)`, mid `[0.25,0.5)`, high `[0.5,1]`; DC fuera. Mapas: `benchmark/experiments/exp003/band-maps.json`.
 
 ## 4. Fase E — Presupuesto por frecuencia
@@ -53,15 +58,15 @@ A q fijo 24, α=0.75, sobre sample_bytes:
 
 ## 6. Fase K — Serie A (6 fotogramas)
 
-| Config | Ratio sample medio | PSNR medio | Notas |
-|--------|-------------------|------------|-------|
-| k-a0 (α1 DZ0) | 3.49 | 42.48 | Control |
-| k-a1-u50 | **5.09** | **43.27** | Mejor tasa; A01 `quality_rejected` (detail 0.738) |
-| k-a2-nr50 | 5.15 | 43.09 | NR+DZ; A01 rechazado por detalle |
-| k-plane-y40-c50 | 4.87 | 43.25 | Pasa gate en toda la serie A |
-| k-d1 | 4.88 | 43.20 | Pasa gate en toda la serie A |
+| Config | Ratio sample | PSNR | `series_approved` | Notas |
+|--------|--------------|------|-------------------|-------|
+| k-a0 (α1 DZ0) | 3.49 | 42.48 | sí | Control |
+| k-a1-u50 | **5.09** | **43.27** | **no** | Mejor tasa experimental; A01 `quality_rejected` (detail 0.738) |
+| k-a2-nr50 | 5.15 | 43.09 | **no** | NR+DZ; A01 rechazado por detalle |
+| k-plane-y40-c50 | 4.87 | 43.25 | sí | Pasa gate en toda la serie A |
+| k-d1 | 4.88 | 43.20 | sí | Pasa gate en toda la serie A |
 
-Consistencia ISO/exposición dentro de A; **no** generalización a escenas independientes.
+Agregados oficiales sobre **todos** los fotogramas medibles; `valid_frames_only` es secundario. Consistencia ISO/exposición dentro de A; **no** generalización a escenas independientes.
 
 ## 7. Visual / rendimiento
 
@@ -71,9 +76,21 @@ Consistencia ISO/exposición dentro de A; **no** generalización a escenas indep
 ## 8. Clasificación y cierre
 
 **C — Equivalencia práctica con deadzone uniforme.**  
-La frontera RD medida sigue dominada por α=0.75 + DZ uniforme 0.5 (~5.05:1 sample). Las políticas adaptativas no mejoran Pareto a igual tasa; pueden conservar mejor el gate de detalle en A01 a costa de ~4 % más bytes. **No se amplía la búsqueda ni se implementa RDOQ en esta PR.**
+La frontera RD medida sigue dominada por α=0.75 + DZ uniforme 0.5 (~5.05:1 sample). Las políticas adaptativas no mejoran Pareto a igual tasa; pueden conservar mejor el gate de detalle en A01 a costa de ~4 % más bytes. Configuraciones que fallen un fotograma (p. ej. A01) se retienen como experimentales pero **no** `series_approved`. **No se amplía la búsqueda ni se implementa RDOQ en esta PR.**
 
-## 9. Propuesta EXP-003b — RDOQ (solo diseño)
+## 9. Prioridades siguientes del proyecto (no implementadas)
+
+| Prioridad | Tema |
+|-----------|------|
+| **P0** | Maximum Fidelity — perfil máxima fidelidad, sin ratio obligatorio |
+| **P0** | Production 3:1 — perfil producción profesional |
+| **P0** | **BUG-002** — halos cromáticos artificiales: **bloqueante** de aptitud para producción |
+| **P1** | Compresión 5:1–6:1 |
+| **P2** | Compresión 8:1–12:1 para footage no crítico |
+
+La aceptación profesional exigirá validación matemática, perceptual, robustez en grading y estabilidad temporal.
+
+## 10. Propuesta EXP-003b — RDOQ (solo diseño)
 
 1. Oráculo de coste: presupuesto de bits existente + coste incremental de cambiar un nivel AC (prefijo/final/mag + efecto en run del siguiente).
 2. Distorsión: error DCT ponderado por plano/banda; opcional ROI.
@@ -82,7 +99,7 @@ La frontera RD medida sigue dominada por α=0.75 + DZ uniforme 0.5 (~5.05:1 samp
 5. Complejidad: precomputar tablas VLC; prohibido re-parsear política en el loop.
 6. Criterio de éxito: mejora sample_bytes a PSNR/detail/grad tolerados, o mejora detail a sample_bytes ±2 %.
 
-## 10. Respuestas 1–12 (actualizadas)
+## 11. Respuestas 1–12 (actualizadas)
 
 1. Plano vs uniforme: **no** mejora frontera RD (C/D local).  
 2. Por frecuencia: igual.  
@@ -92,11 +109,11 @@ La frontera RD medida sigue dominada por α=0.75 + DZ uniforme 0.5 (~5.05:1 samp
 6. Igual tasa: **no** demostrada a favor de adaptativo.  
 7. Mejor ratio sample: ~**5.09–5.15** (uniforme / NR+DZ).  
 8–9. 6:1 / 8:1: **no**.  
-10. Coste: detail ~0.74 en uniforme; A01 falla gate.  
+10. Coste: detail ~0.74 en uniforme; A01 falla gate → `series_approved=false` (retenido experimental).  
 11. Serie A: uniforme mejor tasa; plano/D1 más estables en gate.  
-12. RDOQ: §9.
+12. RDOQ: §10 (solo diseño; no implementado).
 
-## 11. Reproducción
+## 12. Reproducción
 
 ```bash
 make worker

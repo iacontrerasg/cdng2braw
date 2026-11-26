@@ -285,10 +285,10 @@ void publish(std::shared_ptr<const DeadzonePolicy> pol) {
 
 double deadzoneNormalizedFreq(DeadzonePlane plane, int u, int v) {
     // Normalización relativa al bloque del plano: ||(u/umax, v/vmax)|| / √2 ∈ [0,1].
-    // No es frecuencia espacial absoluta de imagen: Y 8×8 (umax=7) vs croma 4×8 (umax=3)
-    // con muestreo 4:2:2 → el mismo (u,v) no es perceptualmente equivalente entre planos.
-    // Aprox. espacial imagen: ciclo/bloque ≈ u/8 (Y horiz.) o v/8 (vert.); croma u/4 en
-    // el plano croma ≈ u/8 en la imagen a resolución completa.
+    // No es frecuencia espacial absoluta de imagen.
+    // Planos: Y a resolución completa (DCT 8×8, umax=7); Cb/Cr a width/2×height/2
+    // (4:2:0 espacial; DCT 4×8, umax=3). Un bloque croma 4×8 ≈ 2 bloques Y 8×8 en horizontal.
+    // El mismo (u,v) no es perceptualmente equivalente entre planos.
     const double umax = plane == DeadzonePlane::Y ? 7.0 : 3.0;
     const double vmax = 7.0;
     const double fu = umax > 0 ? double(u) / umax : 0;

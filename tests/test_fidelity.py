@@ -1002,6 +1002,55 @@ class Exp003PolicyTests(unittest.TestCase):
                 'planes': {'Y': {'default': 0.5}, 'Cb': {'default': 0.25}, 'Cr': {'default': 0.25}},
             })
 
+    def test_exp003_aggregate_requires_full_series_for_approval(self):
+        from tools import exp003_report as R
+        rows = [
+            {'run': 'exp003-k-a1-u50', 'result': 'A01_f052', 'candidate_class': 'aligned_detail_rejected',
+             'psnr': 43.0, 'sample_bytes': 600000, 'detail_corr': 0.73, 'grad': 0.93, 'lap': 0.82,
+             'duv_edges': 0.01, 'ratio_sample_12bit': 5.0, 'q_eff': 24},
+            {'run': 'exp003-k-a1-u50', 'result': 'A02_f029', 'candidate_class': 'valid',
+             'psnr': 43.2, 'sample_bytes': 610000, 'detail_corr': 0.74, 'grad': 0.93, 'lap': 0.82,
+             'duv_edges': 0.01, 'ratio_sample_12bit': 5.1, 'q_eff': 24},
+            {'run': 'exp003-k-a1-u50', 'result': 'A03_f046', 'candidate_class': 'valid',
+             'psnr': 43.1, 'sample_bytes': 611000, 'detail_corr': 0.74, 'grad': 0.93, 'lap': 0.82,
+             'duv_edges': 0.01, 'ratio_sample_12bit': 5.1, 'q_eff': 24},
+            {'run': 'exp003-k-a1-u50', 'result': 'A04_f044', 'candidate_class': 'valid',
+             'psnr': 43.2, 'sample_bytes': 615000, 'detail_corr': 0.74, 'grad': 0.93, 'lap': 0.82,
+             'duv_edges': 0.01, 'ratio_sample_12bit': 5.05, 'q_eff': 24},
+            {'run': 'exp003-k-a1-u50', 'result': 'A04_f049', 'candidate_class': 'valid',
+             'psnr': 43.2, 'sample_bytes': 615000, 'detail_corr': 0.74, 'grad': 0.93, 'lap': 0.82,
+             'duv_edges': 0.01, 'ratio_sample_12bit': 5.05, 'q_eff': 24},
+            {'run': 'exp003-k-a1-u50', 'result': 'A05_f053', 'candidate_class': 'valid',
+             'psnr': 43.2, 'sample_bytes': 616000, 'detail_corr': 0.74, 'grad': 0.93, 'lap': 0.82,
+             'duv_edges': 0.01, 'ratio_sample_12bit': 5.04, 'q_eff': 24},
+        ]
+        agg = R.aggregate(rows)[0]
+        self.assertTrue(agg['experimental_retained'])
+        self.assertFalse(agg['series_approved'])
+        self.assertEqual(agg['n_valid'], 5)
+        self.assertEqual(agg['n_detail_rejected'], 1)
+        # Medias principales incluyen el frame rechazado (sin sesgo de selección).
+        self.assertAlmostEqual(agg['psnr_mean'],
+                               sum(r['psnr'] for r in rows) / 6.0, places=6)
+        self.assertEqual(agg['valid_frames_only']['n'], 5)
+        self.assertEqual(agg['all_frames']['n'], 6)
+
+    def test_exp003_sharpness_proximity_not_maximize(self):
+        from tools import exp003_report as R
+        ref = {
+            'run': 'ref', 'series_approved': True,
+            'sample_bytes_mean': 600000, 'psnr_mean': 43.0,
+            'detail_corr_mean': 0.75, 'duv_edges_mean': 0.01,
+            'grad_mean': 0.93, 'lap_mean': 0.82,
+            'frames': [],
+        }
+        # Gradiente mucho mayor que ref → no domina (proximidad).
+        high_grad = dict(ref, run='hi', grad_mean=1.20, sample_bytes_mean=590000, psnr_mean=43.1)
+        self.assertFalse(R.dominates(high_grad, ref))
+        near = dict(ref, run='near', grad_mean=0.94, lap_mean=0.83,
+                    sample_bytes_mean=590000, psnr_mean=43.1)
+        self.assertTrue(R.dominates(near, ref))
+
 
 @unittest.skipUnless(np is not None, 'numpy es necesario (make venv)')
 class ManifestTests(unittest.TestCase):
