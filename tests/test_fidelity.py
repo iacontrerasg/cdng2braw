@@ -910,6 +910,83 @@ class Exp002aInstrumentationTests(unittest.TestCase):
         with self.assertRaises(IMG.ImageError):
             IMG.check_alignment(ref, cand, 0.99)
 
+    def test_alignment_separates_geometry_and_detail(self):
+        """EXP-003: degradación de detalle con shift=0 → quality_rejected, no desalineación."""
+        from tools.fidelity import images as IMG
+        yy, xx = np.mgrid[0:64, 0:64]
+        base = 0.2 + 0.3 * (xx / 63.0)
+        ref = np.stack([base, base, base], -1)
+        rng = np.random.default_rng(1)
+        cand = ref + rng.normal(0, 0.1, ref.shape)
+        cand = np.clip(cand, 1e-4, None)
+        old = os.environ.get('CDNG_ALIGN_SOFT')
+        os.environ['CDNG_ALIGN_SOFT'] = '1'
+        try:
+            out = IMG.check_alignment(ref, cand, 0.99)
+            self.assertTrue(out['geometric_aligned'] or out['gate_reason'] == 'shift')
+            if out['geometric_aligned']:
+                self.assertFalse(out['detail_gate_pass'])
+                self.assertTrue(out['quality_rejected'])
+                self.assertEqual(out['gate_reason'], 'detail_correlation')
+                self.assertNotEqual(out['gate_reason'], 'shift')
+        finally:
+            if old is None:
+                os.environ.pop('CDNG_ALIGN_SOFT', None)
+            else:
+                os.environ['CDNG_ALIGN_SOFT'] = old
+
+
+@unittest.skipUnless(np is not None, 'numpy es necesario (make venv)')
+class Exp003PolicyTests(unittest.TestCase):
+    """EXP-003: validación de política en el banco (sin dataset)."""
+
+    def _encode(self, **kw):
+        enc = {
+            'compression': 'quality', 'q': 24, 'ratio': None, 'rate_search': False,
+            'noise_synthesis': False, 'nr_luma': 0, 'nr_chroma': 0, 'workers': 1,
+            'experimental_env': {'CDNG_OG_DEBLOCK_PRECOMP': '1'},
+        }
+        enc.update(kw)
+        return enc
+
+    def test_policy_path_accepted_and_sha_in_identity(self):
+        from tools.fidelity import pipeline as P
+        pol = os.path.join(ROOT, 'benchmark', 'experiments', 'exp003', 'policies', 'uniform-z25.json')
+        _, effective, env, _ = P.encode_request(self._encode(experimental_env={
+            'CDNG_OG_DEBLOCK_PRECOMP': '1', 'CDNG_DEADZONE_POLICY': pol}), environ={})
+        self.assertTrue(env['CDNG_DEADZONE_POLICY'].endswith('uniform-z25.json'))
+        self.assertIn('#', effective['CDNG_DEADZONE_POLICY'])
+        self.assertIn(os.path.abspath(pol), effective['CDNG_DEADZONE_POLICY'])
+
+    def test_policy_conflicts_with_deadzone(self):
+        from tools.fidelity import pipeline as P
+        pol = os.path.join(ROOT, 'benchmark', 'experiments', 'exp003', 'policies', 'uniform-z25.json')
+        with self.assertRaises(P.PipelineError) as cm:
+            P.encode_request(self._encode(experimental_env={
+                'CDNG_OG_DEBLOCK_PRECOMP': '1',
+                'CDNG_DEADZONE': '0.25',
+                'CDNG_DEADZONE_POLICY': pol}), environ={})
+        self.assertIn('mutuamente', str(cm.exception).lower())
+
+    def test_policy_missing_file_rejected(self):
+        from tools.fidelity import pipeline as P
+        with self.assertRaises(P.PipelineError):
+            P.encode_request(self._encode(experimental_env={
+                'CDNG_OG_DEBLOCK_PRECOMP': '1',
+                'CDNG_DEADZONE_POLICY': '/tmp/no-such-policy-exp003.json'}), environ={})
+
+    def test_band_maps_cover_all_ac(self):
+        path = os.path.join(ROOT, 'benchmark', 'experiments', 'exp003', 'band-maps.json')
+        with open(path, encoding='utf-8') as f:
+            doc = json.load(f)
+        for plane, umax in (('Y', 7), ('Cb', 3), ('Cr', 3)):
+            cells = doc['planes'][plane]
+            self.assertEqual(len(cells), (umax + 1) * 8)
+            dc = [c for c in cells if c['u'] == 0 and c['v'] == 0]
+            self.assertEqual(dc[0]['band'], 'DC')
+            ac = [c for c in cells if not (c['u'] == 0 and c['v'] == 0)]
+            self.assertTrue(all(c['band'] in ('low', 'mid', 'high') for c in ac))
+
 
 @unittest.skipUnless(np is not None, 'numpy es necesario (make venv)')
 class ManifestTests(unittest.TestCase):

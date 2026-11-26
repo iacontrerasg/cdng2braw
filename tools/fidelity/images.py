@@ -125,23 +125,35 @@ def check_alignment(reference, candidate, min_correlation):
     """La candidata debe coincidir con la referencia sin desplazamiento y con detalle correlado.
 
     CDNG_ALIGN_SOFT=1 (diagnóstico): no lanza; marca gate_failed. El umbral de aceptación no cambia.
+
+    EXP-003: separa alineación geométrica de fidelidad de detalle. Una variante con detalle degradado
+    pero shift=(0,0) se marca quality_rejected / detail_gate_pass=False, no como desalineación geométrica.
     """
     import os
     shift, cc = alignment(reference, candidate)
-    out = {'shift': list(shift), 'detail_correlation': float(cc),
-           'gate_min_correlation': float(min_correlation)}
+    geometric_aligned = shift == (0, 0)
+    detail_gate_pass = bool(cc >= min_correlation)
+    out = {
+        'shift': list(shift),
+        'detail_correlation': float(cc),
+        'gate_min_correlation': float(min_correlation),
+        'geometric_aligned': geometric_aligned,
+        'detail_gate_pass': detail_gate_pass,
+        'quality_rejected': bool(geometric_aligned and not detail_gate_pass),
+    }
     soft = os.environ.get('CDNG_ALIGN_SOFT') not in (None, '', '0')
-    if shift != (0, 0):
+    if not geometric_aligned:
         out['gate_failed'] = True
         out['gate_reason'] = 'shift'
         if soft:
             return out
         raise ImageError('imágenes desalineadas: desplazamiento (dy, dx) = %s' % (shift,))
-    if not cc >= min_correlation:
+    if not detail_gate_pass:
         out['gate_failed'] = True
         out['gate_reason'] = 'detail_correlation'
         if soft:
             return out
         raise ImageError('el detalle no se corresponde (correlación %.3f < %.3f): ¿otro fotograma u otra escena?' % (cc, min_correlation))
     out['gate_failed'] = False
+    out['gate_reason'] = None
     return out

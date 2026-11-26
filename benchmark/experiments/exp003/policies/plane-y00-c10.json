@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "name": "plane-y00-c10",
+  "mode": "per_plane",
+  "planes": {
+    "Y": {
+      "default": 0.0
+    },
+    "Cb": {
+      "default": 0.1
+    },
+    "Cr": {
+      "default": 0.1
+    }
+  }
+}

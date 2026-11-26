@@ -12,6 +12,7 @@
 // 1080 0,016–0,040 s frente a 0,12–0,26 s.
 #include "codec.hpp"
 #include "codec_tables.hpp"
+#include "deadzone_policy.hpp"
 
 #include "cdng_native.h"
 #include "cdng_bit_budget.h"
@@ -36,22 +37,8 @@ namespace {
 
 constexpr int DcLimit = 4095;   // clase 12
 
-// Zona muerta del cuantizador AC (CDNG_DEADZONE, 0 … 0,5): ℓ = signo·floor(|c|/paso + 0,5 − z).
-// Con 0 es nearbyint, la cuantización verificada con el prototipo. Los coeficientes pequeños (ruido) se
-// anulan antes y no se escriben como ±1 paso.
-double deadZone() {
-    static const double zone = [] {
-        const char *value = std::getenv("CDNG_DEADZONE");
-        return std::clamp(value ? std::atof(value) : 0.0, 0.0, 0.5);
-    }();
-    return zone;
-}
-
-int64_t quantize(double coef, double step) {
-    const double v = coef / step, z = deadZone();
-    if (z <= 0) return int64_t(std::nearbyint(v));
-    return int64_t(std::copysign(std::floor(std::fabs(v) + 0.5 - z), v));
-}
+// Zona muerta AC: ver deadzone_policy.hpp / quantizeAc. CDNG_DEADZONE (uniforme) o
+// CDNG_DEADZONE_POLICY (por plano/banda). DC no usa esta ruta.
 
 // Síntesis de ruido del decodificador, modo adaptativo (por defecto se escribe la tabla del Video Assist, más abajo;
 // con model/noise_synthesis.json se usa la tabla calibrada de más abajo; esto es
@@ -350,7 +337,7 @@ EncodedFrame Codec::encode(const CanvasPlanes &planes, int q, const Geometry &g,
                     double ein = 0, eout = 0;
                     for (int i = 0; i < 63; ++i) {
                         const double c = coef[ScanY[i]];
-                        ac[i] = quantize(c, st.qY);
+                        ac[i] = quantizeAc(c, st.qY, DeadzonePlane::Y, ScanY[i]);
                         const double r = double(ac[i]) * st.qY;
                         ein += c * c; eout += r * r;
                         if (wantHist) hist.acYlevel(ac[i], ScanY[i], c, st.qY);
@@ -377,7 +364,8 @@ EncodedFrame Codec::encode(const CanvasPlanes &planes, int q, const Geometry &g,
                         double ein = 0, eout = 0;
                         for (int i = 0; i < 31; ++i) {
                             const double c = coef[ScanC[i]];
-                            ac[i] = quantize(c, st.qC);
+                            const auto pl = s ? DeadzonePlane::Cr : DeadzonePlane::Cb;
+                            ac[i] = quantizeAc(c, st.qC, pl, ScanC[i]);
                             const double r = double(ac[i]) * st.qC;
                             ein += c * c; eout += r * r;
                             if (wantHist) hist.acClevel(ac[i], ScanC[i], c, st.qC);
@@ -458,7 +446,7 @@ EncodedFrame Codec::encodeRateControlled(const CanvasPlanes &planes, const Geome
     int attempts = 0;
     auto discard = [&](EncodedFrame &f, const char *outcome) {
         if (!f.diag.present) return;
-        f.diag.attempt_index = attempts;
+        // attempt_index ya identifica el intento que produjo este EncodedFrame; no sobrescribir.
         encodeStatsPublish(f, false, outcome);
     };
     auto enc = [&](int q) {
@@ -468,6 +456,8 @@ EncodedFrame Codec::encodeRateControlled(const CanvasPlanes &planes, const Geome
             r.frame = encode(planes, q, g);
             r.ok = true;
             r.size = double(r.frame.size);
+            // Identidad del intento que generó este frame (no el acumulado al seleccionarlo).
+            r.frame.diag.attempt_index = attempts;
         } catch (const CodecRangeError &) {
             encodeStatsPublishDiscarded(q, attempts, "CodecRangeError");
         }
@@ -516,11 +506,11 @@ EncodedFrame Codec::encodeRateControlled(const CanvasPlanes &planes, const Geome
     if (!best.ok) {
         auto last = encode(planes, QMax, g, false);
         last.stats.attempts = attempts + 1;
-        last.diag.attempt_index = last.stats.attempts;
+        last.diag.attempt_index = last.stats.attempts;  // único intento que produjo este frame
         return last;
     }
-    best.frame.stats.attempts = attempts;
-    best.frame.diag.attempt_index = attempts;
+    best.frame.stats.attempts = attempts;  // total de intentos del rate search
+    // Conservar diag.attempt_index del intento que produjo best (no el acumulado).
     return std::move(best.frame);
 }
 
@@ -531,7 +521,7 @@ EncodedFrame Codec::encodeFixed(const CanvasPlanes &planes, const Geometry &g, i
         try {
             auto frame = encode(planes, q, g);
             frame.stats.attempts = attempts;
-            frame.diag.attempt_index = attempts;
+            frame.diag.attempt_index = attempts;  // este intento produjo el frame
             return frame;
         } catch (const CodecRangeError &) {
             encodeStatsPublishDiscarded(q, attempts, "CodecRangeError");
@@ -578,7 +568,8 @@ CanvasPlanes Codec::reconstruct(const CanvasPlanes &planes, int q, const Geometr
                     dct8x8(block, coef);
                     double rec[64] = {};
                     rec[0] = (std::nearbyint((coef[0] / 8.0 - 2048.0) / st.yUnit) * st.yUnit + 2048.0) * 8.0;
-                    for (int i = 0; i < 63; ++i) rec[ScanY[i]] = double(quantize(coef[ScanY[i]], st.qY)) * st.qY;
+                    for (int i = 0; i < 63; ++i)
+                        rec[ScanY[i]] = double(quantizeAc(coef[ScanY[i]], st.qY, DeadzonePlane::Y, ScanY[i])) * st.qY;
                     idct8x8(rec, block);
                     for (int i = 0; i < 8; ++i)
                         for (int j = 0; j < 8; ++j)
@@ -594,7 +585,9 @@ CanvasPlanes Codec::reconstruct(const CanvasPlanes &planes, int q, const Geometr
                         dct4x8(block, coef);
                         double rec[64] = {};
                         rec[0] = std::nearbyint(coef[0] / st.cUnit) * st.cUnit;
-                        for (int i = 0; i < 31; ++i) rec[ScanC[i]] = double(quantize(coef[ScanC[i]], st.qC)) * st.qC;
+                        const auto pl = s ? DeadzonePlane::Cr : DeadzonePlane::Cb;
+                        for (int i = 0; i < 31; ++i)
+                            rec[ScanC[i]] = double(quantizeAc(coef[ScanC[i]], st.qC, pl, ScanC[i])) * st.qC;
                         idct4x8(rec, block);
                         for (int i = 0; i < 4; ++i)
                             for (int j = 0; j < 8; ++j)

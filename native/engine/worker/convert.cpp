@@ -1,6 +1,7 @@
 #include "worker.hpp"
 #include "gyro.hpp"
 #include "encode_stats.hpp"
+#include "signal_internal.hpp"
 
 #include <simdjson.h>
 
@@ -409,6 +410,13 @@ int convert(const std::filesystem::path &requestPath) {
     const int workers = request.options.workers;
     // Valida PRECOMP/ALPHA/BOUNDED una vez (valores inválidos o contradictorios abortan). En rutas no OG se ignora.
     const DeblockPrecomp ogDeblock = ogDeblockPrecompensation();
+    // EXP-003: política AC selectiva solo en Pocket OG (no VA / Pocket 4K).
+    if (const char *pol = std::getenv("CDNG_DEADZONE_POLICY"); pol && *pol) {
+        if (route != Route::Og)
+            throw Error("CDNG_DEADZONE_POLICY is only supported on Pocket OG");
+        if (const char *dz = std::getenv("CDNG_DEADZONE"); dz && *dz)
+            throw Error("CDNG_DEADZONE and CDNG_DEADZONE_POLICY are mutually exclusive");
+    }
     emit("started", json::Object()
         .integer("total", (long long)files.size()).integer("width", width).integer("height", height).integer("workers", workers)
         .num("fps", double(rate->num) / rate->den).str("compression", q ? "quality" : "ratio")
@@ -601,13 +609,16 @@ int convert(const std::filesystem::path &requestPath) {
                         frame.noiseY = decoderNoiseField(noise.scale * decoderNoise(frame.noiseY, false), false);
                         frame.noiseC = decoderNoiseField(noise.scale * decoderNoise(frame.noiseC, true), true);
                     }
-                    // Publica solo el intento finalmente escrito en el sample (intentos descartados ya
-                    // fueron a encode-attempts.jsonl desde encodeFixed / encodeRateControlled).
-                    if (frame.diag.present) encodeStatsPublish(frame, true, "selected");
-                    encodeStatsClearContext();
                     qLast = q || search ? frame.q : Codec::nextQuantiser(frame.q, frame.size, target);
+                    // Sample construido (chunk listo para el mux). La instrumentación oficial se asocia aquí,
+                    // no al intento seleccionado antes del chunk ni a descartes del rate search.
                     result.chunk = frameChunk(header, gap, frame); result.stats = frame.stats; result.q = frame.q;
                     result.noiseLevelY = frame.noiseLevelY; result.noiseLevelC = frame.noiseLevelC; result.noiseY = frame.noiseY; result.noiseC = frame.noiseC;
+                    if (frame.diag.present) {
+                        const std::string chunkSha = sha256Hex(result.chunk);
+                        encodeStatsPublish(frame, true, "sample_written", "sample_written", chunkSha);
+                    }
+                    encodeStatsClearContext();
                     result.tEncode = since(encodeFrom);
                 } catch (...) {
                     encodeStatsClearContext();

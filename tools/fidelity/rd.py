@@ -16,6 +16,7 @@ QMAX = 24
 AUTHORIZED_EXP_ENV = frozenset({
     'CDNG_OG_DEBLOCK_PRECOMP', 'CDNG_OG_DEBLOCK_ALPHA', 'CDNG_OG_DEBLOCK_BOUNDED', 'CDNG_RATE',
     'CDNG_DEADZONE',
+    'CDNG_DEADZONE_POLICY',
 })
 
 # Campos de encode (request o config.encode) que pueden diferir entre puntos RD.

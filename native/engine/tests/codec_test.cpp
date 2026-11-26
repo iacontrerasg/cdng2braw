@@ -3,10 +3,12 @@
 // frente al prototipo.
 #include "../codec.hpp"
 #include "../codec_tables.hpp"
+#include "../deadzone_policy.hpp"
 #include "../encode_stats.hpp"
 #include "check.hpp"
 
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -224,9 +226,103 @@ void autonomous(const Codec &codec, const CodecTables &t) {
             const auto want = sat.size >= FirstSlice ? sat.size - FirstSlice : 0;
             CHECK(line.find("\"slices_payload_bytes\":" + std::to_string(want)) != std::string::npos);
         }
+        // EXP-003: attempt_index = intento que produjo el EncodedFrame (no el acumulado al seleccionar).
+        clear();
+        p = canvas(g);
+        for (int y = 0; y < g.hs; ++y)
+            for (int x = 0; x < g.ws; ++x)
+                p.y[std::size_t(y) * g.ws + x] = int16_t(2048 + ((x * 17 + y * 13) % 200));
+        ctx.frame_index = 3; ctx.q_requested = -1; ctx.ratio_requested = 3; ctx.mode = "ratio";
+        encodeStatsSetContext(ctx);
+        auto rcOk = codec.encodeRateControlled(p, g, 1 << 20, 8);  // objetivo holgado → cabe pronto
+        encodeStatsPublish(rcOk, true, "sample_written", "sample_written");
+        encodeStatsClearContext();
+        CHECK(rcOk.diag.attempt_index >= 1);
+        CHECK(rcOk.diag.attempt_index <= rcOk.stats.attempts);
+        {
+            std::ifstream in(dir / "bit-budget.jsonl");
+            std::string line; std::getline(in, line);
+            CHECK(line.find("\"stage\":\"sample_written\"") != std::string::npos);
+            CHECK(line.find("\"attempt_index\":" + std::to_string(rcOk.diag.attempt_index)) != std::string::npos);
+        }
         unsetenv("CDNG_BIT_BUDGET");
         unsetenv("CDNG_STATS_DIR");
         fs::remove_all(dir);
+    }
+
+    // EXP-003: política de deadzone — legacy off, uniforme ≡ CDNG_DEADZONE, DC intacto, planos.
+    {
+        namespace fs = std::filesystem;
+        check::EnvVar dz("CDNG_DEADZONE");
+        check::EnvVar pol("CDNG_DEADZONE_POLICY");
+        dz.unset();
+        pol.unset();
+        deadzonePolicyResetForTests();
+        p = canvas(g);
+        for (int y = 0; y < g.hs; ++y)
+            for (int x = 0; x < g.ws; ++x)
+                p.y[std::size_t(y) * g.ws + x] = int16_t(1800 + (x * 3 + y * 5) % 400);
+        const auto legacy = codec.encode(p, 12, g);
+
+        // Uniforme vía política ≡ CDNG_DEADZONE.
+        for (double z : {0.0, 0.1, 0.25, 0.5}) {
+            const auto dir = fs::temp_directory_path() / ("cdng-dz-" + std::to_string(int(z * 100)));
+            fs::create_directories(dir);
+            const auto path = dir / "uniform.json";
+            {
+                std::ofstream out(path);
+                out << "{\"schema\":1,\"name\":\"u\",\"mode\":\"uniform\",\"z\":" << z
+                    << ",\"planes\":{\"Y\":{\"default\":" << z << "},\"Cb\":{\"default\":" << z
+                    << "},\"Cr\":{\"default\":" << z << "}}}\n";
+            }
+            dz.unset();
+            pol.set(path.string().c_str());
+            deadzonePolicyResetForTests();
+            const auto viaPol = codec.encode(p, 12, g);
+            pol.unset();
+            dz.set(std::to_string(z).c_str());
+            deadzonePolicyResetForTests();
+            const auto viaDz = codec.encode(p, 12, g);
+            CHECK(viaPol.slices == viaDz.slices);
+            CHECK(viaPol.size == viaDz.size);
+            fs::remove_all(dir);
+        }
+
+        // Política desactivada ≡ legacy (sin CDNG_DEADZONE).
+        dz.unset();
+        pol.unset();
+        deadzonePolicyResetForTests();
+        CHECK(codec.encode(p, 12, g).slices == legacy.slices);
+
+        // Conflicto DEADZONE + POLICY → Error.
+        {
+            const auto dir = fs::temp_directory_path() / "cdng-dz-conflict";
+            fs::create_directories(dir);
+            const auto path = dir / "u.json";
+            { std::ofstream out(path); out << "{\"schema\":1,\"name\":\"u\",\"mode\":\"uniform\",\"z\":0.25,"
+                                              "\"planes\":{\"Y\":{\"default\":0.25},\"Cb\":{\"default\":0.25},"
+                                              "\"Cr\":{\"default\":0.25}}}\n"; }
+            dz.set("0.25");
+            pol.set(path.string().c_str());
+            deadzonePolicyResetForTests();
+            {
+                std::string err;
+                try { deadzonePolicy(); } catch (const Error &e) { err = e.what(); }
+                CHECK(err == "CDNG_DEADZONE and CDNG_DEADZONE_POLICY are mutually exclusive");
+            }
+            dz.unset();
+            pol.unset();
+            deadzonePolicyResetForTests();
+            fs::remove_all(dir);
+        }
+
+        // DC: zY[0]==0 siempre; bandas / frecuencias.
+        CHECK(deadzoneBand(DeadzonePlane::Y, 0, 0) == -1);
+        CHECK(deadzoneBand(DeadzonePlane::Y, 0, 1) == 0);
+        CHECK(deadzoneNormalizedFreq(DeadzonePlane::Y, 7, 7) > 0.9);
+        // quantizeAc con z=0 ≡ nearbyint.
+        CHECK(quantizeAc(1.5, 1.0, DeadzonePlane::Y, 1) == int64_t(std::nearbyint(1.5)));
+        CHECK(quantizeAc(-1.5, 1.0, DeadzonePlane::Y, 1) == int64_t(std::nearbyint(-1.5)));
     }
 
     // Hilos: el mismo Codec desde varios hilos a la vez da lo mismo que en serie.
