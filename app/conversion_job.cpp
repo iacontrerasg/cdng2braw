@@ -50,6 +50,7 @@ bool ConversionJob::start(const ConversionOptions &options, QString *error) {
         {"audio", options.audio}, {"gyro_gcsv", options.gyroGcsv}, {"gyro_fsg2", options.gyroFsg2}, {"gyro_braw", options.gyroBraw}, {"gyro_project", options.gyroProject}, {"camera_type", options.cameraType}, {"cancel", workspace_->filePath("cancel")}, {"control", workspace_->filePath("control.json")},
         {"compression", options.compression}, {"ratio", options.ratio},
         {"nr_luma", options.nrLuma}, {"nr_chroma", options.nrChroma}, {"noise_synthesis", options.noiseSynthesis},
+        {"match_cinemadng_rendering", options.matchCinemaDngRendering},
         {"width", qMax(0, options.size.width())},
         {"height", qMax(0, options.size.height())}}).toJson();
     if (!request.open(QIODevice::WriteOnly) || request.write(data) != data.size()) {

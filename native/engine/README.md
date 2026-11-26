@@ -26,6 +26,7 @@ without any sample footage.
 ```sh
 ./cdng-convert --self-test           # checks that it starts and finds its calibration
 ./cdng-convert --request job.json    # one conversion; progress and result on stdout
+# job.json may set match_cinemadng_rendering (Pocket OG only; default false)
 ```
 
 The comments in the source are in Spanish.

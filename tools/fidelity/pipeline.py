@@ -126,6 +126,7 @@ def encode_request(encode, environ=None):
     req = {'compression': encode['compression'], 'workers': int(encode.get('workers', 2)), 'audio': False,
            'gyro_braw': False, 'gyro_project': False, 'gyro_gcsv': False, 'gyro_fsg2': False,
            'noise_synthesis': bool(encode.get('noise_synthesis', True)),
+           'match_cinemadng_rendering': bool(encode.get('match_cinemadng_rendering', False)),
            'nr_luma': encode.get('nr_luma', 0), 'nr_chroma': encode.get('nr_chroma', 0)}
     if encode['compression'] == 'quality':
         req['q'] = int(encode['q'])

@@ -1,8 +1,8 @@
-# FEAT-001 — Native CinemaDNG Workflow Compatibility (fase A–D)
+# FEAT-001 — Native CinemaDNG Workflow Compatibility (fase A–E)
 
 **Rama:** `feat/pocket-og-cinemadng-workflow`  
 **Base:** `main` @ `e1d69f3` (PR #12 EXP-005c **mergeada**). Este trabajo **no** fusiona PRs.  
-**Alcance:** auditoría de revelado y metadata. **No** implementación E. **No** cambio de defaults. **No** perfiles instalados. **No** EXP-005d/006/007/008. **No** investigación de halos/compresión.
+**Alcance:** auditoría A–D aceptada; implementación **E1** (viewing opt-in). **No** cambio de defaults. **No** perfiles Camera Support. **No** EXP-005d/006/007/008. **No** investigación de halos/compresión. **Sin merge.**
 
 Objetivo de producto: que el BRAW Pocket OG se comporte en DaVinci Resolve lo más parecido posible al CinemaDNG nativo, con el mínimo de CST, LUT y ajustes iniciales — **sin hornear** el look en los códigos de sensor.
 
@@ -14,14 +14,12 @@ Medición SDK de esta fase: `tools/brawdec` + BlackmagicRawAPI de Resolve, clip 
 
 ## Decisión de esta fase
 
-**Estrategia recomendada (para E, tras revisión):**
-
-1. Conservar el default histórico: `viewing_gamut` = DCI-P3 D65, `viewing_gamma` = Linear (equivalencia con DNG sin gestión de color / banco S9).
-2. Añadir, solo si se aprueba E, una opción experimental **CinemaDNG / Gen 1 Match** que **no** recodifica el sensor: cambia los **defaults de visualización** a DaVinci Wide Gamut + DaVinci Intermediate (espacio de entrada de la LUT ya medida) y documenta/aplica la LUT de equivalencia.
+1. Conservar el default histórico: `viewing_gamut` = DCI-P3 D65, `viewing_gamma` = Linear.
+2. Opción opt-in **Match original CinemaDNG rendering**: viewing DaVinci Wide Gamut + DaVinci Intermediate; gen 5; LUT **no** embebida.
 3. **No** fijar `color_science_gen` = 1: el clip OG solo admite **gen 5**.
-4. **No** usar `viewing_gamma` = Blackmagic Design Film como “Gen 1”: esa curva en el SDK **no** es Film Gen 1 del CinemaDNG (README, `container.cpp`).
-5. LUT embebida (`lutm` Embedded / `eml*`) y sidecar LUT (`scl*`): el SDK **lista** Embedded/Sidecar/Disabled, pero en un BRAW actual `eml*` y `scl*` devuelven `0x80000008` (no hay LUT en el fichero). **No demostrado** que el encoder pueda escribir un cubo embebido sin el SDK de escritura. Queda como investigación de E, no como camino de primera.
-6. Fallback ya existente: LUT externa en `LUT/cdng2braw/`.
+4. **No** usar `viewing_gamma` = Blackmagic Design Film como “Gen 1”.
+5. LUT embebida: claves y API **documentadas**; persistencia en el encoder **no** demostrada sin BRAW de referencia. Sin prototipo de átomos.
+6. Fallback: LUT externa en `LUT/cdng2braw/` + paso de nodo manual.
 
 ---
 
@@ -101,7 +99,7 @@ Medida en Resolve sobre el **decoder CinemaDNG** de la Pocket OG: entrada DaVinc
 | Blanco (nodo 1,1,1) | ≈ **0.85771** (techo; no 1.0) |
 | Rango de salida | min ≈ 0.03539, max ≈ 0.85771; muchos nodos saturan cerca de 0.858 |
 
-No hay modelo cerrado (matriz + curva) en el repositorio: la equivalencia es **tabular**, calibrada en un dominio SDR 0–1 de Intermediate.
+No hay modelo cerrado (matriz + curva) en el repositorio: la equivalencia es **tabular**, calibrada en el dominio **0–1 de DaVinci Intermediate** (codificación logarítmica, **no** Rec.709 SDR).
 
 ### Espacios
 
@@ -112,11 +110,15 @@ No hay modelo cerrado (matriz + curva) en el repositorio: la equivalencia es **t
 | Salida | look **Blackmagic Design Film Gen 1** del DNG (display-referred en el sentido del decoder Resolve, no un gamut nombrado aparte en el cubo) |
 | Gamma de salida | la del revelado DNG “Blackmagic Design” (Film Gen 1), no Linear |
 
-### HDR, clip, fuera de dominio
+### HDR, clip, fuera de dominio (E4)
 
-- Dominio **0–1**. Valores &lt;0 o &gt;1: el aplicador **recorta al dominio** (estándar `.cube`); no hay extensión HDR/PQ.
-- Highlights del cubo **comprimidos** (~0.86): no es techo de sensor 4095 ni P3 lineal del banco.
-- Equivalencia **visual/display** con Gen 1 en el rango en que se midió; **no** equivalencia matemática escena-lineal con S9 EXR (esos EXR son P3 lineal sin Film).
+- Dominio **0–1 Intermediate**. Valores &lt;0 o &gt;1: el aplicador **recorta al dominio** (estándar `.cube`); no hay extensión HDR/PQ.
+- Negro (nodo 0) ≈ **0.035388** (lift Film). Blanco (nodo 1) ≈ **0.85771**. Mín/máx del cubo ≈ 0.03539–0.85771. **Ningún** nodo negativo ni &gt; 1.
+- ~28 000 de 35 937 nodos caen en el techo (~0.858): highlights **comprimidos**; no es techo de sensor ni P3 lineal del banco.
+- Saturados y altas luces del CinemaDNG que salgan del dominio Intermediate se recortan **antes** de interpolar.
+- Exposure / Kelvin / Tint del Camera RAW operan **antes** de esta LUT (E3); un ΔExposure grande empuja más muestras al techo del cubo.
+- Equivalencia **visual/display** con Gen 1 en el rango medido; **no** equivalencia escena-lineal con S9 EXR (P3 lineal sin Film).
+- **No** se genera una LUT nueva: no hay necesidad demostrada de otro tamaño o dominio.
 
 ---
 
@@ -126,8 +128,8 @@ No hay modelo cerrado (matriz + curva) en el repositorio: la equivalencia es **t
 |---|---|---|---|---|
 | 1 | Metadata nativa Gen 1 (`csgn=1` o Film Gen 1 de cámara BMD) | **No** para este clip: `csgn` ∈ {5}; Film del SDK ≠ Gen 1 DNG | Sí | **Descartada** como equivalencia Gen 1 |
 | 2 | Viewing gamut/gamma DWG + Intermediate | **Sí**: ambos nombres están en las listas; `viewing_*` los escribe el encoder y Resolve los usa al abrir | Sí (CSC de salida, no sensor) | **Camino principal de E** (quita el CST; no quita la LUT) |
-| 3 | LUT embebida auto-on (`lutm=Embedded`) | **No demostrado**: `eml*` ausentes; no hay escritor SDK; átomos no implementados | Sí si post-process | Investigación E; no primera entrega |
-| 4 | Sidecar auto (`.sidecar` o `scl*`) | Sidecar de **exposure** sí; LUT sidecar `scl*` = `0x80000008`; Resolve reescribe sidecars | Sí | Frágil; no recomendado como primario |
+| 3 | LUT embebida auto-on (`lutm=Embedded`) | SDK **sí** documenta `SetEmbeddedPost3DLUT` y claves QT `post_3dlut_*`; **no** hay BRAW de referencia local ni persistencia en el encoder | Sí si post-process | **No implementada** (E2) |
+| 4 | Sidecar LUT (JSON `.sidecar` con `post_3dlut_sidecar_*`) | Documentado en el manual SDK (ejemplo Identity 33³, `post_3dlut_mode: Sidecar`); **distinto** del sidecar de exposición; Resolve lo reescribe; no viaja solo el `.braw` | Sí | **No implementada** (E5); frágil |
 | 5 | LUT externa `LUT/cdng2braw/` | **Sí, ya instalada** | Sí | **Fallback**; sigue pidiendo un nodo (o OFX) |
 
 Reglas: no hornear Film en YCC; no cambiar `sensor_curve` / ISO / `camera_type` / revisión.
@@ -165,7 +167,7 @@ No se fabrica metadata ausente (serial, BE crudo, AsShotNeutral triple).
 | Capacidad | Encoder hoy | SDK lista | Resolve UI | Nota |
 |---|---|---|---|---|
 | P3-D65 Linear al abrir | Sí (viewing) | Sí | Sí | Default histórico |
-| DWG + Intermediate al abrir | No (viewing distinto) | Sí | Sí si viewing | Propuesta E |
+| DWG + Intermediate al abrir | Opt-in E1 | Sí | Sí si viewing | Default sigue P3 Linear |
 | Film Gen 1 nativo | No | `csgn`≠1 | No | Bloqueado |
 | Blackmagic Design Film (gen 5) | No como viewing | Gamma listada | Sí como gamma | ≠ Gen 1 DNG |
 | ISO As Shot | Sí | Lista 200–1600 en clip | **Sin** selector | Usar Exposure |
@@ -177,6 +179,56 @@ No se fabrica metadata ausente (serial, BE crudo, AsShotNeutral triple).
 
 ---
 
+## E1 — Viewing metadata (implementado)
+
+Opción opt-in exclusiva Pocket OG: **Match original CinemaDNG rendering**. Default **desactivado**.
+
+| | Viewing gamut | Viewing gamma | Color science |
+|---|---|---|---|
+| Desactivada (histórico) | DCI-P3 D65 | Linear | Gen 5 (`viewing_bmdgen` = `OgModel.gen`) |
+| Activada | DaVinci Wide Gamut | DaVinci Intermediate | Gen 5 (sin cambio) |
+
+No se toca curva de sensor, ISO, WB, identidad ni payload YCC. Otras rutas (VA / Pocket 4K) rechazan el flag.
+
+Superficies: `request.json` (`match_cinemadng_rendering`), worker `cdng-convert --request`, caché de fidelidad (`encode_request` / `conversion_material`), UI (checkbox avanzado, visible con tomas OG), nombre de fichero `_match` para no chocar con la caché de Resolve.
+
+## E2 — LUT embebida (no viable en esta entrega)
+
+`eml*` = `0x80000008` en **nuestros** BRAW demuestra **ausencia** de LUT, no incompatibilidad del contenedor.
+
+Evidencia reunida:
+
+| Fuente | Qué aporta |
+|---|---|
+| Manual SDK sept. 2026 | `lutm` / `emln` `emlt` `emls` `emld` / `scl*`; `Get/SetEmbeddedPost3DLUT(name, title, size, Variant* data)`; `CreateJobProcess(..., post3DLUTBuffer)`; interpolación tetraédrica |
+| Binario BlackmagicRawAPI | Claves QT `post_3dlut_mode`, `post_3dlut_embedded_{name,title,bmd_gamma,size,data}`, `post_3dlut_sidecar_{name,title,size,data}`; `IBlackmagicRawPost3DLUT`; `BrawSidecarCubeFile` / `BrawSidecarWriter` |
+| `tools/clean_template.py` | La plantilla 4K **tenía** `post_3dlut_*` (~431 KB = 33³×3×float32) y se **eliminaron** a propósito |
+| Gist público P6K Pro | Esas mismas claves en un BRAW de cámara; `post_3dlut_mode: Disabled` **con** cubo embebido presente |
+| Disco local | **Ningún** `.braw` con `post_3dlut_embedded_*` (ni Desktop/BRAW ni caché del banco) |
+
+`SetEmbeddedPost3DLUT` actúa sobre atributos de **sesión**. La persistencia documentada de cambios de procesado es el JSON `.sidecar` o un **trim** que hornea sidecar en un BRAW nuevo — no un API de escritura del moov. `minimalMetadata` (OG) **descarta** claves desconocidas; no hay insertor de átomos.
+
+**No** se construye prototipo de contenedor: faltan tipo/endian del átomo `data` y un fichero de referencia para hex-diff. Inventar esa estructura violaría la regla de evidencia.
+
+Activación por defecto: el UI del SDK lee `lutm` de metadata. Presencia de `emld` **no** implica auto-on (el P6K Pro del gist abre Disabled). Desactivar LUT no debe alterar Exposure/Kelvin/Tint ni el bitstream.
+
+## E3 — Orden de procesado
+
+1. Decode bitstream → planos (sensor / YCC según flujo).
+2. Process: ISO (`post_gain`), Exposure, Kelvin, Tint, curva, CSC de **viewing** (gamut/gamma del clip).
+3. Post 3D LUT (`CreateJobProcess` buffer LUT; `GetPost3DLUTSizeBytes`) sobre la imagen **ya** en el espacio de visualización.
+4. Nodos de Resolve **después** del revelado Camera RAW.
+
+La LUT medida espera **DWG / DaVinci Intermediate**. Con E1 activado, ese es el espacio de entrada. En un proyecto con color management, un CST adicional **más** la LUT **dobla** la transformación: no aplicar CST de entrada si el clip ya llega en DWG/Intermediate. **No** se hornea CST ni LUT en el encoder.
+
+## E5 — Fallback
+
+Sidecar LUT **no** es el sidecar de exposición: el manual muestra JSON con `post_3dlut_mode`, `post_3dlut_sidecar_name/title/size/data` (lattice en texto). Resolve reescribe `.sidecar`; no viaja al copiar solo el `.braw`; un sidecar de exposición existente se **sustituye** al guardar.
+
+Sin un `.sidecar` LUT generado por Resolve para comparar, **no** se emite sidecar desde el conversor.
+
+**Producto de esta fase:** viewing opt-in + LUT **externa** ya instalada en `LUT/cdng2braw/`. Paso manual restante: aplicar `Pocket 2013 DNG Film from DWG Intermediate` en el primer nodo (o OFX). **No** se etiqueta como equivalencia automática Gen 1.
+
 ## Limitaciones SDK / Resolve
 
 - Perfil **externo**: sin `GetISOListForAnalogGain` ni lista de ColorScienceGen a nivel Constants → Resolve sin ISO y con errores `0x80000008` / `SetClipAttribute(ColorScienceGen)`.
@@ -187,29 +239,49 @@ No se fabrica metadata ausente (serial, BE crudo, AsShotNeutral triple).
 
 ---
 
-## Propuesta E / F (no implementada)
+## F — Validación manual en Resolve
 
-### E — Opción experimental Pocket OG
+El banco S9 (P3 lineal) **no** es referencia Film Gen 1. Exportar EXR **adicionales**. Prioridad: **A01_f052**, **A03_f046**, **A04_f049**.
 
-- UI/request: **CinemaDNG / Gen 1 Match** vs **Native BRAW** (histórico). Default = histórico.
-- Match: escribir `viewing_gamut` = `DaVinci Wide Gamut`, `viewing_gamma` = `DaVinci Intermediate`; **no** tocar curva, ISO, identidad, YCC.
-- Identidad de caché: incluir el flag (como `OUTPUT_ENV` / notes de encode).
-- Otras cámaras: sin cambio.
-- LUT: seguir instalando el cubo; **no** embed hasta probar `eml*` con un prototipo de contenedor (fuera de la primera E si el riesgo es alto).
-- Texto Resolve: un paso restante = aplicar LUT (si embed no está).
+### Proyecto
 
-### F — Validación (cuando exista E)
+1. Proyecto nuevo (`FEAT-001-Gen1`). **DaVinci YRGB** (sin color management). Así no hay CST de proyecto que doble la LUT.
+2. Timeline Rec.709-A / Rec.709 (o el mismo espacio en el que se midió la LUT). **No** DaVinci Wide Gamut en el timeline.
+3. Decode Using: **Camera Metadata** (clip).
+4. Camera RAW: As Shot. No tocar Exposure, Kelvin, Tint, Saturation, Color boost.
+5. **No** corregir BUG-002 (halos / false color): anotarlos aparte del revelado.
 
-- Comparar CinemaDNG **Blackmagic Design** vs BRAW Match + LUT (y vs histórico P3 Linear).
-- El banco S9 actual **no** es referencia Gen 1: habría que exportar EXR **adicionales** (DNG Film Gen 1 y, si hace falta, BRAW DWG/Inter±LUT) — no reutilizar `DNG1600MINUS3` sin emparejar EV.
-- Evaluar: exposición inicial, WB, gamma/contraste, colorimetría, saturación, negros/altas, ΔExposure RAW, ΔWB/tint, rotura de árboles P3 Linear.
-- Distinguir equivalencia visual (LUT) vs matemática (códigos).
-- No gate de BUG-002.
+### Cinco revelados por fotograma
+
+| Etiqueta | Material | Camera RAW | Nodo |
+|---|---|---|---|
+| CinemaDNG nativo | carpeta DNG | Blackmagic Design / Film Gen 1 (default DNG) | ninguno |
+| BRAW histórico | conversión **sin** Match | P3-D65 Linear (metadata) | ninguno |
+| BRAW DWG/Inter | conversión **con** Match | DWG / DaVinci Intermediate | ninguno |
+| BRAW Match + LUT | el mismo BRAW Match | DWG / Intermediate | LUT `cdng2braw / Pocket 2013 DNG Film from DWG Intermediate` en el **primer** nodo; LUT combinada **on** |
+| BRAW Match LUT off | el mismo BRAW Match | DWG / Intermediate | misma LUT **desactivada** (bypass). Debe coincidir con «BRAW DWG/Inter» |
+
+Comprobar: la LUT se puede apagar; ISO/WB As Shot se conservan; el payload (histogramas Camera RAW) no cambia al conmutar la LUT.
+
+### Entrega EXR
+
+Deliver: OpenEXR, RGB 16-bit float, un fotograma, nombre  
+`{clip}_{frame}_{etiqueta}.exr`  
+p. ej. `A01_f052_DNG_FilmGen1.exr`, `A01_f052_BRAW_P3Linear.exr`, `A01_f052_BRAW_Match.exr`, `A01_f052_BRAW_MatchLUT.exr`, `A01_f052_BRAW_MatchLUToff.exr`.
+
+Misma geometría (recorte de cámara, no timeline crop). Sin denoise, sin rec.709 output transform extra.
+
+### Qué comparar
+
+- Equivalencia de **revelado**: DNG Gen 1 vs BRAW Match+LUT (exposición, contraste Film, colorimetría, saturación, negros/altas).
+- Defectos del **encoder** (BUG-002, bloques, banding): no mezclarlos con el veredicto de viewing/LUT.
+- Árboles antiguos que asumen P3 Linear **rompen** si se usa Match: por eso el default no cambia.
 
 ---
 
 ## Entregables de esta PR
 
-- Este informe; [backlog.md](backlog.md).
-- Pruebas de cabecera del cubo (`tests/test_feat001.py`).
-- Sin código de encode E. Sin merge.
+- E1 en encoder, request, caché y UI.
+- Informe E2–E5 (LUT embebida no prototipada; sidecar LUT no emitido).
+- Pruebas `tests/test_feat001.py`, `container_test`.
+- Este documento; instrucciones F. Sin merge.

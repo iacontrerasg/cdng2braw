@@ -44,6 +44,8 @@ class ConverterWindow : public QWidget {
     QComboBox *qCustom_;         // q0…q24; los que son un nivel llevan su nombre («q9 (Q3)»); el dato es la q
     QCheckBox *gyroBraw_, *gyroFiles_, *gyroProject_;
     QCheckBox *noiseSynthesis_;   // ruido que repone el descodificador (campos de la cabecera de cada frame)
+    QCheckBox *matchCinemaDng_;   // OG: viewing DWG/Intermediate; default desactivado = P3 Linear
+    QWidget *matchCinemaDngRow_;
     QRadioButton *ratioMode_;
     QRadioButton *qualityMode_;
     QButtonGroup *ratios_;
@@ -104,6 +106,8 @@ class ConverterWindow : public QWidget {
     void updateCompression();
     int selectedQuality() const;   // q efectiva: la del nivel marcado o la del spinbox si está la q libre
     void updateNoiseControls();
+    void updateMatchCinemaDng();
+    bool scannedHasOg() const;
     QString outputPathFor(const QJsonObject &clip) const;
     void showClips(bool final = true);
     void selectClip(const QString &folder);

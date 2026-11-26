@@ -62,15 +62,25 @@ float vaGainFor(const std::string &camera);
 // Resolve la usa como clave de su tabla ISO por cámara; con 0 no habría ninguna ISO válida.
 inline constexpr float ogAnalogGain = 1.0f;
 
+// Visualización OG histórica (P3-D65 lineal = DNG sin Film Gen 1). Match: espacio de entrada de la LUT medida.
+inline constexpr const char *ogViewingGamut = "DCI-P3 D65";
+inline constexpr const char *ogViewingGamma = "Linear";
+inline constexpr const char *ogMatchViewingGamut = "DaVinci Wide Gamut";
+inline constexpr const char *ogMatchViewingGamma = "DaVinci Intermediate";
+
 // Datos del clip que no dependen de la ruta: `lineTimeUs` (sensor_line_time, el tiempo de lectura entre las filas de la
 // imagen; 0 = el de la plantilla), `lens` (lens_type; vacío = sin objetivo) y la identidad de la toma: `cameraId`
 // (camera_id, un UUID), `clipNumber` (clip_number) y `date` (date_recorded, AAAA:MM:DD). Vacíos = los neutros de la
-// plantilla. La ruta og no los lleva: su metadata se reduce a lo que pide su perfil.
-struct ClipExtras { float lineTimeUs = 0; std::string lens, cameraId, clipNumber, date; };
+// plantilla. `matchCinemaDngRendering` (solo Og): viewing DWG/Intermediate; gen 5 se conserva.
+struct ClipExtras {
+    float lineTimeUs = 0;
+    std::string lens, cameraId, clipNumber, date;
+    bool matchCinemaDngRendering = false;
+};
 
 // finalize_clip: identidad de cámara del moov. Va: `camera` (una de vaCameraTypes), Gen 4, ganancia analógica;
 // Pocket: BMPCC 4K Gen 4; Og: camera_type, gen y revisión del perfil propio, ganancia analógica constante 1 y
-// visualización P3-D65 lineal (sin los extras, que su metadata no lleva).
+// visualización P3-D65 lineal (o DWG/Intermediate si extras.matchCinemaDngRendering).
 void finalizeClip(const std::filesystem::path &path, const Geometry &geometry, Route route, const OgModel *og,
                   const std::string &camera = vaCameraTypes().front(), const ClipExtras &extras = {});
 

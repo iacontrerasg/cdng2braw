@@ -783,9 +783,6 @@ const std::vector<std::string> &vaCameraTypes() {
 
 float vaGainFor(const std::string &camera) { return camera == "SIGMA fp L" ? vaGain() : 1.0f; }
 
-const char *const ogViewingGamut = "DCI-P3 D65";
-const char *const ogViewingGamma = "Linear";
-
 void finalizeClip(const std::filesystem::path &path, const Geometry &geometry, Route route, const OgModel *og,
                   const std::string &camera, const ClipExtras &extras) {
     if (route == Route::Og && !og) throw Error("The Pocket Cinema Camera calibration is missing.");
@@ -812,13 +809,15 @@ void finalizeClip(const std::filesystem::path &path, const Geometry &geometry, R
         // Ruta og.
         const std::string ogCamera = og->cameraType.empty() ? "SIGMA fp" : og->cameraType;
         const std::string maker = ogCamera.substr(0, ogCamera.find(' '));
-        // Resolve sin gestión de color abre el clip con el espacio y la gamma de visualización: P3-D65 lineal es donde el
-        // BRAW coincide con el DNG (con «Blackmagic Design Film» no puede: el DNG usa la Film Gen 1, que el SDK no tiene).
+        // Resolve abre con viewing_*: P3-D65 lineal iguala el DNG sin Film Gen 1. Match usa DWG/Intermediate
+        // (entrada de la LUT medida). viewing_bmdgen sigue siendo og->gen (5); el clip no admite gen 1.
+        const char *gamut = extras.matchCinemaDngRendering ? ogMatchViewingGamut : ogViewingGamut;
+        const char *gamma = extras.matchCinemaDngRendering ? ogMatchViewingGamma : ogViewingGamma;
         Changes changes{{"manufacturer", Bytes(maker.begin(), maker.end())},
                         {"analog_gain", be32Bytes(floatBits(ogAnalogGain))},
                         {"analog_gain_is_constant", be16Bytes(1)},
-                        {"viewing_gamut", Bytes(ogViewingGamut, ogViewingGamut + std::strlen(ogViewingGamut))},
-                        {"viewing_gamma", Bytes(ogViewingGamma, ogViewingGamma + std::strlen(ogViewingGamma))}};
+                        {"viewing_gamut", Bytes(gamut, gamut + std::strlen(gamut))},
+                        {"viewing_gamma", Bytes(gamma, gamma + std::strlen(gamma))}};
         changes.insert(changes.end(), clip.begin(), clip.end());
         moov = withProfile(moov, ogCamera, og->gen, changes);
         const auto top = profileAtoms(moov.data(), 0, moov.size());

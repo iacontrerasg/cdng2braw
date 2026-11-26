@@ -168,7 +168,20 @@ void standalone() {
     CHECK(contains(data, extras.cameraId) && contains(data, "C0025") && contains(data, "Nikkor 24mm"));
     CHECK(contains(data, "Blackmagic Pocket Cinema Camera") && !contains(data, "Pocket Cinema Camera 4K"));
     CHECK(contains(data, "DCI-P3 D65") && contains(data, "Linear"));   // se abre en P3-D65 lineal
+    CHECK(!contains(data, "DaVinci Wide Gamut") && !contains(data, "DaVinci Intermediate"));
     CHECK(!contains(data, "post_3dlut_mode"));
+    {
+        extras.matchCinemaDngRendering = true;
+        const fs::path ogMatch = dir / "og_match.braw";
+        fs::copy_file(clip, ogMatch);
+        finalizeClip(ogMatch, g, Route::Og, &model, "SIGMA fp", extras);
+        const auto matchData = readFile(ogMatch);
+        const auto matchMeta = clipMetadata(matchData);
+        auto asText = [](const std::vector<uint8_t> &v) { return std::string(v.begin(), v.end()); };
+        CHECK(asText(matchMeta.at("viewing_gamut")) == "DaVinci Wide Gamut");
+        CHECK(asText(matchMeta.at("viewing_gamma")) == "DaVinci Intermediate");
+        extras.matchCinemaDngRendering = false;
+    }
     {   // ganancia analógica unitaria y constante, como la ruta va
         const auto meta = clipMetadata(data);
         uint32_t oneBits; const float one = 1.0f; std::memcpy(&oneBits, &one, 4);

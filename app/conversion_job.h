@@ -44,6 +44,7 @@ struct ConversionOptions {
     double nrLuma = 0.;
     double nrChroma = 0.;
     bool noiseSynthesis = true;   // el descodificador repone el ruido que quita la compresión
+    bool matchCinemaDngRendering = false;   // OG: viewing DWG/Intermediate (LUT Gen 1); default P3 Linear
     QSize size;
 };
 class ConversionJob : public QObject {
