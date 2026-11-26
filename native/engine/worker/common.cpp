@@ -1,6 +1,7 @@
 #include "worker.hpp"
 #include "signal_internal.hpp"
 #include "stage_dump.hpp"
+#include "og_bayer.hpp"
 
 #include <simdjson.h>
 
@@ -315,9 +316,13 @@ Planes develop(const Engine &engine, const Dng &dng, const SourceInfo &info, int
     const auto inject = stageInjectRgb();
     const std::string injectAt = inject ? stageInjectAt() : std::string();
     RgbImage rgb;
+    const OgBayerConfig ogBayer = (info.route == Route::Og) ? ogBayerFromEnv() : OgBayerConfig{};
     if (inject && injectAt == "camera") {
         rgb = *inject;
         if (tracing) trace::line("CDNG_INJECT_RGB applied at camera (replaces LibRaw AHD)");
+    } else if (ogBayer.enabled) {
+        rgb = bayerReconstructLinear(dng.cameraBayer());
+        if (tracing) trace::line("CDNG_OG_BAYER: cameraBayer + linear reconstruct (not AHD, not VA ChannelCodec)");
     } else {
         rgb = dng.cameraRgb();
     }
@@ -329,6 +334,9 @@ Planes develop(const Engine &engine, const Dng &dng, const SourceInfo &info, int
         const Mat3 matrix = cameraTo709(color, color.asShotNeutral);
         multiply(rgb, &matrix, info.gain);
         rgb = cropSensor(rgb, dng);
+    } else if (ogBayer.enabled) {
+        // cameraBayer already applied DefaultCrop; do not crop again.
+        if (tracing) trace::line("CDNG_OG_BAYER: skip cropSensor (mosaic already DefaultCrop)");
     } else {
         rgb = cropSensor(rgb, dng);
         if (tracing) trace::image("cropSensor", rgb.data.data(), std::size_t(rgb.width) * rgb.height, 3, thresholds);

@@ -1,6 +1,7 @@
 // Bloque B (señal): pruebas autónomas y de paridad con el prototipo.
 #include "../signal_internal.hpp"
 #include "../og_chroma.hpp"
+#include "../og_bayer.hpp"
 #include "../stage_dump.hpp"
 #include "check.hpp"
 
@@ -855,8 +856,44 @@ void dumpDoesNotChangePlanes(const OgModel &og) {
     std::filesystem::remove_all(tmp);
 }
 
+void ogBayerExperimental() {
+    check::EnvVar env("CDNG_OG_BAYER");
+    env.unset();
+    CHECK(!ogBayerFromEnv().enabled && !ogBayerFromEnv().fromEnv);
+    env.set("0");
+    CHECK(ogBayerFromEnv().fromEnv && !ogBayerFromEnv().enabled);
+    env.set("1");
+    CHECK(ogBayerFromEnv().enabled);
+    bool threw = false;
+    try { ogBayerRejectIfNotOg(Route::Va); } catch (const Error &) { threw = true; }
+    CHECK(threw);
+    ogBayerRejectIfNotOg(Route::Og);
+    env.unset();
+    BayerImage m;
+    m.width = 8; m.height = 8;
+    m.samples.assign(64, 0.f);
+    m.colors.assign(64, 0);
+    for (int y = 0; y < 8; ++y) for (int x = 0; x < 8; ++x) {
+        const int i = y * 8 + x;
+        if (y % 2 == 0 && x % 2 == 0) { m.colors[i] = 0; m.samples[i] = 0.50f; }
+        else if (y % 2 == 1 && x % 2 == 1) { m.colors[i] = 2; m.samples[i] = 0.10f; }
+        else { m.colors[i] = 1; m.samples[i] = 0.20f; }
+    }
+    const RgbImage rgb = bayerReconstructLinear(m);
+    CHECK(rgb.width == 8 && rgb.height == 8);
+    CHECK_NEAR(rgb.px(0, 0)[0], 0.50, 1e-6);
+    CHECK(rgb.px(0, 0)[1] > 0.05 && rgb.px(0, 0)[1] < 0.35);
+    CHECK_NEAR(rgb.px(1, 0)[1], 0.20, 1e-6);
+    const auto va = videoAssistMap(Resources);
+    CHECK(va->channelCodec() != nullptr);
+    const OgModel og = loadOgModel(Resources / "model/pocket_og_cinemadng_signal.json");
+    const auto nmap = ogSignalMap(og);
+    CHECK(nmap->channelCodec() == nullptr);
+}
+
 int main() {
     const OgModel og = loadOgModel(Resources / "model/pocket_og_cinemadng_signal.json");
+    ogBayerExperimental();
     dumpDoesNotChangePlanes(og);
     ogChromaModes(og);
     autonomous(og);

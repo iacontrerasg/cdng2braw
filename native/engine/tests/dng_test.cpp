@@ -4,6 +4,7 @@
 #include "../dng.hpp"
 #include "../dng_math.hpp"
 #include "../og_debayer.hpp"
+#include "../og_bayer.hpp"
 #include "../signal_internal.hpp"
 #include "../stage_dump.hpp"
 #include "check.hpp"
@@ -211,6 +212,16 @@ void autonomousMath() {
         env.unset();
         ogDebayerRejectIfNotOg(Route::Va);
         ogDebayerRejectIfNotOg(Route::Og);
+    }
+    {
+        check::EnvVar bayer("CDNG_OG_BAYER"), deb("CDNG_OG_DEBAYER");
+        bayer.set("1");
+        deb.set("vng");
+        bool threw = false;
+        try { ogBayerRejectIfNotOg(Route::Og); } catch (const Error &) { threw = true; }
+        CHECK(threw);
+        deb.unset();
+        ogBayerRejectIfNotOg(Route::Og);
     }
 }
 

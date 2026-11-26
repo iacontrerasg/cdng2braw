@@ -1,0 +1,490 @@
+{
+  "experiment": "EXP-005c",
+  "title": "Pocket OG Bayer-native Architecture Feasibility",
+  "branch": "experiment/pocket-og-bayer-native-feasibility",
+  "base": "main@62986b7 (PR #11 EXP-005b merged)",
+  "generated_utc": "2026-11-26T21:06:25Z",
+  "defaults_intact": true,
+  "no_sdk_or_format_change": true,
+  "no_exp006_007_008": true,
+  "ahd_default": true,
+  "inventory": {
+    "reusable_as_is": [
+      "Dng::cameraBayer() \u2014 unpack LibRaw, DefaultCrop, black/white, CFA 2\u00d72, muestras lineales",
+      "LibRaw unpack de DNG comprimido (tag 259\u22601) \u2192 raw_image",
+      "ogExposure / Camera Support / metadata de clip OG",
+      "imagePlanes + NativeSensor::map (YCC mezclado por matriz, C0)",
+      "canvasPlanes / DCT / VLC / contenedor BRAW (comunes)",
+      "decodedPlanes y brawdec SDK",
+      "green cubic direccional de bayerFields, aplicado a muestras lineales (no a c\u00f3digos VA)"
+    ],
+    "va_specific_not_reusable_for_og_ycc": [
+      "ChannelCodec VideoAssist (k0+s\u221ax, gain_rgb, toe SDK)",
+      "bayerFields ratios (B\u2212\u011c)/\u011c y sitios Cb DR / Cr UL",
+      "finishPlanes: sharpen luma 1.2 y conversi\u00f3n ratio\u2192c\u00f3digo con signal(Y)",
+      "noiseResolution crop/2 (cuarteto = 1 p\u00edxel VA)",
+      "perfil Camera Support SIGMA fp / analog_gain"
+    ],
+    "og_rgb_specific": [
+      "NativeSensor: scale \u2192 sensor_curve \u2192 offset \u2192 inv(code_from_ycc)",
+      "LibRaw AHD cameraRgb + cropSensor (default)",
+      "info.gain=1; ISO via post_gain al decodificar",
+      "CDNG_OG_CHROMA_MODE C0\u2013C4 sobre RGB ya mapeado"
+    ],
+    "semantic_difference": "VA: c\u00f3digos por fotosito, Y=(R+2G+B)/4 y croma como proporciones en dominio de se\u00f1al. OG: curva por canal sobre RGB completo y mezcla 3\u00d73 a YCbCr. No son la misma representaci\u00f3n interna."
+  },
+  "risks": [
+    "Enchufar cameraBayer en bayerPlanes/finishPlanes escribir\u00eda YCC estilo VA en un BRAW con perfil OG.",
+    "LibRaw AHD introduce zippering/halos; evitarlo no prueba que el SDK OG espere mosaico parcial.",
+    "cameraBayer recorta en el mosaico (par); cameraRgb recorta tras demosaic \u2014 hay que no recortar dos veces.",
+    "Interpolaci\u00f3n bilinear/c\u00fabica sigue siendo un demosaic: puede suavizar detalle y false color propio.",
+    "DNG OG comprimido: unpack OK, no se parchea el mosaico in-place (EXP-005).",
+    "Rango din\u00e1mico: highlight clip de LibRaw no aplica en cameraBayer; highlights pueden diferir."
+  ],
+  "routes": {
+    "og_rgb": {
+      "entry": "CFA DNG \u2192 LibRaw unpack \u2192 AHD (user_qual=3) \u2192 RGB lineal",
+      "normalize": "(count\u2212black)/ (white\u2212black); highlight clip LibRaw",
+      "crop": "DefaultCropOrigin/Size after demosaic (cropSensor)",
+      "map": "NativeSensor (curve + inv code_from_ycc)",
+      "planes": "imagePlanes C0 (Y full, Cb/Cr mean 2\u00d72)",
+      "channelCodec": null
+    },
+    "va_bayer": {
+      "entry": "CFA DNG \u2192 cameraBayer (crop in mosaic)",
+      "normalize": "same black/white linear",
+      "map": "ChannelCodec encode per photosite (sqrt/toe)",
+      "planes": "bayerFields \u2192 ratios \u2192 finishPlanes codes",
+      "channelCodec": "VideoAssist"
+    }
+  },
+  "mosaic_audit": {
+    "path": "BMPCC_1_2000-03-02_0756_C0039_000044.dng",
+    "compression": 7,
+    "photometric": 32803,
+    "cfa_repeat": [
+      2,
+      2
+    ],
+    "cfa_pattern": [
+      1,
+      2,
+      0,
+      1
+    ],
+    "black_level": [
+      256
+    ],
+    "white_level": [
+      51080
+    ],
+    "default_crop_origin": [
+      16,
+      16
+    ],
+    "default_crop_size": [
+      1920,
+      1080
+    ],
+    "active_area": null,
+    "image_width": 1952,
+    "image_length": 1112,
+    "bits": [
+      12
+    ],
+    "baseline_exposure": [
+      3.1
+    ],
+    "unique_camera_model": null,
+    "is_compressed": true,
+    "little_endian": false,
+    "status": "ok",
+    "clip": "BMPCC_1_2000-03-02_0756_C0039",
+    "frame": 44
+  },
+  "smoke": {
+    "status": "measured",
+    "q": 2,
+    "nr": 0,
+    "rdoq": false,
+    "frames": [
+      {
+        "id": "A04_f044",
+        "iso": 1600,
+        "c0_braw": "1a3f42cfe8fafc3d6ce7ec792e056a6b1ce95ce8d9c64428cd24d0947104d4dd",
+        "c0_reused": true,
+        "bayer_braw": "983fb08ec72658bf6178cb44077f2937e329acc9e4dca58a895b75678d7ffa52",
+        "bayer_reused": true,
+        "c0_halo_p99": 0.4368452327001663,
+        "bayer_halo_p99": 0.48409434603417817,
+        "halo_p99_reduction": -0.10815984654785482,
+        "psnr": -0.9824521830970254,
+        "psnr_c0": -1.0278296291297502,
+        "s9_exposure_rel": 7.003683340763871,
+        "luma_bayer_over_c0": 0.9998325797565253,
+        "exposure_rel": 7.003683340763871,
+        "exposure_fail": false,
+        "c0_ruler_left_p99": 0.5215701938546804,
+        "bayer_ruler_left_p99": 0.5308251729331714,
+        "ruler_p99_reduction": -0.017744455468384546,
+        "decode_fail": false,
+        "psnr_raw": -0.9824521830970254,
+        "psnr_c0_raw": -1.0278296291297502,
+        "psnr_exposure_matched": 22.550582609139514,
+        "psnr_c0_exposure_matched": 24.63861294492501,
+        "exr_name": "DNG1600MINUS3_00086731.exr",
+        "minus3_exr": true,
+        "ev_offset_cand_over_exr": 3.000664089314269,
+        "raw_comparison_valid": false,
+        "s9_domain_note": "A04_f044 EXR es DNG1600MINUS3 (\u22123 EV). PSNR raw \u2248 \u22121 dB es comparaci\u00f3n inv\u00e1lida; usar psnr_exposure_matched / psnr_exr_times_8.",
+        "psnr_exr_times_8": 22.554972812770448,
+        "psnr_c0_exr_times_8": 24.634652770591142,
+        "ev_after_times_8": 0.0006640893142686557
+      },
+      {
+        "id": "A04_f049",
+        "iso": 1600,
+        "c0_braw": "a8ca8ff528842f89b303fe2a1fb8e991e6adf59bd00f1c291873825729a8df7b",
+        "c0_reused": true,
+        "bayer_braw": "71348465085821c45c5fdf79f030917bedc1a64ad09eeab64affb0f8b22366a3",
+        "bayer_reused": true,
+        "c0_halo_p99": 0.20159939659071566,
+        "bayer_halo_p99": 0.41389986755059893,
+        "halo_p99_reduction": -1.0530808849140199,
+        "psnr": 22.53869003134534,
+        "psnr_c0": 24.65169200808639,
+        "s9_exposure_rel": 0.000458595553168184,
+        "luma_bayer_over_c0": 0.9998473281268112,
+        "exposure_rel": 0.000458595553168184,
+        "exposure_fail": false,
+        "c0_ruler_left_p99": 0.5211456087888002,
+        "bayer_ruler_left_p99": 0.5306970964564601,
+        "ruler_p99_reduction": -0.018327867503016293,
+        "decode_fail": false,
+        "psnr_raw": 22.53869003134534,
+        "psnr_c0_raw": 24.65169200808639,
+        "psnr_exposure_matched": 22.534336687882792,
+        "psnr_c0_exposure_matched": 24.65555396559154,
+        "exr_name": "DNG1600_00086736.exr",
+        "minus3_exr": false,
+        "ev_offset_cand_over_exr": 0.0006614618701833484,
+        "raw_comparison_valid": true,
+        "s9_domain_note": "EXR de exposici\u00f3n nominal; PSNR raw y matched deben coincidir si |\u0394EV|\u22640.25."
+      },
+      {
+        "id": "A01_f052",
+        "iso": 200,
+        "c0_braw": "6c3054a8516c0dfeab28e627f58c98c5c81ea54c7f00117c1eca02ec2ee3526c",
+        "c0_reused": true,
+        "bayer_braw": "fbd390edf2deddefd8006609ebecfc20eb6ad56525fbbc3ff15057f7928d4c2b",
+        "bayer_reused": true,
+        "c0_halo_p99": 0.023345093737620722,
+        "bayer_halo_p99": 0.04768155947722743,
+        "halo_p99_reduction": -1.0424659679300574,
+        "psnr": 41.13676415245146,
+        "psnr_c0": 43.0797554530908,
+        "s9_exposure_rel": 0.000444391390715948,
+        "luma_bayer_over_c0": 0.999818769334041,
+        "exposure_rel": 0.000444391390715948,
+        "exposure_fail": false,
+        "c0_ruler_left_p99": 0.06415835566760629,
+        "bayer_ruler_left_p99": 0.06528110320851249,
+        "ruler_p99_reduction": -0.017499630862158666,
+        "decode_fail": false,
+        "psnr_raw": 41.13676415245146,
+        "psnr_c0_raw": 43.0797554530908,
+        "psnr_exposure_matched": 41.13240356636423,
+        "psnr_c0_exposure_matched": 43.08418508637209,
+        "exr_name": "DNG200_00086452.exr",
+        "minus3_exr": false,
+        "ev_offset_cand_over_exr": 0.0006409788434060576,
+        "raw_comparison_valid": true,
+        "s9_domain_note": "EXR de exposici\u00f3n nominal; PSNR raw y matched deben coincidir si |\u0394EV|\u22640.25."
+      }
+    ],
+    "note": "PSNR raw vs S9 EXR; PSNR exposure-matched iguala luma media. A04_f044 EXR MINUS3: raw inv\u00e1lido. Halos C0 vs Bayer no dependen de ese PSNR. No se elige por PSNR global. Sin re-encode.",
+    "benchmark_correction": "F: split raw / exposure-matched from cached f32; no full campaign"
+  },
+  "prototype": {
+    "env": "CDNG_OG_BAYER",
+    "implemented": true,
+    "uses_va_finishPlanes": false
+  },
+  "feasibility": {
+    "class": "C",
+    "reason": "La ruta mosaico\u2192RGB lineal\u2192NativeSensor es viable (SDK, exposici\u00f3n, geometr\u00eda) pero no mejora sustancialmente BUG-002 frente a C0 AHD en las ROI medidas."
+  },
+  "chroma_audit": {
+    "code_from_ycc": [
+      [
+        1.0,
+        -0.5,
+        1.5
+      ],
+      [
+        1.0,
+        -0.5,
+        -0.5
+      ],
+      [
+        1.0,
+        1.5,
+        -0.5
+      ]
+    ],
+    "roundtrip_ycc_err": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "trace": {
+      "native_sensor": [
+        "RGB lineal (AHD o reconstruct)",
+        "opcional rcm_tone",
+        "por canal: curve.encode(c\u00b7scale) \u2212 offset  \u2192 c\u00f3digos absolutos R,G,B",
+        "YCC = inv(code_from_ycc)\u00b7c\u00f3digos  (= Y=(R+2G+B)/4, Cb=(B\u2212G)/2, Cr=(R\u2212G)/2)",
+        "imagePlanes C0: Y full; Cb/Cr = map(media 2\u00d72 RGB lineal)",
+        "finishPlanes: NR opcional; **no** convierte proporciones (channelCodec=null)",
+        "canvasPlanes \u2192 DCT \u2192 VLC \u2192 bitstream Y/Cb/Cr en c\u00f3digos",
+        "SDK: inv_sqrt del perfil + CSC (matrices D65, r_gain/b_gain, ISO post_gain)"
+      ],
+      "channel_codec_va": [
+        "muestra lineal por fotosito \u00d7 gain_ch \u00d7 full",
+        "encode: k0 + s\u221ax (toe SDK bajo la rodilla)",
+        "signal(code) = code \u2212 vertex  \u221d \u221a(lineal)  (arriba de la rodilla)",
+        "Y = blur 3\u00d73 de c\u00f3digos de fotosito (no RGB completo)",
+        "\u011c en R/B: c\u00fabico direccional en lineal, luego encode verde",
+        "proporci\u00f3n: (signal(Ch)\u2212signal(\u011c)) / max(signal(\u011c), 1)  filtrada binomial 7 en sitios 4:2:0",
+        "sitios: Cr UL (site 0), Cb DR (site 1) del cuarteto \u2014 asume fase tipo RGGB",
+        "finishPlanes: sharpen Y 1.2; Cb = \u03c1b\u00b7signal(Y_DR) / (2(1+(\u03c1b+\u03c1r)/4)); igual Cr con Y_UL",
+        "bitstream: mismos c\u00f3digos Y/Cb/Cr absolutos (ya no hay proporciones)",
+        "SDK Sigma: perfil Camera Support fp + analog_gain del clip"
+      ],
+      "intensity_edge_constant_chromaticity": "Si B_lin = c_b\u00b7I y G_lin = c_g\u00b7I, signal_VA \u221d \u221aI \u21d2 signal_B/signal_G = \u221a(c_b/c_g) independiente de I. Las proporciones sobreviven a un borde de intensidad. Cb absoluto (B\u2212G)/2 en dominio de curva **no** es invariante con I (la curva no es lineal). C0 OG promedia RGB lineal 2\u00d72 y luego aplica la curva: mezcla espacial antes de la no linealidad.",
+      "high_frequency_periodic": "El binomial 7 sobre numerador/denominador de la proporci\u00f3n aten\u00faa el zippering CFA antes del 4:2:0. NativeSensor C0 no ve el mosaico: el patr\u00f3n peri\u00f3dico de las reglas entra como RGB AHD (false color ya interpolado) y luego caja 2\u00d72.",
+      "survives_finishPlanes": "S\u00ed, como **construcci\u00f3n** de c\u00f3digos: finishPlanes reescribe \u03c1\u00b7signal(Y_local) \u2192 Cb/Cr absolutos, as\u00ed el bitstream es el mismo \u00e1lgebra YCC que NativeSensor. No sobreviven como campo de proporciones. DCT + cuantizaci\u00f3n Y y C independientes pueden romper \u03c1\u221dY. El SDK no relee proporciones: solo c\u00f3digos + inv_sqrt.",
+      "not_blackmagic_proprietary": true
+    },
+    "same_bitstream_algebra": true,
+    "same_pre_finish_semantics": false,
+    "assumption_avoid_ahd_kills_halos": false
+  },
+  "camera_support_audit": {
+    "profiles": {
+      "og_iso": {
+        "file": "pocket_og_cinemadng_iso_camera_support.json",
+        "name": "Blackmagic Pocket Cinema Camera (2013) CinemaDNG calibration, ISO table",
+        "schema_version": {
+          "major": 6
+        },
+        "manufacturer": "Blackmagic",
+        "camera_model": "Pocket Cinema Camera",
+        "revision": 1128878927,
+        "mode_name": "CinemaDNG calibration",
+        "chroma_alignment": "RGGB",
+        "native_iso": 400,
+        "iso_modification_supported": true,
+        "iso_table": [
+          {
+            "iso": 200,
+            "pre_gain": 1.0,
+            "post_gain": 0.5
+          },
+          {
+            "iso": 400,
+            "pre_gain": 1.0,
+            "post_gain": 1.0
+          },
+          {
+            "iso": 800,
+            "pre_gain": 1.0,
+            "post_gain": 2.0
+          },
+          {
+            "iso": 1600,
+            "pre_gain": 1.0,
+            "post_gain": 4.0
+          }
+        ],
+        "csc_keys": [
+          "b_gain",
+          "csc_temperature_axis",
+          "csc_tint_axis",
+          "d65_forward_matrix_by_temperature_and_tint",
+          "r_gain"
+        ],
+        "has_r_gain": true,
+        "has_b_gain": true,
+        "has_d65_forward_matrix": true,
+        "inv_sqrt_keys": [
+          "A",
+          "B",
+          "X",
+          "Y",
+          "Z",
+          "clampMax",
+          "y_knee"
+        ],
+        "blk_lvl_lin_16b": 0,
+        "sat_lvl_lin_16b": 65535,
+        "full_well_capacity_e": 50000,
+        "stops_above_mid_grey_at_native_iso": 3.573931188332412,
+        "channel_codec_field": null,
+        "ycc_mix_field": null,
+        "notes": "El JSON de Camera Support no declara ChannelCodec ni el modelo de proporciones. El SDK reconstruye con inv_sqrt + CSC. ChannelCodec es interfaz de encode en signal.hpp."
+      },
+      "og_calibrated": {
+        "file": "pocket_og_cinemadng_camera_support.json",
+        "name": "Blackmagic Pocket Cinema Camera (2013) CinemaDNG calibration",
+        "schema_version": {
+          "major": 6
+        },
+        "manufacturer": "Blackmagic",
+        "camera_model": "Pocket Cinema Camera",
+        "revision": 1128549959,
+        "mode_name": "CinemaDNG calibration",
+        "chroma_alignment": "RGGB",
+        "native_iso": 1250,
+        "iso_modification_supported": false,
+        "iso_table": [
+          {
+            "iso": 1250,
+            "pre_gain": 1.0,
+            "post_gain": 1.0
+          }
+        ],
+        "csc_keys": [
+          "b_gain",
+          "csc_temperature_axis",
+          "csc_tint_axis",
+          "d65_forward_matrix_by_temperature_and_tint",
+          "r_gain"
+        ],
+        "has_r_gain": true,
+        "has_b_gain": true,
+        "has_d65_forward_matrix": true,
+        "inv_sqrt_keys": [
+          "A",
+          "B",
+          "X",
+          "Y",
+          "Z",
+          "clampMax",
+          "y_knee"
+        ],
+        "blk_lvl_lin_16b": 0,
+        "sat_lvl_lin_16b": 65535,
+        "full_well_capacity_e": 50000,
+        "stops_above_mid_grey_at_native_iso": 3.573931188332412,
+        "channel_codec_field": null,
+        "ycc_mix_field": null,
+        "notes": "El JSON de Camera Support no declara ChannelCodec ni el modelo de proporciones. El SDK reconstruye con inv_sqrt + CSC. ChannelCodec es interfaz de encode en signal.hpp."
+      },
+      "sigma_fp": {
+        "file": "sigma_fp_cinemadng_camera_support.json",
+        "name": "Sigma fp CinemaDNG experimental native calibration",
+        "schema_version": {
+          "major": 6
+        },
+        "manufacturer": "SIGMA",
+        "camera_model": "fp",
+        "revision": 1128549959,
+        "mode_name": "CinemaDNG calibration",
+        "chroma_alignment": "RGGB",
+        "native_iso": 1250,
+        "iso_modification_supported": false,
+        "iso_table": [
+          {
+            "iso": 800,
+            "pre_gain": 1.0,
+            "post_gain": 1.0
+          },
+          {
+            "iso": 1250,
+            "pre_gain": 1.0,
+            "post_gain": 1.0
+          }
+        ],
+        "csc_keys": [
+          "b_gain",
+          "csc_temperature_axis",
+          "csc_tint_axis",
+          "d65_forward_matrix_by_temperature_and_tint",
+          "r_gain"
+        ],
+        "has_r_gain": true,
+        "has_b_gain": true,
+        "has_d65_forward_matrix": true,
+        "inv_sqrt_keys": [
+          "A",
+          "B",
+          "X",
+          "Y",
+          "Z",
+          "clampMax",
+          "y_knee"
+        ],
+        "blk_lvl_lin_16b": 0,
+        "sat_lvl_lin_16b": 65535,
+        "full_well_capacity_e": 50000,
+        "stops_above_mid_grey_at_native_iso": 5.473931188332412,
+        "channel_codec_field": null,
+        "ycc_mix_field": null,
+        "notes": "El JSON de Camera Support no declara ChannelCodec ni el modelo de proporciones. El SDK reconstruye con inv_sqrt + CSC. ChannelCodec es interfaz de encode en signal.hpp."
+      }
+    },
+    "determines": {
+      "signal_model": "model/*_cinemadng_signal.json (sensor_curve, code_from_ycc) + inv_sqrt del perfil (decode SDK)",
+      "channel_codec": "No est\u00e1 en el perfil. Solo SignalMap::channelCodec() en el encoder (VideoAssist).",
+      "response_curve": "perfil.modes[].inv_sqrt {A,B,X,Y,Z,y_knee,clampMax}; encode OG usa sensor_curve del JSON de se\u00f1al",
+      "channel_gains": "VA: gain_rgb en video_assist_input_transform.json. OG: input_channel_scale + post_gain ISO",
+      "chroma_reconstruction": "SDK: code_from_ycc impl\u00edcito + upsample opaco. Encoder VA: finishPlanes. Encoder OG: imagePlanes C0",
+      "matrices": "csc_params.table.d65_forward_matrix_by_temperature_and_tint",
+      "white_balance": "r_gain, b_gain \u00d7 ejes temperature/tint; clip kelvin/tint en bmdf",
+      "iso_exposure": "iso_params.iso_gain_table pre_gain/post_gain; clip isoe/expo/agpf; analog_gain en moov",
+      "identity_revision": "cameras[].manufacturer + camera_model \u2192 camera_type; cameras[].revision \u2192 ctrn"
+    },
+    "og_channelcodec": {
+      "reuse_sigma_identity": false,
+      "new_profile_required_for_ratios": false,
+      "reason_no_new_profile_for_bitstream": "finishPlanes ya escribe Cb/Cr como c\u00f3digos absolutos. El perfil OG existente espera esos c\u00f3digos + inv_sqrt. No hay flag de proporciones en Camera Support.",
+      "encoder_codec_required": "Hace falta un ChannelCodec *de curva OG* (sensor_curve.encode / signal), no el VideoAssist k0+s\u221ax. NativeSensor no implementa channelCodec() (nullptr).",
+      "cannot_reuse_sigma_fp": "camera_type SIGMA fp + revisi\u00f3n fp har\u00eda que OpenClip cargue el perfil Sigma. Prohibido. La OG ya tiene identidad Blackmagic Pocket Cinema Camera / rev CISO.",
+      "gaps": [
+        "Implementar ChannelCodec sobre SensorCurve OG (encode/signal) \u2014 no hecho; no en esta fase.",
+        "Fase CFA Pocket OG es GBRG (CFA [G,B,R,G]); bayerFields sit\u00faa Cb en DR y Cr en UL (fase RGGB). Desalineaci\u00f3n no medida.",
+        "chroma_alignment del perfil OG es RGGB; relaci\u00f3n con el mosaico GBRG no demostrada para la ruta Bayer.",
+        "Y 3\u00d73 de fotositos \u2260 Y NativeSensor de RGB demosaicado: colorimetr\u00eda SDK vs DNG sin medir.",
+        "noiseResolution usa crop/2 si channelCodec()!=nullptr: cambiar\u00eda grano del decoder si se activa NR/s\u00edntesis.",
+        "Ventaja de proporciones tras DCT/cuantizaci\u00f3n y upsample SDK: no medida (BUG-002)."
+      ],
+      "classification": "potencialmente_viable_requiere_informacion",
+      "installed_profiles_untouched": true,
+      "defaults_untouched": true,
+      "no_experimental_path_this_phase": true
+    },
+    "generator": "tools/make_pocket_og_iso_profile.py deriva ISO desde la revisi\u00f3n calibrada; no toca inv_sqrt ni CSC.",
+    "installer": "app/profile_store.cpp ProfileSpec::pocketOg \u2014 no modificado en esta fase."
+  },
+  "architectural_decision": {
+    "channelcodec_og": "potencialmente_viable_requiere_informacion",
+    "mosaic_rgb_nativesensor_prototype": "C",
+    "bug002": "P0",
+    "missing_to_prove_viability": [
+      "Implementar ChannelCodec sobre SensorCurve OG (encode/signal) \u2014 no hecho; no en esta fase.",
+      "Fase CFA Pocket OG es GBRG (CFA [G,B,R,G]); bayerFields sit\u00faa Cb en DR y Cr en UL (fase RGGB). Desalineaci\u00f3n no medida.",
+      "chroma_alignment del perfil OG es RGGB; relaci\u00f3n con el mosaico GBRG no demostrada para la ruta Bayer.",
+      "Y 3\u00d73 de fotositos \u2260 Y NativeSensor de RGB demosaicado: colorimetr\u00eda SDK vs DNG sin medir.",
+      "noiseResolution usa crop/2 si channelCodec()!=nullptr: cambiar\u00eda grano del decoder si se activa NR/s\u00edntesis.",
+      "Ventaja de proporciones tras DCT/cuantizaci\u00f3n y upsample SDK: no medida (BUG-002)."
+    ],
+    "proposed_smoke_if_implemented": {
+      "proceed_now": false,
+      "why_not_now": "Falta ChannelCodec OG y mapeo CFA; no se implementa otra ruta experimental en esta fase.",
+      "if_later": "Opt-in solo OG, default AHD intacto. Frames: A04_f049 y A01_f052 (EXR de exposici\u00f3n nominal). A04_f044 solo con EXR\u00d78 o matched. q=2 NR/RDOQ OFF. ROI white_strip, cc_ruler_*, bordes. Comparar CinemaDNG / C0 / codec-OG. \u00c9xito: SDK + colorimetr\u00eda + no empeorar exposici\u00f3n; BUG-002 se juzga en ROI, no PSNR global."
+    },
+    "no_exp006_007_008": true,
+    "no_compression_research": true,
+    "no_merge": true
+  }
+}
