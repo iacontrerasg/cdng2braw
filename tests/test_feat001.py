@@ -66,6 +66,15 @@ class LutHeaderTests(unittest.TestCase):
         self.assertGreater(clipped, 0)
 
 
+class TemplateLutAbsenceTests(unittest.TestCase):
+    def test_orig_braw_has_no_post_3dlut_keys(self):
+        path = os.path.join(ROOT, 'model', 'cam', 'orig.braw')
+        with open(path, 'rb') as f:
+            data = f.read()
+        self.assertNotIn(b'post_3dlut_mode', data)
+        self.assertNotIn(b'post_3dlut_embedded_data', data)
+
+
 class HistoricalViewingTests(unittest.TestCase):
     def test_og_viewing_p3_linear_default(self):
         with open(CONTAINER_HPP, encoding='utf-8') as f:

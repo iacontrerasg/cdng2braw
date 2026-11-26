@@ -18,7 +18,7 @@ Medición SDK de esta fase: `tools/brawdec` + BlackmagicRawAPI de Resolve, clip 
 2. Opción opt-in **Match original CinemaDNG rendering**: viewing DaVinci Wide Gamut + DaVinci Intermediate; gen 5; LUT **no** embebida.
 3. **No** fijar `color_science_gen` = 1: el clip OG solo admite **gen 5**.
 4. **No** usar `viewing_gamma` = Blackmagic Design Film como “Gen 1”.
-5. LUT embebida: claves y API **documentadas**; persistencia en el encoder **no** demostrada sin BRAW de referencia. Sin prototipo de átomos.
+5. LUT embebida: historial Git sin blob sucio; `SetEmbeddedPost3DLUT` / `SetSidecarPost3DLUT` = `0x80000008` en clips OG. Sin escritura en el muxer.
 6. Fallback: LUT externa en `LUT/cdng2braw/` + paso de nodo manual.
 
 ---
@@ -192,25 +192,42 @@ No se toca curva de sensor, ISO, WB, identidad ni payload YCC. Otras rutas (VA /
 
 Superficies: `request.json` (`match_cinemadng_rendering`), worker `cdng-convert --request`, caché de fidelidad (`encode_request` / `conversion_material`), UI (checkbox avanzado, visible con tomas OG), nombre de fichero `_match` para no chocar con la caché de Resolve.
 
-## E2 — LUT embebida (no viable en esta entrega)
+## E2 — LUT embebida (no viable; E2b agotada)
 
 `eml*` = `0x80000008` en **nuestros** BRAW demuestra **ausencia** de LUT, no incompatibilidad del contenedor.
 
-Evidencia reunida:
+### E2b-A — Recuperación histórica
 
-| Fuente | Qué aporta |
+| Comprobación | Resultado |
 |---|---|
-| Manual SDK sept. 2026 | `lutm` / `emln` `emlt` `emls` `emld` / `scl*`; `Get/SetEmbeddedPost3DLUT(name, title, size, Variant* data)`; `CreateJobProcess(..., post3DLUTBuffer)`; interpolación tetraédrica |
-| Binario BlackmagicRawAPI | Claves QT `post_3dlut_mode`, `post_3dlut_embedded_{name,title,bmd_gamma,size,data}`, `post_3dlut_sidecar_{name,title,size,data}`; `IBlackmagicRawPost3DLUT`; `BrawSidecarCubeFile` / `BrawSidecarWriter` |
-| `tools/clean_template.py` | La plantilla 4K **tenía** `post_3dlut_*` (~431 KB = 33³×3×float32) y se **eliminaron** a propósito |
-| Gist público P6K Pro | Esas mismas claves en un BRAW de cámara; `post_3dlut_mode: Disabled` **con** cubo embebido presente |
-| Disco local | **Ningún** `.braw` con `post_3dlut_embedded_*` (ni Desktop/BRAW ni caché del banco) |
+| `git log --all -- model/cam/orig.braw` | Un solo commit: `84a6372` (1.0.0). Blob **5 801 115** bytes, **ya limpio** |
+| `tools/clean_template.py` | Entra en el **mismo** commit; el original sucio **nunca** se versionó |
+| Git LFS / parent GitHub | Sin LFS; el repo no tiene `parent` upstream |
+| Copias locales `orig.braw` | App bundle, `build/worker`, `model/cam` — mismas claves, **sin** `post_3dlut_*` |
+| `find` de `.braw` nativos con `post_3dlut_embedded_*` | Ninguno |
 
-`SetEmbeddedPost3DLUT` actúa sobre atributos de **sesión**. La persistencia documentada de cambios de procesado es el JSON `.sidecar` o un **trim** que hornea sidecar en un BRAW nuevo — no un API de escritura del moov. `minimalMetadata` (OG) **descarta** claves desconocidas; no hay insertor de átomos.
+No se recupera tipo, endian ni orden RGB del lattice. **No** se reescribe el historial Git.
 
-**No** se construye prototipo de contenedor: faltan tipo/endian del átomo `data` y un fichero de referencia para hex-diff. Inventar esa estructura violaría la regla de evidencia.
+### E2b-B — Harness SDK (`brawdec --embed-lut identity`)
 
-Activación por defecto: el UI del SDK lee `lutm` de metadata. Presencia de `emld` **no** implica auto-on (el P6K Pro del gist abre Disabled). Desactivar LUT no debe alterar Exposure/Kelvin/Tint ni el bitstream.
+Clip OG de caché `78ee298f0dd9481a75ce2099` (`Blackmagic Pocket Cinema Camera`, 1920×1080). `SafeArrayCreate` vt=F32 (6), 1 dimensión (el binario rechaza `cDims≠1`). Vtable con `GetISOList` alineada al manual (GetEmbedded en el slot 11 devuelve `S_OK` + puntero nulo).
+
+| Llamada | HRESULT |
+|---|---|
+| `GetEmbeddedPost3DLUT` / `GetSidecar` / `GetPost3DLUT` | `0` (LUT nula) |
+| `SetEmbeddedPost3DLUT` identidad 2³, F32×24 | **`0x80000008`** |
+| `SetEmbeddedPost3DLUT` F32×8 (`size³`) | **`0x80000008`** |
+| `SetSidecarPost3DLUT` F32×24 | **`0x80000008`** |
+| `CreateJobTrim` con attrs | no se alcanzó (el setter falla antes) |
+| `SaveSidecarFile` sin LUT | `0`; escribe `{}\n` (3 bytes). **No** es persistencia en el `.braw` |
+
+Los setters existen y se invocan; el SDK **rechaza** escribir LUT embebida o de sidecar sobre estos clips (perfil Camera Support / decoder SDK). No hay fichero recortado que reabrir. No se confunde sidecar de sesión con átomos QT.
+
+### Conclusión E2
+
+**No** se implementa escritura en el muxer: no hay blob de referencia ni persistencia demostrada. Fallback E1: viewing opt-in + LUT externa. **No** equivalencia Gen 1 automática.
+
+Activación por defecto: el UI del SDK lee `lutm`. Presencia de `emld` **no** implica auto-on (gist P6K Pro: cubo embebido con `post_3dlut_mode: Disabled`).
 
 ## E3 — Orden de procesado
 
