@@ -457,6 +457,43 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
             m1 = P.conversion_material(conv, d, [a, a], 0, req, on)
             self.assertNotEqual(identity.sha256_json(m0), identity.sha256_json(m1))
 
+    def test_rdoq_in_output_env_and_cache_identity(self):
+        from tools.fidelity import pipeline as P, identity
+        self.assertIn('CDNG_RDOQ', P.OUTPUT_ENV)
+        self.assertIn('CDNG_RDOQ_LAMBDA', P.OUTPUT_ENV)
+        # Default: RDOQ ausente → None (encoder legacy).
+        _, eff0, env0, _ = P.encode_request(self._encode(), environ={})
+        self.assertIsNone(eff0['CDNG_RDOQ'])
+        self.assertIsNone(eff0['CDNG_RDOQ_LAMBDA'])
+        self.assertNotIn('CDNG_RDOQ', env0)
+        # λ sin RDOQ rechazado.
+        with self.assertRaises(P.PipelineError) as cm:
+            P.encode_request(self._encode(experimental_env={'CDNG_RDOQ_LAMBDA': '0.5'}), environ={})
+        self.assertIn('CDNG_RDOQ', str(cm.exception))
+        # λ negativa / inf rechazadas.
+        with self.assertRaises(P.PipelineError):
+            P.encode_request(self._encode(experimental_env={
+                'CDNG_RDOQ': '1', 'CDNG_RDOQ_LAMBDA': '-1'}), environ={})
+        with self.assertRaises(P.PipelineError):
+            P.encode_request(self._encode(experimental_env={
+                'CDNG_RDOQ': '1', 'CDNG_RDOQ_LAMBDA': 'inf'}), environ={})
+        # Identidad de caché distinta con RDOQ/λ.
+        req, eff_off, _, _ = P.encode_request(self._encode(), environ={})
+        _, eff_on, env_on, _ = P.encode_request(self._encode(experimental_env={
+            'CDNG_RDOQ': '1', 'CDNG_RDOQ_LAMBDA': '0.5'}), environ={})
+        self.assertEqual(env_on['CDNG_RDOQ'], '1')
+        self.assertEqual(env_on['CDNG_RDOQ_LAMBDA'], '0.5')
+        with tempfile.TemporaryDirectory() as d:
+            a = os.path.join(d, 'a.dng'); open(a, 'wb').write(b'DNG')
+            conv = {'cdng_convert_sha256': 'w', 'model': {}}
+            m0 = P.conversion_material(conv, d, [a, a], 0, req, eff_off)
+            m1 = P.conversion_material(conv, d, [a, a], 0, req, eff_on)
+            self.assertNotEqual(identity.sha256_json(m0), identity.sha256_json(m1))
+            _, eff_l2, _, _ = P.encode_request(self._encode(experimental_env={
+                'CDNG_RDOQ': '1', 'CDNG_RDOQ_LAMBDA': '2'}), environ={})
+            m2 = P.conversion_material(conv, d, [a, a], 0, req, eff_l2)
+            self.assertNotEqual(identity.sha256_json(m1), identity.sha256_json(m2))
+
     def test_rd_parse_and_storage(self):
         from tools.fidelity import rd as RD
         meta = RD.parse_exp002_id('exp002-a04-a050-q18')

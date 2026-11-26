@@ -166,11 +166,62 @@ Implementación: trellis DP (no coordinate descent). Prueba: `engine_rdoq_test`.
 
 Con tablas oficiales, `R_estimated == R_emitted` salvo rarezas de drop; el test exige mismatch &lt; 5 % en batería aleatoria y reporta conteos.
 
-### Pendiente (campaña)
+## Fases F–H — Integración, controles y barrido λ
 
-- Barrido λ / igual tasa vs α=0.75 z=0.5
-- Serie A con cobertura estricta y Pareto multidimensional
-- Clasificación hipótesis / aceptación
-- No implementar perfiles P0 / BUG-002 aquí
+### F — Integración
+
+- Default OFF: sin `CDNG_RDOQ` el payload = legacy (identidad de caché distinta si se activa).
+- Solo Pocket OG (`convert.cpp` rechaza otras rutas).
+- `CDNG_RDOQ` / `CDNG_RDOQ_LAMBDA` en `OUTPUT_ENV`; λ finita ≥ 0; λ sin RDOQ rechazada.
+- Config registrada en evento `started` (`rdoq`, `rdoq_lambda`).
+- Compatible con DZ/α/NR/synth vía `experimental_env` (NR/synth OFF en G/H).
+- q fijo y rate search sin cambios de defaults/VLC/DCT.
+
+### G — Controles A04 (`tools/exp003b_sweep.py --phase g`)
+
+| Id | Config |
+|----|--------|
+| G0 | α=1, DZ=0, q24 |
+| G1 | α=0.75, DZ=0.5, q24 |
+| G2 | plane-y40-c50 (series_approved EXP-003), q24 |
+| G3 | Max fidelity experimental q=2, α=1, DZ=0 |
+
+NR y synthesis OFF. Artefactos históricos solo con `verify_run_matches_request`.
+
+### H — Barrido λ (A04, α=0.75, DZ=0.5, NR/synth OFF)
+
+Grid: `0, 0.01, 0.1, 1, 10, 30, 50, 70, 100` × q∈{18,24}.  
+Informe: `tools/exp003b_report.py` → `benchmark/experiments/exp003b-results-summary.json`.
+
+Hallazgos preliminares (medias A04, `sample_bytes`):
+
+| Punto | Ratio | PSNR | Detail |
+|-------|-------|------|--------|
+| G1 (sin RDOQ) | **5.055** | **43.23** | 0.744 |
+| G0 legacy | 3.47 | 42.43 | 0.790 |
+| G3 q2 max-fid | 1.74 | 42.71 | **0.870** |
+| RDOQ λ=0 q24 | 3.56 | 42.59 | 0.787 |
+| RDOQ λ=30 q24 | 4.07 | 42.74 | 0.781 |
+| RDOQ λ=70 q24 | 4.54 | 42.79 | 0.769 |
+| RDOQ λ=100 q24 | 4.84 | 42.80 | 0.760 |
+
+- G1 ≡ EXP-002a `a75-dz50-q24` (sample + `candidate_sha256`).
+- **λ=0 no preserva la sparsidad del DZ**: minimiza D en el set de candidatos y **aumenta** bytes frente a G1.
+- Acercarse a ~5:1 exige λ alta (~100); PSNR/detail aún por debajo de G1 en esta rejilla.
+- Candidatos ~3:1: RDOQ λ baja @ q18; ~5:1: G1 o RDOQ λ≈100 @ q24.
+
+### H2 — Rendimiento (wall, A04 completo)
+
+| | w=1 | w=2 | w=4 |
+|--|-----|-----|-----|
+| RDOQ OFF | ~10.3 s | ~9.7 s | ~10.3 s |
+| RDOQ ON λ=1 | ~23.2 s | ~16.9 s | ~17.4 s |
+
+Overhead ≈ **2.3×** a 1 worker; 2 workers mitigan parcialmente. Cuello: trellis por bloque en el hot path de encode.
+
+### Pendiente
+
+- Serie A completa / Pareto final / clasificación hipótesis
+- Perfiles P0 / BUG-002
 
 SHA base: `benchmark/experiments/exp003b-base-sha.txt`.

@@ -43,6 +43,8 @@ OUTPUT_ENV = (
     'CDNG_OG_DEBLOCK_PRECOMP',   # Pocket OG: 1/on (defecto) o 0/off — precompensación antibloques
     'CDNG_OG_DEBLOCK_ALPHA',     # EXP-001b: intensidad ∈ {0,0.25,0.5,0.75,1}; solo con PRECOMP on
     'CDNG_OG_DEBLOCK_BOUNDED',   # EXP-001b: 1/on — precompensación restringida (excluye ALPHA)
+    'CDNG_RDOQ',                 # EXP-003b: 1/on — RDOQ AC (solo Pocket OG)
+    'CDNG_RDOQ_LAMBDA',          # EXP-003b: λ ≥ 0 finita (J = D + λ R); requiere CDNG_RDOQ
 )
 
 # Diagnóstico o i18n: no alteran el BRAW. No entran en la identidad de caché; se pasan al worker solo si se
@@ -220,6 +222,22 @@ def encode_request(encode, environ=None):
             raise PipelineError('CDNG_OG_DEBLOCK_ALPHA inválido: %s' % alpha) from e
         if not any(abs(av - a) < 1e-12 for a in (0.0, 0.25, 0.5, 0.75, 1.0)):
             raise PipelineError('CDNG_OG_DEBLOCK_ALPHA debe ser 0|0.25|0.5|0.75|1 (got %s)' % alpha)
+    # EXP-003b RDOQ: on/off + λ ≥ 0 finita; λ sin RDOQ no admite valor.
+    rdoq = env.get('CDNG_RDOQ')
+    rdoq_on = rdoq is not None and rdoq.lower() in ('1', 'on', 'true', 'yes')
+    rdoq_off = rdoq is not None and rdoq.lower() in ('0', 'off', 'false', 'no')
+    if rdoq is not None and not (rdoq_on or rdoq_off):
+        raise PipelineError('CDNG_RDOQ debe ser 0|1 (got %s)' % rdoq)
+    lam = env.get('CDNG_RDOQ_LAMBDA')
+    if lam is not None and not rdoq_on:
+        raise PipelineError('CDNG_RDOQ_LAMBDA requiere CDNG_RDOQ=1')
+    if lam is not None:
+        try:
+            lv = float(lam)
+        except ValueError as e:
+            raise PipelineError('CDNG_RDOQ_LAMBDA inválido: %s' % lam) from e
+        if not (lv == lv) or lv < 0 or lv == float('inf'):  # NaN / negativo / +inf
+            raise PipelineError('CDNG_RDOQ_LAMBDA debe ser finita y ≥ 0 (got %s)' % lam)
     # Diagnóstico: manifiesto explícito gana; el ambiente se registra y también se pasa (no altera el BRAW).
     diagnostic = {k: ambient[k] for k in DIAGNOSTIC_ENV if k in ambient}
     for k, v in diag_declared.items():

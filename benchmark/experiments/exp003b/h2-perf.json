@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "results": [
+    {
+      "run": "exp003b-h2-off-w1",
+      "rdoq": false,
+      "workers": 1,
+      "wall_s": 10.28870701789856,
+      "lambda": null
+    },
+    {
+      "run": "exp003b-h2-off-w2",
+      "rdoq": false,
+      "workers": 2,
+      "wall_s": 9.748689889907837,
+      "lambda": null
+    },
+    {
+      "run": "exp003b-h2-off-w4",
+      "rdoq": false,
+      "workers": 4,
+      "wall_s": 10.285453081130981,
+      "lambda": null
+    },
+    {
+      "run": "exp003b-h2-on-w1",
+      "rdoq": true,
+      "workers": 1,
+      "wall_s": 23.207219123840332,
+      "lambda": 1.0
+    },
+    {
+      "run": "exp003b-h2-on-w2",
+      "rdoq": true,
+      "workers": 2,
+      "wall_s": 16.869257926940918,
+      "lambda": 1.0
+    },
+    {
+      "run": "exp003b-h2-on-w4",
+      "rdoq": true,
+      "workers": 4,
+      "wall_s": 17.35096001625061,
+      "lambda": 1.0
+    }
+  ]
+}

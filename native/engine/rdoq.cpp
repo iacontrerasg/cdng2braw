@@ -56,7 +56,9 @@ RdoqConfig rdoqConfigFromEnv() {
     RdoqConfig c;
     c.enabled = env_on("CDNG_RDOQ");
     c.lambda = env_double("CDNG_RDOQ_LAMBDA", 0.0);
-    if (c.enabled && c.lambda < 0) c.lambda = 0;
+    // Validación estricta en el worker (convert.cpp); aquí solo normalizamos negativos a 0
+    // si alguien llama encode sin pasar por convert.
+    if (!std::isfinite(c.lambda) || c.lambda < 0) c.lambda = 0;
     return c;
 }
 

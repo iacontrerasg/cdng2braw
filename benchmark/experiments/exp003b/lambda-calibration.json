@@ -1,0 +1,18 @@
+{
+  "method": "log_grid_heuristic_plus_rdoq_eval",
+  "note": "Mediana |\u0394D/\u0394R| de vecinos hacia 0 vs legacy; grid log acotado",
+  "median_d_over_r_hint": 1.0,
+  "lambda_grid": [
+    0.0,
+    0.01,
+    0.03,
+    0.1,
+    0.3,
+    1.0,
+    3.0,
+    10.0,
+    30.0,
+    100.0
+  ],
+  "engine_rdoq_test": true
+}
