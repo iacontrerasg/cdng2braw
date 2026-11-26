@@ -5,6 +5,7 @@ tramo, petición de codificación, variables CDNG_* experimentales efectivas; y 
 brawdec, framework del SDK, perfiles de Camera Support y ajustes de revelado. Antes de reutilizar se relee
 identity.json y se recalcula el sha del fichero: si algo no coincide es un error, nunca una reutilización.
 """
+import hashlib
 import json
 import os
 import re
@@ -12,7 +13,7 @@ import shutil
 import subprocess
 import time
 
-from . import identity
+from . import braw_inspect, identity
 from .images import read_f32
 
 
@@ -220,45 +221,84 @@ def parse_worker_events(stdout):
     return events
 
 
-def _write_trace_identity(directory, key, material, braw_sha, diagnostic, instrumented_braw_sha256=None):
-    """Registra a qué conversión corresponde la traza; sella el .txt para no reutilizar trazas huérfanas.
+def _stamp_trace_text(trace_path, key, evaluated_braw_sha, producer_braw_sha, generated, trace_body_sha):
+    with open(trace_path, encoding='utf-8', errors='replace') as f:
+        lines = f.read().splitlines(True)
+    while lines and lines[0].startswith(('# conversion_key ', '# braw_sha256 ', '# producer_braw_sha256 ',
+                                         '# evaluated_braw_sha256 ', '# generated ', '# trace_sha256 ',
+                                         '# trace_body_sha256 ')):
+        lines.pop(0)
+    stamp = ('# conversion_key %s\n# evaluated_braw_sha256 %s\n# producer_braw_sha256 %s\n'
+             '# braw_sha256 %s\n# generated %s\n# trace_body_sha256 %s\n' % (
+                 key, evaluated_braw_sha, producer_braw_sha, evaluated_braw_sha, generated, trace_body_sha))
+    with open(trace_path, 'w', encoding='utf-8') as f:
+        f.write(stamp)
+        f.writelines(lines)
 
-    braw_sha256 es el de la caché de imagen (la que usa el banco). Si la re-ejecución instrumentada
-    produjo otro fichero (códec no bit-idéntico), se anota en instrumented_braw_sha256 sin sustituir la caché.
-    """
+
+def _publish_fresh_trace(instr_dir, directory, key, material, evaluated_braw_sha, producer_braw_sha,
+                         diagnostic, media_equivalent, instrumented_meta):
+    """Publica la traza recién generada en instr_dir. Una traza antigua en directory no basta."""
+    src = os.path.join(instr_dir, 'clip.pipeline-trace.txt')
+    if not os.path.isfile(src):
+        raise PipelineError('CDNG_PIPELINE_TRACE solicitado pero el worker no escribió %s' % src)
+    with open(src, 'rb') as f:
+        raw = f.read()
+    if not raw.strip():
+        raise PipelineError('CDNG_PIPELINE_TRACE: la traza en %s está vacía' % src)
+    body_sha = identity.sha256_bytes(raw)
+    dest = os.path.join(directory, 'clip.pipeline-trace.txt')
+    same = os.path.exists(dest) and os.path.samefile(src, dest)
+    if not same:
+        # No reutilizar una traza previa de la caché: borrar antes de copiar la fresca.
+        if os.path.isfile(dest):
+            os.remove(dest)
+        shutil.copy2(src, dest)
+    generated = time.strftime('%Y-%m-%dT%H:%M:%S')
+    _stamp_trace_text(dest, key, evaluated_braw_sha, producer_braw_sha, generated, body_sha)
+    with open(dest, 'rb') as f:
+        published_sha = hashlib.sha256(f.read()).hexdigest()
     meta = {
         'conversion_key': key,
-        'braw_sha256': braw_sha,
         'material': material,
         'diagnostic_env': diagnostic,
-        'generated': time.strftime('%Y-%m-%dT%H:%M:%S'),
+        'generated': generated,
+        'trace_sha256': published_sha,
+        'trace_body_sha256': body_sha,
+        'evaluated_braw_sha256': evaluated_braw_sha,
+        'producer_braw_sha256': producer_braw_sha,
+        'braw_file_sha_equal': evaluated_braw_sha == producer_braw_sha,
+        'media_equivalent': bool(media_equivalent),
+        # Solo si mdat/payload coinciden la traza describe la imagen evaluada.
+        'binds_to_evaluated_image': bool(media_equivalent),
+        'instrumented': instrumented_meta,
+        # Alias históricos
+        'braw_sha256': evaluated_braw_sha,
+        'instrumented_braw_sha256': producer_braw_sha,
     }
-    if instrumented_braw_sha256 is not None:
-        meta['instrumented_braw_sha256'] = instrumented_braw_sha256
-        meta['braw_matched_instrumented'] = instrumented_braw_sha256 == braw_sha
     path = os.path.join(directory, 'pipeline-trace.identity.json')
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(meta, f, indent=1, sort_keys=True, ensure_ascii=False)
         f.write('\n')
-    trace = os.path.join(directory, 'clip.pipeline-trace.txt')
-    if os.path.isfile(trace):
-        with open(trace, encoding='utf-8', errors='replace') as f:
-            lines = f.read().splitlines(True)
-        while lines and lines[0].startswith(('# conversion_key ', '# braw_sha256 ', '# generated ')):
-            lines.pop(0)
-        stamp = '# conversion_key %s\n# braw_sha256 %s\n# generated %s\n' % (key, braw_sha, meta['generated'])
-        with open(trace, 'w', encoding='utf-8') as f:
-            f.write(stamp)
-            f.writelines(lines)
-    return path
+    return path, meta
 
 
-def _require_requested_traces(directory, diagnostic):
+def _require_requested_traces(directory, diagnostic, expect_body_sha=None):
     if diagnostic.get('CDNG_PIPELINE_TRACE') not in (None, '', '0'):
         path = os.path.join(directory, 'clip.pipeline-trace.txt')
         ident = os.path.join(directory, 'pipeline-trace.identity.json')
         if not os.path.isfile(path) or not os.path.isfile(ident):
             raise PipelineError('CDNG_PIPELINE_TRACE solicitado pero falta la traza o su identidad en %s' % directory)
+        with open(ident, encoding='utf-8') as f:
+            meta = json.load(f)
+        if not meta.get('generated') or not meta.get('trace_body_sha256'):
+            raise PipelineError('pipeline-trace.identity.json incompleto (falta generated/trace_body_sha256)')
+        if expect_body_sha is not None and meta.get('trace_body_sha256') != expect_body_sha:
+            raise PipelineError('la traza publicada no coincide con la generada en esta ejecución')
+        if meta.get('producer_braw_sha256') and meta.get('evaluated_braw_sha256'):
+            if (not meta.get('media_equivalent') and
+                    meta.get('binds_to_evaluated_image')):
+                raise PipelineError('binds_to_evaluated_image contradice media_equivalent')
 
 
 def _run_convert_worker(converter, clip_dir, staged, req, env, diagnostic, tmp):
@@ -324,8 +364,8 @@ def convert(converter, converter_id, clip_dir, files, start, count, encode, cach
                 key[:12], material['clip'], start, start + count - 1, converter_id['cdng_convert_sha256'][:12]))
             return dict(saved, path=os.path.join(directory, 'clip.braw'), key=key, reused=True,
                         experimental_env=effective, inputs=material['inputs'], trace=None)
-        # Caché de imagen intacta: regenerar solo instrumentación y comprobar que el BRAW no cambia.
-        log('BRAW en caché %s; regenerando instrumentación (identidad de imagen verificada después)' % key[:12])
+        # Caché de imagen intacta: regenerar instrumentación en tmp; no contaminar completed/compression.
+        log('BRAW en caché %s; regenerando instrumentación (metadatos de conversión = caché evaluada)' % key[:12])
         log(convert_msg + ' [diagnóstico]')
         instr = directory + '.instr.tmp'
         shutil.rmtree(instr, ignore_errors=True)
@@ -333,25 +373,44 @@ def convert(converter, converter_id, clip_dir, files, start, count, encode, cach
         try:
             out, events, done, seconds = _run_convert_worker(
                 converter, clip_dir, staged, req, env, diagnostic, instr)
-            new_sha = identity.sha256_file(out)
-            # El códec/rate-search no es bit-idéntico entre corridas; la imagen de trabajo sigue siendo
-            # la de la caché. La traza se asocia a conversion_key + braw_sha256 de la caché.
-            if new_sha != saved['sha256']:
-                log('aviso: re-encode con diagnóstico produjo otro BRAW (%s ≠ caché %s); '
-                    'se conserva la caché (la traza describe el pipeline, no sustituye la imagen)' % (
-                        new_sha[:12], saved['sha256'][:12]))
-            for name in ('clip.pipeline-trace.txt', 'convert.log'):
-                src = os.path.join(instr, name)
-                if os.path.isfile(src):
-                    shutil.copy2(src, os.path.join(directory, name))
-            trace_id = _write_trace_identity(directory, key, material, saved['sha256'], diagnostic,
-                                            instrumented_braw_sha256=new_sha)
-            _require_requested_traces(directory, diagnostic)
+            producer_sha = identity.sha256_file(out)
+            evaluated_path = os.path.join(directory, 'clip.braw')
+            media_eq = braw_inspect.same_media(evaluated_path, out)
+            if producer_sha != saved['sha256']:
+                log('aviso: SHA del contenedor BRAW instrumentado (%s) ≠ caché (%s); '
+                    'mdat/payload %s' % (
+                        producer_sha[:12], saved['sha256'][:12],
+                        'idénticos — la traza describe la misma imagen' if media_eq
+                        else 'DIFEREN — la traza NO se presenta como de la imagen cacheada'))
+            if not media_eq:
+                log('aviso: imagen decodificable distinta entre caché e instrumentación; '
+                    'binds_to_evaluated_image=false')
+            instrumented = {
+                'seconds': seconds,
+                'completed': done,
+                'braw_sha256': producer_sha,
+                'media_equivalent': media_eq,
+                'file_sha_equal': producer_sha == saved['sha256'],
+                'mdat_sha256': braw_inspect.atom_sha256(out, b'mdat'),
+                'moov_sha256': braw_inspect.atom_sha256(out, b'moov'),
+            }
+            src_log = os.path.join(instr, 'convert.log')
+            if os.path.isfile(src_log):
+                shutil.copy2(src_log, os.path.join(directory, 'convert.instrumented.log'))
+            # Solo publicar traza si nació en instr.tmp; una traza vieja en directory no basta.
+            trace_id, trace_meta = _publish_fresh_trace(
+                instr, directory, key, material, saved['sha256'], producer_sha,
+                diagnostic, media_eq, instrumented)
+            _require_requested_traces(directory, diagnostic, expect_body_sha=trace_meta['trace_body_sha256'])
         finally:
             shutil.rmtree(instr, ignore_errors=True)
-        return dict(saved, path=os.path.join(directory, 'clip.braw'), key=key, reused=True,
-                    experimental_env=effective, inputs=material['inputs'], seconds=seconds,
-                    trace=trace_id, trace_refreshed=True, completed=done)
+        # completed/seconds del BRAW efectivamente evaluado (caché); instrumented aparte.
+        return dict(saved, path=evaluated_path, key=key, reused=True,
+                    experimental_env=effective, inputs=material['inputs'],
+                    completed=saved['completed'], seconds=saved['seconds'],
+                    instrumented=instrumented, media_equivalent=media_eq,
+                    binds_to_evaluated_image=media_eq,
+                    trace=trace_id, trace_refreshed=True, trace_meta=trace_meta)
 
     if os.path.isdir(directory):
         shutil.rmtree(directory)
@@ -364,13 +423,26 @@ def convert(converter, converter_id, clip_dir, files, start, count, encode, cach
     saved = {'material': material, 'sha256': identity.sha256_file(out), 'completed': done, 'seconds': seconds}
     with open(os.path.join(tmp, 'identity.json'), 'w') as f:
         json.dump(saved, f, indent=1, sort_keys=True)
-    os.rename(tmp, directory)
     trace_id = None
+    trace_meta = None
     if want_diag:
-        trace_id = _write_trace_identity(directory, key, material, saved['sha256'], diagnostic)
-        _require_requested_traces(directory, diagnostic)
+        instrumented = {
+            'seconds': seconds,
+            'completed': done,
+            'braw_sha256': saved['sha256'],
+            'media_equivalent': True,
+            'file_sha_equal': True,
+        }
+        # Traza fresca en tmp (mismo directorio que se publicará).
+        trace_id, trace_meta = _publish_fresh_trace(
+            tmp, tmp, key, material, saved['sha256'], saved['sha256'],
+            diagnostic, True, instrumented)
+        _require_requested_traces(tmp, diagnostic, expect_body_sha=trace_meta['trace_body_sha256'])
+    os.rename(tmp, directory)
     return dict(saved, path=os.path.join(directory, 'clip.braw'), key=key, reused=False,
-                experimental_env=effective, inputs=material['inputs'], trace=trace_id)
+                experimental_env=effective, inputs=material['inputs'],
+                instrumented=None, media_equivalent=True, binds_to_evaluated_image=True,
+                trace=trace_id, trace_meta=trace_meta)
 
 
 def decode_args(settings):

@@ -141,10 +141,26 @@ def run(args):
             start, count, fs = rng
             conv = P.convert(converter_dir, conv_id, clip, files, start, count, doc['encode'], cache, log, args.no_cache)
             cache_use.append({'kind': 'braw', 'key': conv['key'], 'reused': conv['reused']})
-            timing['conversions'].append({'test': t['id'], 'range': [start, count], 'seconds': conv['seconds'], 'reused': conv['reused']})
-            shutil.copyfile(os.path.join(os.path.dirname(conv['path']), 'convert.log'),
-                            os.path.join(run_dir, 'logs', 'convert_%s_%03d-%03d.log' % (t['id'], start, start + count - 1)))
+            conv_timing = {'test': t['id'], 'range': [start, count], 'seconds': conv['seconds'],
+                           'reused': conv['reused']}
+            if conv.get('instrumented'):
+                conv_timing['instrumented_seconds'] = conv['instrumented'].get('seconds')
+                conv_timing['media_equivalent'] = conv.get('media_equivalent')
+                conv_timing['binds_to_evaluated_image'] = conv.get('binds_to_evaluated_image')
+                conv_timing['evaluated_braw_sha256'] = conv.get('sha256')
+                conv_timing['producer_braw_sha256'] = conv['instrumented'].get('braw_sha256')
+            timing['conversions'].append(conv_timing)
             cache_dir = os.path.dirname(conv['path'])
+            convert_log = os.path.join(cache_dir, 'convert.log')
+            if os.path.isfile(convert_log):
+                shutil.copyfile(convert_log,
+                                os.path.join(run_dir, 'logs', 'convert_%s_%03d-%03d.log' % (
+                                    t['id'], start, start + count - 1)))
+            instr_log = os.path.join(cache_dir, 'convert.instrumented.log')
+            if os.path.isfile(instr_log):
+                shutil.copyfile(instr_log,
+                                os.path.join(run_dir, 'logs', 'convert_%s_%03d-%03d.instrumented.log' % (
+                                    t['id'], start, start + count - 1)))
             for name in ('clip.pipeline-trace.txt', 'pipeline-trace.identity.json'):
                 src = os.path.join(cache_dir, name)
                 if os.path.isfile(src):

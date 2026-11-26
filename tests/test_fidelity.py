@@ -288,6 +288,151 @@ class ExperimentalEnvAndSetupTests(unittest.TestCase):
         self.assertTrue(P.conversion_diagnostics({'CDNG_PIPELINE_TRACE': '1'}))
         self.assertTrue(P.conversion_diagnostics({'CDNG_DUMP_CANVAS': '/tmp/x'}))
 
+    def test_publish_fresh_trace_rejects_stale_cache_only(self):
+        """Una traza antigua en la caché no satisface la regeneración instrumentada."""
+        from tools.fidelity import pipeline as P
+        with tempfile.TemporaryDirectory() as d:
+            cache = os.path.join(d, 'cache')
+            instr = os.path.join(d, 'instr')
+            os.makedirs(cache)
+            os.makedirs(instr)
+            open(os.path.join(cache, 'clip.pipeline-trace.txt'), 'w').write('TRAZA_VIEJA\n')
+            open(os.path.join(cache, 'pipeline-trace.identity.json'), 'w').write(
+                '{"generated":"2000-01-01","trace_body_sha256":"dead"}\n')
+            with self.assertRaises(P.PipelineError) as cm:
+                P._publish_fresh_trace(
+                    instr, cache, 'keyabc', {'kind': 'braw'}, 'evalsha', 'prodsha',
+                    {'CDNG_PIPELINE_TRACE': '1'}, True, {'seconds': 1.0})
+            self.assertIn('no escribió', str(cm.exception))
+            # La traza vieja sigue ahí; no se publicó nada nuevo.
+            self.assertEqual(open(os.path.join(cache, 'clip.pipeline-trace.txt')).read(), 'TRAZA_VIEJA\n')
+
+    def test_publish_fresh_trace_replaces_stale_and_records_both_hashes(self):
+        from tools.fidelity import pipeline as P, identity
+        with tempfile.TemporaryDirectory() as d:
+            cache = os.path.join(d, 'cache')
+            instr = os.path.join(d, 'instr')
+            os.makedirs(cache)
+            os.makedirs(instr)
+            open(os.path.join(cache, 'clip.pipeline-trace.txt'), 'w').write('TRAZA_VIEJA\n')
+            open(os.path.join(cache, 'pipeline-trace.identity.json'), 'w').write('{"generated":"old"}\n')
+            body = 'frame 0 Y math_above=61\n'
+            open(os.path.join(instr, 'clip.pipeline-trace.txt'), 'w').write(body)
+            path, meta = P._publish_fresh_trace(
+                instr, cache, 'convkey', {'kind': 'braw'}, 'sha_evaluado', 'sha_productor',
+                {'CDNG_PIPELINE_TRACE': '1'}, True,
+                {'seconds': 2.5, 'completed': {'event': 'completed', 'q_min': 18}, 'braw_sha256': 'sha_productor'})
+            self.assertTrue(os.path.isfile(path))
+            self.assertEqual(meta['evaluated_braw_sha256'], 'sha_evaluado')
+            self.assertEqual(meta['producer_braw_sha256'], 'sha_productor')
+            self.assertEqual(meta['braw_sha256'], 'sha_evaluado')
+            self.assertEqual(meta['instrumented_braw_sha256'], 'sha_productor')
+            self.assertTrue(meta['binds_to_evaluated_image'])
+            self.assertTrue(meta['media_equivalent'])
+            self.assertFalse(meta['braw_file_sha_equal'])
+            self.assertEqual(meta['trace_body_sha256'], identity.sha256_bytes(body.encode()))
+            self.assertEqual(meta['instrumented']['seconds'], 2.5)
+            text = open(os.path.join(cache, 'clip.pipeline-trace.txt')).read()
+            self.assertIn('frame 0 Y math_above=61', text)
+            self.assertNotIn('TRAZA_VIEJA', text)
+            self.assertIn('# producer_braw_sha256 sha_productor', text)
+            self.assertIn('# evaluated_braw_sha256 sha_evaluado', text)
+            P._require_requested_traces(cache, {'CDNG_PIPELINE_TRACE': '1'},
+                                        expect_body_sha=meta['trace_body_sha256'])
+
+    def test_publish_fresh_trace_marks_non_binding_when_media_differs(self):
+        from tools.fidelity import pipeline as P
+        with tempfile.TemporaryDirectory() as d:
+            cache = os.path.join(d, 'cache')
+            instr = os.path.join(d, 'instr')
+            os.makedirs(cache)
+            os.makedirs(instr)
+            open(os.path.join(instr, 'clip.pipeline-trace.txt'), 'w').write('fresh\n')
+            _, meta = P._publish_fresh_trace(
+                instr, cache, 'k', {}, 'a', 'b', {'CDNG_PIPELINE_TRACE': '1'}, False,
+                {'seconds': 1.0})
+            self.assertFalse(meta['binds_to_evaluated_image'])
+            self.assertFalse(meta['media_equivalent'])
+
+    def test_braw_inspect_same_media_on_determinism_corpus(self):
+        """Corpus EXP-001: mdat idéntico entre repeticiones aunque el SHA del fichero difiera."""
+        from tools.fidelity import braw_inspect
+        root = os.path.join(ROOT, 'out/benchmark/experiments/exp001/determinism')
+        files = []
+        for dirpath, _, names in os.walk(os.path.join(root, 'cache')):
+            if 'clip.braw' in names:
+                files.append(os.path.join(dirpath, 'clip.braw'))
+        if len(files) < 2:
+            self.skipTest('corpus de determinismo no disponible')
+        files.sort()
+        fa = braw_inspect.media_fingerprint(files[0])
+        fb = braw_inspect.media_fingerprint(files[1])
+        self.assertTrue(fa['mdat_sha256'])
+        self.assertTrue(fa['frames'])
+        self.assertEqual(braw_inspect.same_media(files[0], files[1]),
+                         fa['mdat_sha256'] == fb['mdat_sha256'])
+
+    def test_diagnostic_refresh_keeps_cached_completed(self):
+        """Al regenerar trazas, compression/completed siguen siendo del BRAW cacheado."""
+        from unittest import mock
+        from tools.fidelity import pipeline as P, identity
+
+        cached_done = {'event': 'completed', 'bytes': 1000, 'frames': 2,
+                       'ratio_achieved': 3.0, 'q_min': 18, 'q_max': 18}
+        instr_done = {'event': 'completed', 'bytes': 9999, 'frames': 2,
+                      'ratio_achieved': 9.9, 'q_min': 1, 'q_max': 1}
+        with tempfile.TemporaryDirectory() as d:
+            a = os.path.join(d, 'a.dng')
+            open(a, 'wb').write(b'DNG')
+            cache = os.path.join(d, 'cache')
+            enc = self._encode(diagnostic_env={'CDNG_PIPELINE_TRACE': '1'})
+            req, effective, env, diagnostic = P.encode_request(enc, environ={})
+            conv_id = {'cdng_convert_sha256': 'worker' * 8, 'model': {}}
+            material = P.conversion_material(conv_id, d, [a], 0, req, effective)
+            key = identity.sha256_json(material)
+            directory = os.path.join(cache, 'braw', key[:24])
+            os.makedirs(directory)
+            # BRAW mínimo: fingerprint fallará; mockeamos same_media.
+            braw = os.path.join(directory, 'clip.braw')
+            open(braw, 'wb').write(b'BRAW_CACHED')
+            saved = {'material': material, 'sha256': identity.sha256_file(braw),
+                     'completed': cached_done, 'seconds': 11.0}
+            with open(os.path.join(directory, 'identity.json'), 'w') as f:
+                json.dump(saved, f)
+
+            def fake_worker(converter, clip_dir, staged, req, env, diagnostic, tmp):
+                out = os.path.join(tmp, 'clip.braw')
+                open(out, 'wb').write(b'BRAW_INSTRUMENTED_DIFF')
+                open(os.path.join(tmp, 'clip.pipeline-trace.txt'), 'w').write('Y math_above=0\n')
+                open(os.path.join(tmp, 'convert.log'), 'w').write('ok\n')
+                return out, [{'event': 'started'}], instr_done, 3.0
+
+            logs = []
+            with mock.patch.object(P, '_run_convert_worker', side_effect=fake_worker), \
+                 mock.patch.object(P.braw_inspect, 'same_media', return_value=True), \
+                 mock.patch.object(P.braw_inspect, 'atom_sha256', return_value='mdat'), \
+                 mock.patch.object(P, 'ambient_cdng', return_value={}):
+                result = P.convert('/converter', conv_id, d, [a], 0, 1, enc, cache,
+                                   log=logs.append, no_cache=False)
+            self.assertTrue(result['reused'])
+            self.assertTrue(result['trace_refreshed'])
+            self.assertEqual(result['completed'], cached_done)
+            self.assertEqual(result['seconds'], 11.0)
+            self.assertEqual(result['instrumented']['completed'], instr_done)
+            self.assertEqual(result['instrumented']['seconds'], 3.0)
+            self.assertNotEqual(result['sha256'], result['instrumented']['braw_sha256'])
+            self.assertTrue(result['binds_to_evaluated_image'])
+            # compression del runner usaría completed cacheado
+            from tools.fidelity import runner as R
+            comp = R.compression(result, {'frame_info': {'frame_bytes': 100}}, np.zeros((4, 4, 3)))
+            self.assertEqual(comp['braw_bytes'], 1000)
+            self.assertEqual(comp['q_min'], 18)
+            text = open(os.path.join(directory, 'clip.pipeline-trace.txt')).read()
+            self.assertIn('Y math_above=0', text)
+            meta = json.load(open(os.path.join(directory, 'pipeline-trace.identity.json')))
+            self.assertEqual(meta['evaluated_braw_sha256'], saved['sha256'])
+            self.assertEqual(meta['producer_braw_sha256'], result['instrumented']['braw_sha256'])
+
     def test_og_deblock_precomp_in_output_env(self):
         from tools.fidelity import pipeline as P, identity
         self.assertIn('CDNG_OG_DEBLOCK_PRECOMP', P.OUTPUT_ENV)

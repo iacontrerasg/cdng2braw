@@ -84,6 +84,27 @@ CDNG_OG_DEBLOCK_PRECOMP=0|off|false # ablación
 
 `encode.diagnostic_env` (p. ej. `CDNG_PIPELINE_TRACE=1`) se pasa al worker **sin** entrar en la clave de caché. Manifiestos `*-trace.json`.
 
+Si el BRAW ya está en caché, el banco:
+
+1. Conserva el BRAW evaluado y sus metadatos de conversión/compresión (`completed`, `seconds`, `q_*`, ratios).
+2. Re-ejecuta el worker en un directorio temporal solo para instrumentación.
+3. Publica la traza **solo si** nace en ese tmp (`clip.pipeline-trace.txt`); una traza antigua en la caché no satisface la comprobación.
+4. Registra en `pipeline-trace.identity.json`: `trace_sha256` / `trace_body_sha256`, `evaluated_braw_sha256` (caché) y `producer_braw_sha256` (corrida instrumentada), más el bloque `instrumented` (tiempos, `completed` del re-encode).
+5. `binds_to_evaluated_image` es verdadero solo si `mdat`/payloads coinciden (`tools/fidelity/braw_inspect.same_media`). Si la imagen difiere, la traza **no** se presenta como de la imagen cacheada.
+
+## 4.1 Determinismo del contenedor BRAW (A04)
+
+Conversiones independientes A04 (misma compilación, entradas y configuración), ratio 3:1 y q fijo 18, con y sin instrumentación (2 repeticiones cada una). Artefacto: `out/benchmark/experiments/exp001/determinism/braw-determinism.json`.
+
+| Comparación | Fichero SHA | moov | mdat | payloads/slices/q/tamaños | RGB float decodificado |
+|---|---|---|---|---|---|
+| plain×2 @ 3:1 | distinto | distinto | **igual** | **igual** | **idéntico** (max_abs 0) |
+| plain vs trace @ 3:1 | distinto | distinto | **igual** | **igual** | **idéntico** |
+| plain×2 @ q18 | distinto | distinto | **igual** | **igual** | **idéntico** |
+| plain vs trace @ q18 | distinto | distinto | **igual** | **igual** | **idéntico** |
+
+**Conclusión:** las diferencias de SHA-256 del BRAW completo son **solo del contenedor** (átomo `moov`). El payload comprimido, la cuantización y la imagen decodificada son deterministas entre corridas e instrumentación. No tratar el SHA del fichero como identidad de imagen; no hace falta (aún) forzar determinismo del encoder/moov.
+
 ## 5. Revelado
 
 P3 D65, Linear, csgen 5, hlry 0, escala full, WB As Shot, exposure del manifiesto (−3 EV en A04_f044). Atributos críticos ausentes o inconsistentes **detienen** la evaluación. Limitación As Shot: no hay cruce con AsShotNeutral del DNG; sí se exige ISO SDK ≈ ISO del manifiesto cuando el SDK reporta `fiso`.
@@ -116,11 +137,9 @@ python -m tools.fidelity compare \
   out/benchmark/runs/exp001-series-a-ablation \
   --allow-setup-differences --dest out/benchmark/comparisons/exp001-ablation-vs-control
 
-# Trazas: diagnostic_env no entra en la identidad de caché del BRAW. Si el BRAW ya
-# está en caché, el banco re-ejecuta el worker solo para instrumentación, conserva
-# el BRAW cacheado (el códec/rate-search no es bit-idéntico entre corridas) y escribe
-# clip.pipeline-trace.txt + pipeline-trace.identity.json (conversion_key + braw_sha256
-# de la caché; instrumented_braw_sha256 si el re-encode difirió). No hace falta --no-cache.
+# Trazas: diagnostic_env no entra en la identidad de caché. Re-encode instrumentado
+# en tmp; completed/compression del BRAW cacheado; traza fresca + hashes evaluado/productor.
+# El SHA del contenedor puede diferir (moov); mdat/imagen son equivalentes (§4.1).
 make benchmark DATASET=~/Desktop/BMD TEST=A04 SERIES= RUN=exp001-a04-control-trace \
   MANIFEST=benchmark/experiments/exp001-control-3to1-trace.json
 make benchmark DATASET=~/Desktop/BMD TEST=A04 SERIES= RUN=exp001-a04-ablation-trace \
@@ -229,4 +248,4 @@ Los 61 del informe inicial coinciden con **overshoot matemático + clamp efectiv
 2. **BUG-002 / EXP croma:** submuestreo y reconstrucción de Cb/Cr (la Δu'v' residual tras ablación sigue ~0.014).
 3. **EXP-002:** estudio de cuantización/ratio, ahora que sabemos que q confunde ablaciones de señal.
 
-No merge ni push de esta rama sin autorización.
+No merge a main sin autorización. Las correcciones de revisión se publican en esta rama.
